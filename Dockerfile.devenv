@@ -1,0 +1,13 @@
+FROM ubuntu:latest as development
+WORKDIR /src
+
+USER root
+
+# Install tools
+RUN apt-get update
+RUN apt-get upgrade -y
+RUN apt-get install curl -y
+
+RUN https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+
+# CMD ['node','install-all.js']
