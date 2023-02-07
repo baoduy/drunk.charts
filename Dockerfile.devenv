@@ -1,12 +1,15 @@
-FROM alpine/helm:latest as development
+FROM alpine/k8s:1.23.16 as development
 WORKDIR /src
 
 USER root
 
 # Install tools
-# RUN apt-get update
-# RUN apt-get upgrade -y
-# RUN apt-get install curl -y
+#RUN apk update
+#RUN apk add -q ca-certificates curl
+#RUN curl -fsSLo /etc/apt/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+#RUN echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apk/sources.list.d/kubernetes.list
+#RUN apk update
+#RUN apk add -q kubectl
 
 # RUN https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 

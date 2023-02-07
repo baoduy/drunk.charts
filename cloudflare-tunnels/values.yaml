@@ -11,7 +11,7 @@ image:
 
 secrets:
   create: true
-  data: 
+  stringData:
     token: '123'
     
 podAnnotations: {}

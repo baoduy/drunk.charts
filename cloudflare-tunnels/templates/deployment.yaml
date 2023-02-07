@@ -13,14 +13,15 @@ spec:
     matchLabels:
       {{- include "project.selectorLabels" . | nindent 6 }}
   template:
-     {{- with .Values.podAnnotations }}
+    metadata:
+      {{- with .Values.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "project.selectorLabels" . | nindent 8 }}
-  spec:
-      automountServiceAccountToken: false
+          {{- include "project.selectorLabels" . | nindent 8 }}
+    spec:
+      #automountServiceAccountToken: false
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}

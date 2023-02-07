@@ -1,9 +1,0 @@
----
-# Source: cloudflare-tunnels/templates/namespace.yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    name:  cloudflare-tunnels
-  name: cloudflare-tunnels
-  namespace: cloudflare-tunnels
