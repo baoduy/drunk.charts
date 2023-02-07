@@ -1,14 +1,18 @@
 replicaCount: 1
 fullnameOverride: 'cloudflare-tunnels'
 
+serviceAccount:
+  create: false
+
 image:
   repository: cloudflare/cloudflared
   tag: latest
   pullPolicy: Always
 
 secrets:
+  create: true
   data: 
-    - token: '123'
+    token: '123'
     
 podAnnotations: {}
 

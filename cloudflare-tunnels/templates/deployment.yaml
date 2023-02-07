@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "project.fullname" . }}
-  labels: {{ - include "project.labels" . | nindent 4 }}
+  labels: {{- include "project.labels" . | nindent 4 }}
   namespace: {{ include "project.name" . }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
@@ -19,7 +19,7 @@ spec:
       {{- end }}
       labels:
         {{- include "project.selectorLabels" . | nindent 8 }}
-    spec:
+  spec:
       automountServiceAccountToken: false
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
