@@ -30,7 +30,7 @@ spec:
         - name: {{ include "app.name" . }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.global.image }}:{{ .Chart.AppVersion }}"
+          image: "{{ .Values.global.image }}:{{ .Values.global.tag | default .Chart.AppVersion }}"
           imagePullPolicy: "Always"
           ports:
             - name: http

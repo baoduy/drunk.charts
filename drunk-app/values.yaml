@@ -4,6 +4,7 @@ nameOverride: "your-app-name"
 
 global:
   image: "baoduy2412/astro-blog"
+  tag: "latest"
   #imagePullSecrets: []
   port: 80
   replicaCount: 1
