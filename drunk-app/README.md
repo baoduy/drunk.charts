@@ -1,4 +1,4 @@
-# The Helm template
+# The drunk-app Helm template
 The help template had been simplified to deploy an application to Kubernetes cluster.
 
 Here is the sample of the `value.yaml` file

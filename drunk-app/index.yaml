@@ -1,0 +1,14 @@
+apiVersion: v1
+entries:
+  drunk-app:
+  - apiVersion: v2
+    appVersion: 1.0.0
+    created: "2024-01-23T11:32:51.132149+08:00"
+    description: The drunkcoding template to deploy an application to Kubernetes
+    digest: f6ffe38d9bc3c3d9f6f15ee4aed6636f102149ed323a2738da96e0a72b0d3c58
+    name: drunk-app
+    type: application
+    urls:
+    - drunk-app-0.1.0.tgz
+    version: 0.1.0
+generated: "2024-01-23T11:32:51.131415+08:00"
