@@ -1,7 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    name:  {{ include "project.name" . }}
-  name: {{ include "project.name" . }}
-  namespace: {{ include "project.name" . }}

@@ -1,0 +1,8 @@
+---
+# Source: drunk-app/templates/configMap.yaml
+apiVersion: "v1"
+kind: ConfigMap
+metadata:
+  name: test-your-app-name-config
+data:
+  hello: "1"
