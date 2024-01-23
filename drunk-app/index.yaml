@@ -9,6 +9,6 @@ entries:
     name: drunk-app
     type: application
     urls:
-    - https://baoduy.github.io/hbd.charts/drunk-app/drunk-app-0.1.0.tgz
+    - drunk-app-0.1.0.tgz
     version: 0.1.0
 generated: "2024-01-23T11:32:51.131415+08:00"
