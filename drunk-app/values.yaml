@@ -6,9 +6,9 @@ global:
   image: "baoduy2412/astro-blog"
   tag: "latest"
   #imagePullSecrets: []
-  port: 80
+  port: 8080
   replicaCount: 1
-  #liveness: "/healthz"
+  liveness: "/healthz"
   #readiness: "/healthz/ready"
 
 #Environments variables through configMap and secrets
