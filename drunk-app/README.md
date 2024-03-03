@@ -31,15 +31,33 @@ The command removes all the Kubernetes components associated with the chart and 
 
 The following table lists the configurable parameters of the Drunk Test App chart and their default values.
 
-| Parameter                | Description             | Default     |
-| ------------------------ | ----------------------- |-------------|
-| `global.image`           | Drunk Test App image    | ``          |
-| `global.tag`             | Image tag               | `latest`    |
-| `global.imagePullPolicy` | Image pull policy       | `Always`    |
-| `global.port`            | Drunk Test App port     | `8080`      |
-| `global.replicaCount`    | Number of nodes         | `1`         |
-| `service.type`           | Kubernetes Service type | `ClusterIP` |
-| `resources`              | CPU/Memory resource requests/limits | `{}`        |
+| Parameter                         | Description                                      | Default                        |
+|-----------------------------------|--------------------------------------------------|--------------------------------|
+| `nameOverride`                    | Override the app name                            | `drunk-test-app`               |
+| `global.image`                    | Global image for the application                 | `baoduy2412/astro-blog`        |
+| `global.tag`                      | Global image tag                                 | `latest`                       |
+| `global.imagePullPolicy`          | Image pull policy                                | `IfNotPresent`                 |
+| `global.port`                     | Application port                                 | `8080`                         |
+| `global.replicaCount`             | Number of replicas                               | `1`                            |
+| `global.liveness`                 | Liveness probe endpoint                          | `/healthz`                     |
+| `configMap.hello`                 | Sample configMap entry                           | `1`                            |
+| `secrets.connectionString`        | Connection string (use external secret)          | `ABC`                          |
+| `deploymentEnabled`               | Enable deployment of the pod                     | `true`                         |
+| `cronJobs`                        | Configuration for cron jobs                      | See values.yaml                |
+| `jobs`                            | Configuration for jobs                           | See values.yaml                |
+| `serviceAccount.create`           | Specifies whether a service account should be created | `true`                     |
+| `podSecurityContext`              | Security context for the pod                     | `{fsGroup: 10000, runAsUser: 10000, runAsGroup: 10000}` |
+| `securityContext`                 | Security settings for containers in the pod      | See values.yaml                |
+| `service.type`                    | Kubernetes Service type                          | `ClusterIP`                    |
+| `ingress.enabled`                 | Enable ingress controller resource               | `true`                         |
+| `resources`                       | CPU/Memory resource requests/limits              | `{}`                           |
+| `autoscaling.enabled`             | Enable horizontal pod autoscaler                 | `false`                        |
+
+## Customizing the Chart Before Installing
+
+To configure the chart with custom values:
+
+
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,
 
@@ -104,3 +122,47 @@ The chart allows you to specify resource requests and limits for the application
 | `resources.limits.memory`| Memory limit | `128Mi` |
 | `resources.requests.cpu` | CPU request | `100m` |
 | `resources.requests.memory` | Memory request | `128Mi` |
+
+
+# Contribution
+
+## How to run unit test
+
+- install helm unit test plugin refer [here](https://github.com/helm-unittest/helm-unittest) for details:
+```shell
+helm plugin install https://github.com/helm-unittest/helm-unittest
+```
+
+- add test file `$ChartFolder/tests/name_test.yaml`
+```yaml
+suite: test configMap
+templates:
+  - configMap.yaml
+tests:
+  - it: should enabled when
+    set:
+      configMap:
+        key: "hello"
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - matchRegex:
+          path: metadata.name
+          pattern: drunk-app
+      - equal:
+          path: data.key
+          value: "hello"
+```
+
+- run unit-tests
+```shell
+helm unittest ./
+
+### Chart [ drunk-app ] ./
+
+Charts:      1 passed, 1 total
+Test Suites: 0 passed, 0 total
+Tests:       0 passed, 0 total
+Snapshot:    0 passed, 0 total
+Time:        1.563896ms
+```

@@ -1,0 +1,17 @@
+suite: test configMap
+templates:
+  - configMap.yaml
+tests:
+  - it: should enabled when
+    set:
+      configMap:
+        key: "hello"
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - matchRegex:
+          path: metadata.name
+          pattern: drunk-app
+      - equal:
+          path: data.key
+          value: "hello"
