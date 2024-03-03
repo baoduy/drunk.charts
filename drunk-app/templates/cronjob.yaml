@@ -21,7 +21,7 @@ spec:
           serviceAccountName: {{ include "app.serviceAccountName" $root }}
           securityContext:
             {{- toYaml $.Values.podSecurityContext | nindent 12 }}
-          restartPolicy: OnFailure
+          restartPolicy: {{ .restartPolicy | default "OnFailure" }}
           containers:
           - name: {{ .name }}
             securityContext:

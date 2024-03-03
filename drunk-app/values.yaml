@@ -24,6 +24,13 @@ deploymentEnabled: 'true'
 #cronJobs:
 #  - name: 'job-one'
 #    schedule: "* 0 * * *"
+#    restartPolicy: OnFailure
+#    command:
+#      - 'Job_Parameters'
+
+#cronJobs:
+#  - name: 'job-one'
+#    restartPolicy: OnFailure
 #    command:
 #      - 'Job_Parameters'
 

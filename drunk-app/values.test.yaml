@@ -23,12 +23,23 @@ secrets:
 deploymentEnabled: true
 
 cronJobs:
-  - name: 'drunk-job-1'
+  - name: 'drunk-cjob-1'
     schedule: "* 0 * * *"
     command:
       - hello
-  - name: 'drunk-job-2'
+  - name: 'drunk-cjob-2'
     schedule: "* 0 * * *"
+    restartPolicy: Always
+    command:
+      - hello-1
+      - hello-2
+
+jobs:
+  - name: 'drunk-job-1'
+    command:
+      - hello
+  - name: 'drunk-job-2'
+    restartPolicy: Always
     command:
       - hello-1
       - hello-2
