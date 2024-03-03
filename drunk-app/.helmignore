@@ -22,3 +22,6 @@
 *.tmproj
 .vscode/
 tests
+*.sh
+*.tgz
+*.test.yaml
