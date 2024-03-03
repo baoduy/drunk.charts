@@ -1,3 +1,4 @@
+{{- if .Values.deploymentEnabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -31,7 +32,7 @@ spec:
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.global.image }}:{{ .Values.global.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: "Always"
+          imagePullPolicy: "{{ .Values.global.imagePullPolicy | default "Always" }}"
           ports:
             - name: http
               containerPort: {{ .Values.global.port | default 8080 }}
@@ -71,3 +72,4 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+{{- end }}
