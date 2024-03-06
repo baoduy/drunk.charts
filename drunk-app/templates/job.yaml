@@ -4,10 +4,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .name }}
+  # Generate random 5 characters allows to re-deploy the job
+  name: {{ .name }}-{{ randAlphaNum 5 | lower }}
   labels:
     {{- include "app.labels" $root | nindent 4 }}
 spec:
+  backoffLimit: 4
+  # TTL set for 1 week after job completion
+  ttlSecondsAfterFinished: 604800
   template:
     spec:
       automountServiceAccountToken: false
