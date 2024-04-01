@@ -4,8 +4,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  # Generate random 5 characters allows to re-deploy the job
-  name: {{ .name }}-{{ randAlphaNum 5 | lower }}
+  name: {{ include "app.name" $root }}-{{ .name }}-{{ randAlphaNum 5 | lower }}
   labels:
     {{- include "app.labels" $root | nindent 4 }}
 spec:

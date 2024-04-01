@@ -3,22 +3,12 @@ entries:
   drunk-app:
   - apiVersion: v2
     appVersion: latest
-    created: "2024-03-06T09:45:53.21137+08:00"
+    created: "2024-04-01T16:28:06.811099+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 9cd7afa72cc1b584f29f39aa3547be007adfa927be9ccc3ee36bcb38501bbbad
-    name: drunk-app
-    type: application
-    urls:
-    - drunk-app-1.0.1.tgz
-    version: 1.0.1
-  - apiVersion: v2
-    appVersion: latest
-    created: "2024-03-06T09:45:53.210625+08:00"
-    description: The drunkcoding template to deploy an application to Kubernetes
-    digest: a7da6e2763aa8d62729bb47d83c70bf7efb73426728424ee359dda66a206802b
+    digest: 7061ae0d7dfbbfdf79211670cd191a5ea678ce1f05ba2a6b4bd09d577bba2dc5
     name: drunk-app
     type: application
     urls:
     - drunk-app-1.0.0.tgz
     version: 1.0.0
-generated: "2024-03-06T09:45:53.209712+08:00"
+generated: "2024-04-01T16:28:06.810265+08:00"

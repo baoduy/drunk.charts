@@ -1,0 +1,18 @@
+{{- $root := . }}
+{{- range .Values.volumes }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "app.name" $root }}-{{ .name }}
+  labels:
+    {{- include "app.labels" $root | nindent 4 }}
+spec:
+  resources:
+    requests:
+      storage: {{ .size }}
+  volumeMode: Filesystem
+  accessModes:
+    - {{ .accessMode }}
+  storageClassName: {{ .storageClassName }}
+{{- end }}
