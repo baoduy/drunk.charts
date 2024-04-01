@@ -4,7 +4,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .name }}
+  name: {{ include "app.name" $root }}-{{ .name }}
   labels:
     {{- include "app.labels" $root | nindent 4 }}
 spec:

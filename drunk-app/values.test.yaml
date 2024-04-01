@@ -44,6 +44,15 @@ jobs:
       - hello-1
       - hello-2
 
+volumes:
+  - name: data-vol
+    size: '2Gi'
+    storageClassName: 'abc'
+    accessMode: 'ReadWriteOnce'
+    mountPath: '/data'
+    subPath: 'abc.dev'
+    readOnly: false
+
 serviceAccount:
   create: true
   annotations: {}

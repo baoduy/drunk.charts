@@ -1,3 +1,4 @@
+{{- $root := . }}
 {{- if .Values.deploymentEnabled -}}
 apiVersion: apps/v1
 kind: Deployment
@@ -50,16 +51,38 @@ spec:
               port: http
           {{- end }}
           envFrom:
-            {{- if .Values.configMap }}
+          {{- if .Values.configMap }}
             - configMapRef:
-                name: {{ include "app.fullname" . }}-config
-            {{- end }}
-            {{- if .Values.secrets }}
+                name: {{ include "app.name" . }}-config
+          {{- end }}
+          {{- if .Values.secrets }}
             - secretRef:
-                name: {{ include "app.fullname" . }}-secret
-            {{- end }}
+                name: {{ include "app.name" . }}-secret
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+
+          {{- if .Values.volumes }}
+          volumeMounts:
+          {{- range .Values.volumes }}
+            - name: {{ .name }}
+              readOnly: {{ .readOnly | default false }}
+              mountPath: {{ .mountPath }}
+            {{- if .subPath }}
+              subPath: {{ .subPath }}
+            {{- end }}
+          {{- end }}
+          {{- end }}
+
+      {{- if .Values.volumes }}
+      volumes:
+      {{- range .Values.volumes }}
+        - name: {{ .name }}
+          persistentVolumeClaim:
+            claimName: {{ include "app.name" $root }}-{{ .name }}
+      {{- end }}
+      {{- end }}
+      
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

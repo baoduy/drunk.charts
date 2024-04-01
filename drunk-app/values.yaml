@@ -9,7 +9,7 @@
 #   port: 8080
 #   replicaCount: 1
 #   liveness: "/healthz"
-#  readiness: "/healthz/ready"
+#   readiness: "/healthz/ready"
 
 # Environments variables through configMap and secrets
 # configMap:
