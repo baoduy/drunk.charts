@@ -9,6 +9,9 @@ metadata:
     {{- include "app.labels" $root | nindent 4 }}
 spec:
   schedule: "{{ .schedule }}"
+  # Keep only one successful and one failed job history
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
       template:

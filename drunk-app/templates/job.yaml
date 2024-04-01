@@ -4,10 +4,13 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "app.name" $root }}-{{ .name }}
+  name: {{ include "app.name" $root }}-{{ .name }}-{{ randAlphaNum 5 | lower }}
   labels:
     {{- include "app.labels" $root | nindent 4 }}
 spec:
+  backoffLimit: 4
+  # TTL set for 1 week after job completion
+  ttlSecondsAfterFinished: 604800
   template:
     spec:
       automountServiceAccountToken: false
