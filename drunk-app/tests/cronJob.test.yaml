@@ -1,0 +1,78 @@
+suite: test configMap
+templates:
+  - cronjob.yaml
+tests:
+  - it: cronjob should be generated when
+    set:
+      global:
+        image: 'abc'
+        imagePullSecret: 'pull-secret'
+      cronJobs:
+      - name: 'drunk-cjob-1'
+        schedule: "* 0 * * *"
+        command:
+          - hello
+      - name: 'drunk-cjob-2'
+        schedule: "* 0 * * *"
+        command:
+          - hello-1
+          - hello-2
+    asserts:
+      - isKind:
+          of: CronJob
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.automountServiceAccountToken
+          value: false
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.imagePullSecrets.name
+          value: 'pull-secret'
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.serviceAccountName
+          value: RELEASE-NAME-drunk-app
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.restartPolicy
+          value: OnFailure
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: abc:latest
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+  - it: cronjob should be generated when
+    set:
+      global:
+        image: 'abc'
+        tag: '1.0.0'
+        imagePullPolicy: Never
+        imagePullSecret: 'pull-secret'
+      cronJobs:
+        - name: 'drunk-cjob-2'
+          schedule: "* 0 * * *"
+          restartPolicy: Never
+          command:
+            - hello-1
+            - hello-2
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.restartPolicy
+          value: Never
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].name
+          value: drunk-cjob-2
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: abc:1.0.0
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: abc:1.0.0
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].imagePullPolicy
+          value: Never
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.containers[0].command
+          content:
+            - hello-1
+            - hello-2
+          any: true

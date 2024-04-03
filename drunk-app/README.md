@@ -12,7 +12,7 @@ This Helm chart deploys the Drunk Test App on a [Kubernetes](http://kubernetes.i
 To install the chart with the release name `my-release`:
 
 ```bash
-$ helm install my-release path_to_chart/drunk-test-app
+$ helm install my-release https://baoduy.github.io/hbd.charts/drunk-app/
 ```
 
 The command deploys Drunk Test App on the Kubernetes cluster in the default configuration. The [configuration](#configuration) section lists the parameters that can be configured during installation.
@@ -62,13 +62,13 @@ To configure the chart with custom values:
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,
 
 ```bash
-$ helm install my-release --set global.tag=latest path_to_chart/drunk-test-app
+$ helm install my-release --set global.tag=latest https://baoduy.github.io/hbd.charts/drunk-app/
 ```
 
 Alternatively, a YAML file that specifies the values for the parameters can be provided while installing the chart. For example,
 
 ```bash
-$ helm install my-release -f values.yaml path_to_chart/drunk-test-app
+$ helm install my-release -f values.yaml https://baoduy.github.io/hbd.charts/drunk-app/
 ```
 
 > **Tip**: You can use the default [values.yaml](values.yaml)

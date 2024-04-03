@@ -2,7 +2,7 @@ suite: test configMap
 templates:
   - configMap.yaml
 tests:
-  - it: should enabled when
+  - it: configMap should be generated when
     set:
       configMap:
         key: "hello"
