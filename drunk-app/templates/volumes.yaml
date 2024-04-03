@@ -10,9 +10,9 @@ metadata:
 spec:
   resources:
     requests:
-      storage: {{ .size }}
+      storage: {{ .size | default "2Gi" }}
   volumeMode: Filesystem
   accessModes:
-    - {{ .accessMode }}
-  storageClassName: {{ .storageClassName }}
+    - {{ .accessMode | default "ReadWriteOnce" }}
+  storageClassName: {{ .storageClassName | default "" }}
 {{- end }}
