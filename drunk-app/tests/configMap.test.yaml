@@ -1,17 +1,34 @@
-suite: test configMap
+suites: ConfigMap Template Test Suite
 templates:
-  - configMap.yaml
+    - configMap.yaml
 tests:
-  - it: configMap should be generated when
+  - it: should create a ConfigMap when configMap values are provided
     set:
+      app:
+        name: my-app
       configMap:
-        key: "hello"
+        key1: value1
+        key2: value2
     asserts:
+      - hasDocuments:
+          count: 1
       - isKind:
           of: ConfigMap
-      - matchRegex:
-          path: metadata.name
-          pattern: drunk-app
       - equal:
-          path: data.key
-          value: "hello"
+          path: metadata.name
+          value: drunk-app-config
+      - matchRegex:
+          path: data.key1
+          pattern: ^value1$
+      - matchRegex:
+          path: data.key2
+          pattern: ^value2$
+
+  - it: should not create a ConfigMap when configMap values are not provided
+    set:
+      app:
+        name: my-app
+      configMap: {}
+    asserts:
+      - hasDocuments:
+          count: 0
