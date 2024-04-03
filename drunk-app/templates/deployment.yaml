@@ -21,9 +21,9 @@ spec:
         {{- include "app.selectorLabels" . | nindent 8 }}
     spec:
       automountServiceAccountToken: false
-      {{- with .Values.global.imagePullSecrets }}
+      {{- if .Values.global.imagePullSecret }}
       imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
+        name: {{ .Values.global.imagePullSecret }}
       {{- end }}
       serviceAccountName: {{ include "app.serviceAccountName" . }}
       securityContext:
@@ -61,7 +61,6 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-
           {{- if .Values.volumes }}
           volumeMounts:
           {{- range .Values.volumes }}

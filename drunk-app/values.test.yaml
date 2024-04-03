@@ -6,7 +6,7 @@ global:
   image: 'baoduy2412/astro-blog'
   tag: 'latest'
   imagePullPolicy: 'IfNotPresent'
-  #imagePullSecrets: []
+  #imagePullSecret: 'abc'
   port: 8080
   replicaCount: 1
   liveness: '/healthz'

@@ -3,5 +3,5 @@ name: drunk-app
 description: The drunkcoding template to deploy an application to Kubernetes
 # A chart can be either an 'application' or a 'library' chart.
 type: application
-version: 1.0.2
+version: 1.0.3
 appVersion: 'latest'

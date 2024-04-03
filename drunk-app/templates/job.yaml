@@ -14,9 +14,9 @@ spec:
   template:
     spec:
       automountServiceAccountToken: false
-      {{- with $.Values.global.imagePullSecrets }}
+      {{- if $.Values.global.imagePullSecret }}
       imagePullSecrets:
-      {{- toYaml . | nindent 10 }}
+        name: {{ $.Values.global.imagePullSecret }}
       {{- end }}
       serviceAccountName: {{ include "app.serviceAccountName" $root }}
       securityContext:
@@ -43,4 +43,23 @@ spec:
         {{- end }}
         resources:
         {{- toYaml $.Values.resources | nindent 14 }}
+        {{- if $.Values.volumes }}
+        volumeMounts:
+        {{- range $.Values.volumes }}
+        - name: {{ .name }}
+          readOnly: {{ .readOnly | default false }}
+          mountPath: {{ .mountPath }}
+        {{- if .subPath }}
+          subPath: {{ .subPath }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+     {{- if $.Values.volumes }}
+      volumes:
+      {{- range $.Values.volumes }}
+      - name: {{ .name }}
+        persistentVolumeClaim:
+          claimName: {{ include "app.name" $root }}-{{ .name }}
+      {{- end }}
+      {{- end }}
 {{- end }}
