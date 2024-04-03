@@ -1,0 +1,75 @@
+suites:
+  - name: PVC Template Test Suite
+templates:
+      - volumes.yaml
+tests:
+      - it: should create a PVC with default values for size and accessMode
+        set:
+          app:
+            name: test-app
+            labels:
+              app: test-app-label
+          volumes:
+            - name: data
+        asserts:
+          - hasDocuments:
+              count: 1
+          - isKind:
+              of: PersistentVolumeClaim
+          - equal:
+              path: metadata.name
+              value: "drunk-app-data"
+          - isSubset:
+              path: metadata.labels
+              content:
+                app.kubernetes.io/instance: RELEASE-NAME
+                app.kubernetes.io/managed-by: Helm
+                app.kubernetes.io/name: drunk-app
+                app.kubernetes.io/version: latest
+                helm.sh/chart: drunk-app-1.0.3
+          - equal:
+              path: spec.resources.requests.storage
+              value: "2Gi"
+          - equal:
+              path: spec.accessModes[0]
+              value: "ReadWriteOnce"
+          - equal:
+              path: spec.storageClassName
+              value: null
+
+      - it: should create a PVC with custom size, accessMode, and storageClassName
+        set:
+          app:
+            name: custom-app
+            labels:
+              app: custom-app-label
+          volumes:
+            - name: logs
+              size: "10Gi"
+              accessMode: "ReadWriteMany"
+              storageClassName: "fast-storage"
+        asserts:
+          - hasDocuments:
+              count: 1
+          - isKind:
+              of: PersistentVolumeClaim
+          - equal:
+              path: metadata.name
+              value: "drunk-app-logs"
+          - isSubset:
+              path: metadata.labels
+              content:
+                app.kubernetes.io/instance: RELEASE-NAME
+                app.kubernetes.io/managed-by: Helm
+                app.kubernetes.io/name: drunk-app
+                app.kubernetes.io/version: latest
+                helm.sh/chart: drunk-app-1.0.3
+          - equal:
+              path: spec.resources.requests.storage
+              value: "10Gi"
+          - equal:
+              path: spec.accessModes[0]
+              value: "ReadWriteMany"
+          - equal:
+              path: spec.storageClassName
+              value: "fast-storage"
