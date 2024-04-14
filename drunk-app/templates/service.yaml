@@ -1,15 +1,15 @@
+{{- if .Values.serviceAccount -}}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "app.fullname" . }}
-  labels:
-    {{- include "app.labels" . | nindent 4 }}
+  labels: {{ include "app.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ .Values.service.type | default "ClusterIP" }}
   ports:
     - port: {{ .Values.service.port | default 80 }}
       targetPort: http
       protocol: TCP
       name: http
-  selector:
-    {{- include "app.selectorLabels" . | nindent 4 }}
+  selector: {{ include "app.selectorLabels" . | nindent 4 }}
+{{- end }}

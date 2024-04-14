@@ -1,3 +1,4 @@
+{{- if .Values.ingress -}}
 {{- if .Values.ingress.enabled -}}
 {{- $fullName := include "app.fullname" . -}}
 {{- $svcPort := .Values.service.port | default 80 -}}
@@ -33,4 +34,5 @@ spec:
                 port:
                   number: {{ $svcPort }}
     {{- end }}
-  {{- end }}
+{{- end }}
+{{- end }}

@@ -1,7 +1,7 @@
 # Default values for app.
 # fullnameOverride: "YOUR_APP_NAME" # DONOT use this update in the chard name instead
 
-# global:
+ global:
 #   image: "YOUR_APP_IMAGE"
 #   tag: "latest"
 #   imagePullPolicy: 'IfNotPresent'
@@ -35,7 +35,7 @@ deploymentEnabled: true
 #      - 'Job_Parameters'
 
 serviceAccount:
-  create: true
+  create: false
   annotations: {}
 
 podAnnotations: {}
