@@ -11,6 +11,9 @@ global:
   replicaCount: 1
   liveness: '/healthz'
   #readiness: "/healthz/ready"
+  initContainer:
+    image: 'baoduy2412/astro-blog'
+    command: ['sh', '-c', 'echo Init complete;']
 
 #Environments variables through configMap and secrets
 configMap:
@@ -23,35 +26,35 @@ secrets:
 deploymentEnabled: true
 
 cronJobs:
-  - name: 'drunk-cjob-1'
-    schedule: "* 0 * * *"
-    command:
-      - hello
-  - name: 'drunk-cjob-2'
-    schedule: "* 0 * * *"
-    restartPolicy: Always
-    command:
-      - hello-1
-      - hello-2
+- name: 'drunk-cjob-1'
+  schedule: "* 0 * * *"
+  command:
+  - hello
+- name: 'drunk-cjob-2'
+  schedule: "* 0 * * *"
+  restartPolicy: Always
+  command:
+  - hello-1
+  - hello-2
 
 jobs:
-  - name: 'drunk-job-1'
-    command:
-      - hello
-  - name: 'drunk-job-2'
-    restartPolicy: Always
-    command:
-      - hello-1
-      - hello-2
+- name: 'drunk-job-1'
+  command:
+  - hello
+- name: 'drunk-job-2'
+  restartPolicy: Always
+  command:
+  - hello-1
+  - hello-2
 
 volumes:
-  - name: data-vol
-    size: '2Gi'
-    storageClassName: 'abc'
-    accessMode: 'ReadWriteOnce'
-    mountPath: '/data'
-    subPath: 'abc.dev'
-    readOnly: false
+- name: data-vol
+  size: '2Gi'
+  storageClassName: 'abc'
+  accessMode: 'ReadWriteOnce'
+  mountPath: '/data'
+  subPath: 'abc.dev'
+  readOnly: false
 
 serviceAccount:
   create: true
@@ -66,7 +69,7 @@ podSecurityContext:
 securityContext:
   capabilities:
     drop:
-      - ALL
+    - ALL
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
   runAsNonRoot: true
@@ -80,7 +83,7 @@ ingress:
   annotations:
     kubernetes.io/ingress.class: nginx
   hosts:
-    - host: hello.drunkcoding.net
+  - host: hello.drunkcoding.net
   tls: chart-example-tls
 
 resources:
@@ -92,11 +95,11 @@ resources:
     memory: 128Mi
 
 autoscaling:
-  enabled: false
+  enabled: true
   minReplicas: 1
   maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
+  #targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
 
 nodeSelector: {}
 tolerations: []

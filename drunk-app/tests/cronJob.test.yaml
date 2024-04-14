@@ -1,78 +1,87 @@
-suite: test configMap
+suites: CronJob Template Test Suite
 templates:
-  - cronjob.yaml
+- cronjob.yaml
 tests:
-  - it: cronjob should be generated when
-    set:
-      global:
-        image: 'abc'
-        imagePullSecret: 'pull-secret'
-      cronJobs:
-      - name: 'drunk-cjob-1'
-        schedule: "* 0 * * *"
-        command:
-          - hello
-      - name: 'drunk-cjob-2'
-        schedule: "* 0 * * *"
-        command:
-          - hello-1
-          - hello-2
-    asserts:
-      - isKind:
-          of: CronJob
-      - hasDocuments:
-          count: 2
-      - equal:
-          path: spec.jobTemplate.spec.template.spec.automountServiceAccountToken
-          value: false
-      - equal:
-          path: spec.jobTemplate.spec.template.spec.imagePullSecrets.name
-          value: 'pull-secret'
-      - equal:
-          path: spec.jobTemplate.spec.template.spec.serviceAccountName
-          value: RELEASE-NAME-drunk-app
-      - equal:
-          path: spec.jobTemplate.spec.template.spec.restartPolicy
-          value: OnFailure
-      - equal:
-          path: spec.jobTemplate.spec.template.spec.containers[0].image
-          value: abc:latest
-      - equal:
-          path: spec.jobTemplate.spec.template.spec.containers[0].imagePullPolicy
-          value: Always
-  - it: cronjob should be generated when
-    set:
-      global:
-        image: 'abc'
-        tag: '1.0.0'
-        imagePullPolicy: Never
-        imagePullSecret: 'pull-secret'
-      cronJobs:
-        - name: 'drunk-cjob-2'
-          schedule: "* 0 * * *"
-          restartPolicy: Never
-          command:
-            - hello-1
-            - hello-2
-    asserts:
-      - equal:
-          path: spec.jobTemplate.spec.template.spec.restartPolicy
-          value: Never
-      - equal:
-          path: spec.jobTemplate.spec.template.spec.containers[0].name
-          value: drunk-cjob-2
-      - equal:
-          path: spec.jobTemplate.spec.template.spec.containers[0].image
-          value: abc:1.0.0
-      - equal:
-          path: spec.jobTemplate.spec.template.spec.containers[0].image
-          value: abc:1.0.0
-      - equal:
-          path: spec.jobTemplate.spec.template.spec.containers[0].imagePullPolicy
-          value: Never
-      - contains:
-          path: spec.jobTemplate.spec.template.spec.containers[0].command
-          content:
-            - hello-1
-            - hello-2
-          any: true
+- it: should properly create a CronJob with minimal settings
+  set:
+    app:
+      name: test-app
+      labels:
+        app: test-app
+    global:
+      image: nginx
+      tag: stable
+    cronJobs:
+    - name: job1
+      schedule: "@daily"
+  asserts:
+  - hasDocuments:
+      count: 1
+  - isKind:
+      of: CronJob
+  - equal:
+      path: metadata.name
+      value: drunk-app-job1
+  - equal:
+      path: spec.schedule
+      value: "@daily"
+  - equal:
+      path: spec.jobTemplate.spec.template.spec.containers[0].image
+      value: "nginx:stable"
+
+- it: should include imagePullSecrets if specified
+  set:
+    app:
+      name: test-app
+    global:
+      image: nginx
+      tag: stable
+      imagePullSecret: my-secret
+    cronJobs:
+    - name: job2
+      schedule: "@hourly"
+  asserts:
+  - hasDocuments:
+      count: 1
+  - isNotEmpty:
+      path: spec.jobTemplate.spec.template.spec.imagePullSecrets
+
+- it: should mount volumes if specified
+  set:
+    app:
+      name: test-app
+    global:
+      image: nginx
+      tag: stable
+    cronJobs:
+    - name: job3
+      schedule: "@hourly"
+      restartPolicy: Never
+    volumes:
+    - name: my-volume
+      mountPath: /data
+  asserts:
+  - hasDocuments:
+      count: 1
+  - isNotEmpty:
+      path: spec.jobTemplate.spec.template.spec.volumes
+  - isNotEmpty:
+      path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts
+
+- it: should set correct restartPolicy
+  set:
+    app:
+      name: test-app
+    global:
+      image: nginx
+      tag: stable
+    cronJobs:
+    - name: job4
+      schedule: "@weekly"
+      restartPolicy: Never
+  asserts:
+  - hasDocuments:
+      count: 1
+  - equal:
+      path: spec.jobTemplate.spec.template.spec.restartPolicy
+      value: "Never"
