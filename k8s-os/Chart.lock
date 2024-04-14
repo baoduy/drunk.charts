@@ -1,0 +1,6 @@
+dependencies:
+- name: drunk-app
+  repository: https://baoduy.github.io/hbd.charts/drunk-app
+  version: 1.0.3
+digest: sha256:d18dcbac52a858d9b3370764f22a666ffc4f6b427e4402489de3ea8a352104b3
+generated: "2024-04-14T20:25:59.939979+08:00"

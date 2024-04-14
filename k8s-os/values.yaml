@@ -1,0 +1,32 @@
+drunkos:
+  enabled: true
+  fullnameOverride: 'drunk-os'
+  autoscaling:
+    enabled: false
+  global:
+    image: 'dockurr/windows'
+    configMap:
+      VERSION: "win11"
+      RAM_SIZE: "4G"
+      CPU_CORES: "4"
+      DISK_SIZE: "256G"
+  podSecurityContext:
+    runAsUser: 0
+    runAsGroup: 0
+    fsGroup: 0
+  securityContext:
+    capabilities:
+      add:
+      - NET_ADMIN
+      - SYS_TIME
+    readOnlyRootFilesystem: false
+    allowPrivilegeEscalation: true
+    runAsNonRoot: false
+  volumes:
+  - name: data-vol
+    size: '20Gi'
+    storageClassName: 'longhorn'
+    accessMode: 'ReadWriteOnce'
+    mountPath: '/var/win'
+    #subPath: 'abc.dev'
+    readOnly: false
