@@ -1,64 +1,64 @@
-suites:  Service Template Test Suite
+suites: Service Template Test Suite
 templates:
-      - service.yaml
+- service.yaml
 tests:
-      - it: should create a Service with default values
-        set:
-          app:
-            fullname: test-service
-            labels:
-              app: RELEASE-NAME-drunk-app
-          service:
-            type: ClusterIP
-        asserts:
-          - hasDocuments:
-              count: 1
-          - isKind:
-              of: Service
-          - equal:
-              path: metadata.name
-              value: "RELEASE-NAME-drunk-app"
-          - isSubset:
-              path: metadata.labels
-              content:
-                app.kubernetes.io/instance: RELEASE-NAME
-                app.kubernetes.io/managed-by: Helm
-                app.kubernetes.io/name: drunk-app
-                app.kubernetes.io/version: latest
-                helm.sh/chart: drunk-app-1.0.3
+- it: should create a Service with default values
+  set:
+    app:
+      fullname: test-service
+      labels:
+        app: RELEASE-NAME-drunk-app
+    service:
+      type: ClusterIP
+  asserts:
+  - hasDocuments:
+      count: 1
+  - isKind:
+      of: Service
+  - equal:
+      path: metadata.name
+      value: "RELEASE-NAME-drunk-app"
+  - isSubset:
+      path: metadata.labels
+      content:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: drunk-app
+        app.kubernetes.io/version: latest
+        helm.sh/chart: drunk-app-1.0.3
 
-          - equal:
-              path: spec.type
-              value: "ClusterIP"
-          - equal:
-              path: spec.ports[0].port
-              value: 80
-          - equal:
-              path: spec.ports[0].targetPort
-              value: http
-          - equal:
-              path: spec.ports[0].protocol
-              value: TCP
-          - isSubset:
-              path: spec.selector
-              content:
-                app.kubernetes.io/instance: RELEASE-NAME
-                app.kubernetes.io/name: drunk-app
-              any: true
+  - equal:
+      path: spec.type
+      value: "ClusterIP"
+  - equal:
+      path: spec.ports[0].port
+      value: 80
+  - equal:
+      path: spec.ports[0].targetPort
+      value: http
+  - equal:
+      path: spec.ports[0].protocol
+      value: TCP
+  - isSubset:
+      path: spec.selector
+      content:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/name: drunk-app
+      any: true
 
-      - it: should respect custom service port and type
-        set:
-          app:
-            fullname: custom-service
-            labels:
-              app: custom-app
-          service:
-            type: NodePort
-            port: 8080
-        asserts:
-          - equal:
-              path: spec.type
-              value: "NodePort"
-          - equal:
-              path: spec.ports[0].port
-              value: 8080
+- it: should respect custom service port and type
+  set:
+    app:
+      fullname: custom-service
+      labels:
+        app: custom-app
+    service:
+      type: NodePort
+      port: 8080
+  asserts:
+  - equal:
+      path: spec.type
+      value: "NodePort"
+  - equal:
+      path: spec.ports[0].port
+      value: 8080

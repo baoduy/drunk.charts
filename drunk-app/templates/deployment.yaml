@@ -28,6 +28,42 @@ spec:
       serviceAccountName: {{ include "app.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      
+      {{- if .Values.global.initContainer }}
+      # Begin initContainers
+      initContainers:
+        - name: {{ include "app.name" . }}-init
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.global.initContainer.image }}"
+          imagePullPolicy: "IfNotPresent"
+          command: "{{ .Values.global.initContainer.command }}"
+          envFrom:
+          {{- if .Values.configMap }}
+            - configMapRef:
+                name: {{ include "app.name" . }}-config
+          {{- end }}
+          {{- if .Values.secrets }}
+            - secretRef:
+                name: {{ include "app.name" . }}-secret
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.volumes }}
+          volumeMounts:
+          {{- range .Values.volumes }}
+            - name: {{ .name }}
+              readOnly: {{ .readOnly | default false }}
+              mountPath: {{ .mountPath }}
+            {{- if .subPath }}
+              subPath: {{ .subPath }}
+            {{- end }}
+          {{- end }}
+          {{- end }}
+      # End initContainers
+      {{- end }}
+
+      # Begin Containers
       containers:
         - name: {{ include "app.name" . }}
           securityContext:
@@ -72,7 +108,8 @@ spec:
             {{- end }}
           {{- end }}
           {{- end }}
-
+      # End Containers
+      
       {{- if .Values.volumes }}
       volumes:
       {{- range .Values.volumes }}

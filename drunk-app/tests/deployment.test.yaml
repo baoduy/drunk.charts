@@ -1,99 +1,112 @@
 suites:
-  - name: Deployment Template Test Suite
+- name: Deployment Template Test Suite
 templates:
-      - deployment.yaml
+- deployment.yaml
 tests:
-      - it: should not create a Deployment when deploymentEnabled is false
-        set:
-          deploymentEnabled: false
-        asserts:
-          - hasDocuments:
-              count: 0
+- it: should not create a Deployment when deploymentEnabled is false
+  set:
+    deploymentEnabled: false
+  asserts:
+  - hasDocuments:
+      count: 0
 
-      - it: should create a Deployment with default values
-        set:
-          deploymentEnabled: true
-          app:
-            fullname: test-deployment
-            name: test-app
-            labels:
-              app: test-app
-          global:
-            replicaCount: 1
-            image: nginx
-            tag: latest
-            port: 8080
-          podSecurityContext: {}
-          securityContext: {}
-          resources: {}
-        asserts:
-          - hasDocuments:
-              count: 1
-          - isKind:
-              of: Deployment
-          - equal:
-              path: metadata.name
-              value: "RELEASE-NAME-drunk-app"
-          - isSubset:
-              path: metadata.labels
-              content:
-                app.kubernetes.io/instance: RELEASE-NAME
-                app.kubernetes.io/managed-by: Helm
-                app.kubernetes.io/name: drunk-app
-                app.kubernetes.io/version: latest
-                helm.sh/chart: drunk-app-1.0.3
+- it: should create a Deployment with default values
+  set:
+    deploymentEnabled: true
+    app:
+      fullname: test-deployment
+      name: test-app
+      labels:
+        app: test-app
+    global:
+      replicaCount: 1
+      image: nginx
+      tag: latest
+      port: 8080
+    podSecurityContext: {}
+    securityContext: {}
+    resources: {}
+  asserts:
+  - hasDocuments:
+      count: 1
+  - isKind:
+      of: Deployment
+  - equal:
+      path: metadata.name
+      value: "RELEASE-NAME-drunk-app"
+  - isSubset:
+      path: metadata.labels
+      content:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: drunk-app
+        app.kubernetes.io/version: latest
+        helm.sh/chart: drunk-app-1.0.3
 
-          - equal:
-              path: spec.replicas
-              value: 1
-          - equal:
-              path: spec.template.spec.containers[0].image
-              value: "nginx:latest"
-          - equal:
-              path: spec.template.spec.containers[0].ports[0].containerPort
-              value: 8080
-          - equal:
-              path: spec.template.spec.automountServiceAccountToken
-              value: false
+  - equal:
+      path: spec.replicas
+      value: 1
+  - equal:
+      path: spec.template.spec.containers[0].image
+      value: "nginx:latest"
+  - equal:
+      path: spec.template.spec.containers[0].ports[0].containerPort
+      value: 8080
+  - equal:
+      path: spec.template.spec.automountServiceAccountToken
+      value: false
 
-      - it: should respect custom replicaCount, imagePullSecret, and probes
-        set:
-          deploymentEnabled: true
-          app:
-            fullname: custom-deployment
-            serviceAccountName: custom-sa
-          global:
-            replicaCount: 3
-            imagePullSecret: my-secret
-            image: custom-image
-            tag: "1.2.3"
-            imagePullPolicy: IfNotPresent
-            port: 9090
-            liveness: "/health"
-            readiness: "/ready"
-          podSecurityContext:
-            runAsUser: 1000
-          securityContext:
-            allowPrivilegeEscalation: false
-        asserts:
-          - equal:
-              path: spec.replicas
-              value: 3
-          - isSubset:
-              path: spec.template.spec.imagePullSecrets
-              content:
-                name: "my-secret"
-          - equal:
-              path: spec.template.spec.containers[0].livenessProbe.httpGet.path
-              value: "/health"
-          - equal:
-              path: spec.template.spec.containers[0].readinessProbe.httpGet.path
-              value: "/ready"
-          - equal:
-              path: spec.template.spec.securityContext.runAsUser
-              value: 1000
-          - equal:
-              path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
-              value: false
+- it: should respect custom replicaCount, imagePullSecret, and probes
+  set:
+    deploymentEnabled: true
+    app:
+      fullname: custom-deployment
+      serviceAccountName: custom-sa
+    global:
+      replicaCount: 3
+      imagePullSecret: my-secret
+      image: custom-image
+      tag: "1.2.3"
+      imagePullPolicy: IfNotPresent
+      port: 9090
+      liveness: "/health"
+      readiness: "/ready"
+    podSecurityContext:
+      runAsUser: 1000
+    securityContext:
+      allowPrivilegeEscalation: false
+  asserts:
+  - equal:
+      path: spec.replicas
+      value: 3
+  - isSubset:
+      path: spec.template.spec.imagePullSecrets
+      content:
+        name: "my-secret"
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+      value: "/health"
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+      value: "/ready"
+  - equal:
+      path: spec.template.spec.securityContext.runAsUser
+      value: 1000
+  - equal:
+      path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
+      value: false
 
-      # Additional tests can be written to verify volume mounts, nodeSelector, affinity, tolerations, etc.
+- it: should have an init container
+  set:
+    deploymentEnabled: true
+    global:
+      initContainer:
+        image: "init-image-name:tag"
+        command: "echo Init complete;"
+  asserts:
+  - isNotEmpty:
+      path: spec.template.spec.initContainers
+  - equal:
+      path: spec.template.spec.initContainers[0].image
+      value: "init-image-name:tag"
+

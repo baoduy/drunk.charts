@@ -3,9 +3,9 @@ entries:
   drunk-app:
   - apiVersion: v2
     appVersion: latest
-    created: "2024-04-03T21:15:22.366302+08:00"
+    created: "2024-04-14T19:14:03.764188+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: fde927ce68ec3f8a82411e309526ab458f50aa57612c153e602aa3eed0f13009
+    digest: 48c4ff9722247c5bbf11423eb3412c1925ebd95db69dd37bf2b07bc4da801383
     name: drunk-app
     type: application
     urls:
@@ -13,7 +13,7 @@ entries:
     version: 1.0.3
   - apiVersion: v2
     appVersion: latest
-    created: "2024-04-03T21:15:22.365929+08:00"
+    created: "2024-04-14T19:14:03.76381+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: e7721411d9b56a14f5f75d5b8115139d76a82a0aae94b43c7ada62b5d35b5a46
     name: drunk-app
@@ -23,7 +23,7 @@ entries:
     version: 1.0.2
   - apiVersion: v2
     appVersion: latest
-    created: "2024-04-03T21:15:22.365548+08:00"
+    created: "2024-04-14T19:14:03.763431+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: 9cd7afa72cc1b584f29f39aa3547be007adfa927be9ccc3ee36bcb38501bbbad
     name: drunk-app
@@ -33,7 +33,7 @@ entries:
     version: 1.0.1
   - apiVersion: v2
     appVersion: latest
-    created: "2024-04-03T21:15:22.365128+08:00"
+    created: "2024-04-14T19:14:03.76301+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: 7061ae0d7dfbbfdf79211670cd191a5ea678ce1f05ba2a6b4bd09d577bba2dc5
     name: drunk-app
@@ -41,4 +41,4 @@ entries:
     urls:
     - drunk-app-1.0.0.tgz
     version: 1.0.0
-generated: "2024-04-03T21:15:22.364604+08:00"
+generated: "2024-04-14T19:14:03.76242+08:00"
