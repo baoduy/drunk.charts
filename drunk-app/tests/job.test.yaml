@@ -20,6 +20,7 @@ tests:
       enabled: true
       hosts:
       - host: "example.com"
+    service: {}
   asserts:
   - hasDocuments:
       count: 1
@@ -47,6 +48,7 @@ tests:
 
 - it: should apply ingress annotations when provided
   set:
+    service: {}
     ingress:
       enabled: true
       annotations:
@@ -60,6 +62,7 @@ tests:
 
 - it: should setup TLS when configured
   set:
+    service: {}
     ingress:
       enabled: true
       tls: test-tls-secret
@@ -71,6 +74,7 @@ tests:
 
 - it: should configure multiple hosts correctly
   set:
+    service: {}
     ingress:
       enabled: true
       hosts:

@@ -114,8 +114,12 @@ spec:
       volumes:
       {{- range .Values.volumes }}
         - name: {{ .name }}
+        {{- if .emptyDir }}
+          emptyDir: {}
+        {{- else }}
           persistentVolumeClaim:
             claimName: {{ include "app.name" $root }}-{{ .name }}
+        {{- end }}
       {{- end }}
       {{- end }}
       
