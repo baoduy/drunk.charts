@@ -1,5 +1,6 @@
 {{- $root := . }}
 {{- range .Values.volumes }}
+{{ if and .emptyDir (ne .emptyDir false) }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -15,4 +16,5 @@ spec:
   accessModes:
     - {{ .accessMode | default "ReadWriteOnce" }}
   storageClassName: {{ .storageClassName | default "" }}
+{{- end }}
 {{- end }}

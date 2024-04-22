@@ -55,6 +55,10 @@ volumes:
   mountPath: '/data'
   subPath: 'abc.dev'
   readOnly: false
+- name: tmp
+  mountPath: '/tmp'
+  readOnly: false
+  emptyDir: true
 
 serviceAccount:
   create: true

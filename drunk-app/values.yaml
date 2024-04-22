@@ -34,6 +34,13 @@ deploymentEnabled: true
 #    command:
 #      - 'Job_Parameters'
 
+# This is to fix the issue 'Failed to create CoreCLR, HRESULT: 0x8007000E'
+volumes:
+  - name: tmp
+    mountPath: '/tmp'
+    readOnly: false
+    emptyDir: true
+
 serviceAccount:
   create: false
   annotations: {}
