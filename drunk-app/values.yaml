@@ -6,10 +6,6 @@
 #   tag: "latest"
 #   imagePullPolicy: 'IfNotPresent'
 #   imagePullSecrets: []
-#   port: 8080
-#   replicaCount: 1
-#   liveness: "/healthz"
-#   readiness: "/healthz/ready"
 
 # Environments variables through configMap and secrets
 # configMap:
@@ -21,6 +17,10 @@
 # The flag to disable pod-deployment incase of Job/CronJob only deployment
 deployment:
   enabled: true
+  port: 8080
+  replicaCount: 1
+  #liveness: "/healthz"
+  #readiness: "/healthz/ready"
 
 #cronJobs:
 #  - name: 'job-one'
@@ -61,6 +61,7 @@ securityContext:
   runAsNonRoot: true
 
 service:
+  create: true
   type: ClusterIP
   #port: 80
 

@@ -7,10 +7,6 @@ global:
   tag: 'latest'
   imagePullPolicy: 'IfNotPresent'
   #imagePullSecret: 'abc'
-  port: 8080
-  replicaCount: 1
-  liveness: '/healthz'
-  #readiness: "/healthz/ready"
   initContainer:
     image: 'baoduy2412/astro-blog'
     command: ['sh', '-c', 'echo Init complete;']
@@ -25,6 +21,10 @@ secrets:
 # The flag to disable pod-deployment incase of Job/CronJob only deployment
 deployment:
   enabled: true
+  port: 8080
+  replicaCount: 1
+  liveness: '/healthz'
+  #readiness: "/healthz/ready"
   args:
     - tunnel
     - '--no-autoupdate'

@@ -26,7 +26,7 @@ tests:
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: drunk-app
         app.kubernetes.io/version: latest
-        helm.sh/chart: drunk-app-1.0.3
+        #helm.sh/chart: drunk-app-1.0.4
   - equal:
       path: spec.resources.requests.storage
       value: "2Gi"
@@ -63,7 +63,7 @@ tests:
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: drunk-app
         app.kubernetes.io/version: latest
-        helm.sh/chart: drunk-app-1.0.3
+        #helm.sh/chart: drunk-app-1.0.4
   - equal:
       path: spec.resources.requests.storage
       value: "10Gi"

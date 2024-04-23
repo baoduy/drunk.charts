@@ -1,6 +1,6 @@
 {{- $root := . }}
 {{- range .Values.volumes }}
-{{ if and .emptyDir (ne .emptyDir false) }}
+{{- if or (not .emptyDir) (not (eq .emptyDir true)) }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
