@@ -19,7 +19,8 @@
 #   YOUR_SECRET: "VALUE"
 
 # The flag to disable pod-deployment incase of Job/CronJob only deployment
-deploymentEnabled: true
+deployment:
+  enabled: true
 
 #cronJobs:
 #  - name: 'job-one'
