@@ -6,4 +6,4 @@ Helm chat url: `https://baoduy.github.io/hbd.charts/drunk-app/`
 
 ## Testing the helm chart
 
-https://github.com/helm-unittest/helm-unittest
+The plugin using for testing is `https://github.com/helm-unittest/helm-unittest`
