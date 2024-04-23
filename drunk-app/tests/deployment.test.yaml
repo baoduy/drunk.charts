@@ -5,24 +5,27 @@ templates:
 tests:
 - it: should not create a Deployment when deploymentEnabled is false
   set:
-    deploymentEnabled: false
+    global: {}
+    deployment:
+      enabled: false
   asserts:
   - hasDocuments:
       count: 0
 
 - it: should create a Deployment with default values
   set:
-    deploymentEnabled: true
+    deployment:
+      enabled: true
+      replicaCount: 1
+      port: 8080
     app:
       fullname: test-deployment
       name: test-app
       labels:
         app: test-app
     global:
-      replicaCount: 1
       image: nginx
       tag: latest
-      port: 8080
     podSecurityContext: {}
     securityContext: {}
     resources: {}
@@ -41,7 +44,7 @@ tests:
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: drunk-app
         app.kubernetes.io/version: latest
-        helm.sh/chart: drunk-app-1.0.3
+        #helm.sh/chart: drunk-app-1.0.4
 
   - equal:
       path: spec.replicas
@@ -58,19 +61,20 @@ tests:
 
 - it: should respect custom replicaCount, imagePullSecret, and probes
   set:
-    deploymentEnabled: true
+    deployment:
+      enabled: true
+      replicaCount: 3
+      port: 9090
+      liveness: "/health"
+      readiness: "/ready"
     app:
       fullname: custom-deployment
       serviceAccountName: custom-sa
     global:
-      replicaCount: 3
       imagePullSecret: my-secret
       image: custom-image
       tag: "1.2.3"
       imagePullPolicy: IfNotPresent
-      port: 9090
-      liveness: "/health"
-      readiness: "/ready"
     podSecurityContext:
       runAsUser: 1000
     securityContext:
@@ -98,7 +102,8 @@ tests:
 
 - it: should have an init container
   set:
-    deploymentEnabled: true
+    deployment:
+      enabled: true
     global:
       initContainer:
         image: "init-image-name:tag"

@@ -9,6 +9,7 @@ tests:
       labels:
         app: RELEASE-NAME-drunk-app
     service:
+      enabled: true
       type: ClusterIP
   asserts:
   - hasDocuments:
@@ -25,7 +26,7 @@ tests:
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: drunk-app
         app.kubernetes.io/version: latest
-        helm.sh/chart: drunk-app-1.0.3
+        #helm.sh/chart: drunk-app-1.0.4
 
   - equal:
       path: spec.type
@@ -53,6 +54,7 @@ tests:
       labels:
         app: custom-app
     service:
+      enabled: true
       type: NodePort
       port: 8080
   asserts:

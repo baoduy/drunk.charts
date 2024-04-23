@@ -7,7 +7,7 @@ metadata:
   labels:
     {{- include "app.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.global.replicaCount | default 1 }}
+  replicas: {{ .Values.deployment.replicaCount | default 1 }}
   selector:
     matchLabels:
       {{- include "app.selectorLabels" . | nindent 6 }}
@@ -76,18 +76,18 @@ spec:
           args: {{ .Values.deployment.args }}
           ports:
             - name: http
-              containerPort: {{ .Values.global.port | default 8080 }}
+              containerPort: {{ .Values.deployment.port | default 8080 }}
               protocol: TCP
-          {{- if .Values.global.liveness }}
+          {{- if .Values.deployment.liveness }}
           livenessProbe:
             httpGet:
-              path: {{ .Values.global.liveness }}
+              path: {{ .Values.deployment.liveness }}
               port: http
           {{- end }}
-          {{- if .Values.global.readiness }}
+          {{- if .Values.deployment.readiness }}
           readinessProbe:
             httpGet:
-              path: {{ .Values.global.readiness }}
+              path: {{ .Values.deployment.readiness }}
               port: http
           {{- end }}
           envFrom:
