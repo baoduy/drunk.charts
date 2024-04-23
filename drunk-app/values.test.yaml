@@ -23,7 +23,14 @@ secrets:
   connectionString: "ABC"
 
 # The flag to disable pod-deployment incase of Job/CronJob only deployment
-deploymentEnabled: true
+deployment:
+  enabled: true
+  args:
+    - tunnel
+    - '--no-autoupdate'
+    - run
+    - '--token'
+    - $(token)
 
 cronJobs:
 - name: 'drunk-cjob-1'
