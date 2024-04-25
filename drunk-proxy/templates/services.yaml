@@ -1,0 +1,14 @@
+{{- $root := . }}
+{{- range $k, $v := .Values.proxies }}
+{{- if or $v.enabled (eq $v.enabled nil) }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $k }}-svc
+  labels: {{ include "app.labels" $root | nindent 4 }}
+spec:
+  type: ExternalName
+  externalName: {{ $v.target }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,10 @@
+nginx:
+  enabled: true
+
+
+#proxies:
+#  web-hook:
+#    ingressHost: ''
+#    ingressPath: ''
+#    target: ''
+#    port: 443 # default is 443
