@@ -1,0 +1,1 @@
+helm upgrade -f ./values.test.yaml dev-proxy ./ --namespace dc-proxy

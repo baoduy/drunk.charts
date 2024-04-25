@@ -1,0 +1,1 @@
+helm install -f ./values.test.yaml dev-proxy ./ --create-namespace --namespace dc-proxy

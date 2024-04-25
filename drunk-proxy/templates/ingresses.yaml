@@ -1,0 +1,26 @@
+{{- $root := . }}
+{{- range $k, $v := .Values.proxies }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $k }}-ingress
+  labels: {{ include "app.labels" $root | nindent 4 }}
+  {{- with $v.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ $v.ingressClassName | default "nginx" }}
+  rules:
+  - host: {{ $v.ingressHost }}
+    http:
+      paths:
+      - path: {{ $v.ingressPath | default "/" }}
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ $k }}-svc
+            port:
+              number: {{ $v.targetPort | default 443 }}
+{{- end }}
