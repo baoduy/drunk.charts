@@ -1,0 +1,26 @@
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = dn
+req_extensions = req_ext
+x509_extensions = v3_req
+
+[dn]
+C = SG
+ST = Singapore
+L = Singapore
+O = "Dev Local"
+OU = "DLU"
+emailAddress = "email@dev.local"
+CN = *.dev.local
+
+[v3_req]
+subjectAltName = @alt_names
+
+[req_ext]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = *.dev.local
+DNS.2 = dev.local

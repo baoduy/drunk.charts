@@ -3,7 +3,7 @@ entries:
   drunk-proxy:
   - apiVersion: v2
     appVersion: latest
-    created: "2024-04-25T19:24:15.394893+08:00"
+    created: "2024-04-25T20:33:34.482883+08:00"
     dependencies:
     - alias: nginx
       condition: nginx.enabled
@@ -11,7 +11,7 @@ entries:
       repository: https://kubernetes.github.io/ingress-nginx
       version: 4.x.x
     description: The drunkcoding template to deploy an proxy using nginx to Kubernetes
-    digest: 8eada7427d132b21d4cc5f15d1ce145f8eb1179fc00ea5a2769bfc0005f852da
+    digest: c1da05a5cfb3fe7dc77c8a7a4af9bdabde965ee6abe80adabdd912106c9f510f
     icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
     name: drunk-proxy
     type: application
@@ -24,7 +24,7 @@ entries:
       artifacthub.io/prerelease: "false"
     apiVersion: v2
     appVersion: 1.10.0
-    created: "2024-04-25T19:24:15.398438+08:00"
+    created: "2024-04-25T20:33:34.485804+08:00"
     description: Ingress controller for Kubernetes using NGINX as a reverse proxy
       and load balancer
     digest: 74f6590786bee20295bbe76f914514d9a111d7e9317acf13d26de482ae8abc1a
@@ -44,4 +44,4 @@ entries:
     urls:
     - charts/ingress-nginx-4.10.0.tgz
     version: 4.10.0
-generated: "2024-04-25T19:24:15.391632+08:00"
+generated: "2024-04-25T20:33:34.479499+08:00"
