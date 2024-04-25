@@ -1,0 +1,44 @@
+{{- if .Values.toolbox }}
+{{- if .Values.toolbox.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tool-pod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tool-pod
+  template:
+    metadata:
+      labels:
+        app: tool-pod
+    spec:
+      containers:
+        - name: tool-pod
+          image: baoduy2412/toolbox:latest
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: Always
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+                - SYS_TIME
+              drop:
+                - ALL
+            privileged: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: false
+            allowPrivilegeEscalation: false
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      automountServiceAccountToken: false
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
+      schedulerName: default-scheduler
+{{- end }}
+{{- end }}

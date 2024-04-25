@@ -1,21 +1,29 @@
 nginx:
   enabled: true
+toolbox:
+  enabled: true
 
 proxies:
-  web-hook:
+  webhook:
+    enabled: false
     ingressHost: localhost
     ingressPath: /webhook/?(.*)
-    target: 'app.dev.local'
+    target: '192.168.1.68'
+
+  webapp:
+    ingressHost: localhost
+    ingressPath: /webapp/?(.*)
+    target: '192.168.1.68'
     targetPort: 3000
     annotations:
       nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+      #nginx.ingress.kubernetes.io/proxy-ssl-secret: "nginx-ingress/myservice-tls"
+      #nginx.ingress.kubernetes.io/proxy-ssl-verify: "on"
+      #nginx.ingress.kubernetes.io/proxy-ssl-verify-depth: "2"
+      #nginx.ingress.kubernetes.io/proxy-ssl-name: "app.dev.local"
       nginx.ingress.kubernetes.io/rewrite-target: "/$1"
       nginx.ingress.kubernetes.io/use-regex: 'true'
 #      nginx.ingress.kubernetes.io/body-size: '1024m'
 #      nginx.ingress.kubernetes.io/proxy-body-size: '50m'
 #      nginx.ingress.kubernetes.io/client-body-buffer-size: '50m'
 #      nginx.ingress.kubernetes.io/client-max-body-size: '50m'
-      nginx.ingress.kubernetes.io/proxy-ssl-verify: 'off'
-#      nginx.ingress.kubernetes.io/proxy-ssl-name: '$host'
-#      nginx.ingress.kubernetes.io/proxy-ssl-protocols: "HTTPS"
-#      nginx.ingress.kubernetes.io/ssl-passthrough: 'true'

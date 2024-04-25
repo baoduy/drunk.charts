@@ -1,5 +1,6 @@
 {{- $root := . }}
 {{- range $k, $v := .Values.proxies }}
+{{- if or $v.enabled (eq $v.enabled nil) }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -13,14 +14,15 @@ metadata:
 spec:
   ingressClassName: {{ $v.ingressClassName | default "nginx" }}
   rules:
-  - host: {{ $v.ingressHost }}
+  - host: {{ $v.ingressHost | default nil }}
     http:
       paths:
-      - path: {{ $v.ingressPath | default "/" }}
+      - path: {{ default (print "/" $k) $v.ingressPath }}
         pathType: Prefix
         backend:
           service:
             name: {{ $k }}-svc
             port:
               number: {{ $v.targetPort | default 443 }}
+{{- end }}
 {{- end }}

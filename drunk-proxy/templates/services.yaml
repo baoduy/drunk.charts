@@ -1,5 +1,6 @@
 {{- $root := . }}
 {{- range $k, $v := .Values.proxies }}
+{{- if or $v.enabled (eq $v.enabled nil) }}
 ---
 apiVersion: v1
 kind: Service
@@ -9,4 +10,5 @@ metadata:
 spec:
   type: ExternalName
   externalName: {{ $v.target }}
+{{- end }}
 {{- end }}
