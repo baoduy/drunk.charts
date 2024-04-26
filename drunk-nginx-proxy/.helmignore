@@ -24,4 +24,4 @@
 tests
 *.sh
 *.test.yaml
-drunk-proxy-*.tgz
+drunk-*.tgz

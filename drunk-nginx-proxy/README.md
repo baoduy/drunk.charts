@@ -9,20 +9,20 @@ This Helm chart deploys the Drunk Proxy, an NGINX-based proxy, on a Kubernetes c
 
 ## Installing the Chart
 
-To install the chart with the release name `drunk-proxy`:
+To install the chart with the release name `drunk-nginx-proxy`:
 
 ```bash
-$ helm install drunk-proxy https://baoduy.github.io/hbd.charts/drunk-proxy/
+$ helm install drunk-nginx-proxy https://baoduy.github.io/hbd.charts/drunk-nginx-proxy/
 ```
 
 This command deploys Drunk Proxy on the Kubernetes cluster in the default configuration. The parameters that can be configured during installation are listed in the configuration section.
 
 ## Uninstalling the Chart
 
-To uninstall/delete the `drunk-proxy` deployment:
+To uninstall/delete the `drunk-nginx-proxy` deployment:
 
 ```bash
-$ helm delete drunk-proxy
+$ helm delete drunk-nginx-proxy
 ```
 
 This command removes all the Kubernetes components associated with the chart and deletes the release.
@@ -67,7 +67,7 @@ dependencies:
 You can specify a custom values file to override the default settings during the Helm install command:
 
 ```bash
-$ helm install drunk-proxy -f custom-values.yaml https://baoduy.github.io/hbd.charts/drunk-proxy/
+$ helm install drunk-nginx-proxy -f custom-values.yaml https://baoduy.github.io/hbd.charts/drunk-nginx-proxy/
 ```
 
 ## Testing the Chart
@@ -75,8 +75,8 @@ $ helm install drunk-proxy -f custom-values.yaml https://baoduy.github.io/hbd.ch
 To verify that the chart is configured correctly:
 
 ```shell
-$ helm lint ./drunk-proxy
-$ helm template test ./drunk-proxy --debug
+$ helm lint ./drunk-nginx-proxy
+$ helm template test ./drunk-nginx-proxy --debug
 ```
 
 This will check for syntax errors and render the templates with the provided values without actually deploying them.
