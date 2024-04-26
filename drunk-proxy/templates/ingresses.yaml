@@ -13,6 +13,12 @@ metadata:
   {{- end }}
 spec:
   ingressClassName: {{ $v.ingressClassName | default "nginx" }}
+  {{- if $v.tlsSecret }}
+  tls:
+    - hosts:
+        - {{ $v.ingressHost | default nil }}
+      secretName: {{ $v.tlsSecret }}
+  {{- end }}
   rules:
   - host: {{ $v.ingressHost | default nil }}
     http:
