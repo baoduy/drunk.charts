@@ -1,5 +1,5 @@
 apiVersion: v2
-name: drunk-proxy
+name: drunk-nginx-proxy
 icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
 description: The drunkcoding template to deploy an proxy using nginx to Kubernetes
 # A chart can be either an 'application' or a 'library' chart.
