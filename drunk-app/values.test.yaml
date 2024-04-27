@@ -21,9 +21,9 @@ secrets:
 # The flag to disable pod-deployment incase of Job/CronJob only deployment
 deployment:
   enabled: true
-#  ports:
-#    http: 8080
-#    tcp: 9090
+  ports:
+    http: 8080
+    tcp: 9090
   replicaCount: 1
   liveness: '/healthz'
   #readiness: "/healthz/ready"

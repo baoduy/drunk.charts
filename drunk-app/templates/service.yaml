@@ -9,9 +9,9 @@ spec:
   ports:
     {{- range $k,$v := .Values.deployment.ports}}
     - port: {{ $v }}
-      targetPort: {{ $k }}
+      targetPort: {{ $v }}
       protocol: TCP
-      name: http
+      name: {{ $k }}
     {{- end }}
   selector: {{ include "app.selectorLabels" . | nindent 4 }}
 {{- end }}
