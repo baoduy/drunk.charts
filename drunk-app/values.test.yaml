@@ -21,7 +21,9 @@ secrets:
 # The flag to disable pod-deployment incase of Job/CronJob only deployment
 deployment:
   enabled: true
-  port: 8080
+#  ports:
+#    http: 8080
+#    tcp: 9090
   replicaCount: 1
   liveness: '/healthz'
   #readiness: "/healthz/ready"
@@ -71,6 +73,9 @@ serviceAccount:
   create: true
   annotations: {}
 
+service:
+  type: ClusterIP
+
 podAnnotations: {}
 
 podSecurityContext:
@@ -84,10 +89,6 @@ securityContext:
   readOnlyRootFilesystem: true
   allowPrivilegeEscalation: false
   runAsNonRoot: true
-
-service:
-  type: ClusterIP
-  #port: 80
 
 ingress:
   enabled: true

@@ -8,6 +8,9 @@ tests:
       fullname: test-service
       labels:
         app: RELEASE-NAME-drunk-app
+    deployment:
+      ports:
+        http: 80
     service:
       enabled: true
       type: ClusterIP
@@ -47,20 +50,14 @@ tests:
         app.kubernetes.io/name: drunk-app
       any: true
 
-- it: should respect custom service port and type
+- it: should not created service port and type
   set:
     app:
       fullname: custom-service
       labels:
         app: custom-app
-    service:
+    deployment:
       enabled: true
-      type: NodePort
-      port: 8080
   asserts:
-  - equal:
-      path: spec.type
-      value: "NodePort"
-  - equal:
-      path: spec.ports[0].port
-      value: 8080
+  - hasDocuments:
+      count: 0

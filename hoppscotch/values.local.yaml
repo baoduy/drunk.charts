@@ -1,0 +1,29 @@
+nginx:
+  enabled: true
+  tcp:
+    54322: "hoppscotch/hoppscotch-postgresql:5432"
+
+postgresql:
+  enabled: true
+  global:
+    storageClass: 'hostpath'
+  auth:
+    enablePostgresUser: true
+    postgresPassword: "7Ym33GEEwy9PhfE"
+    username: "postgres"
+    password: "7Ym33GEEwy9PhfE"
+    database: "hoppscotch-db"
+
+app:
+  enabled: true
+  deployment:
+    enabled: true
+  service:
+    create: true
+    type: ClusterIP
+  global:
+    image: 'hoppscotch/hoppscotch'
+    tag: 'latest'
+    port: 3000
+  secrets:
+      DATABASE_URL: "postgresql://postgres:E5o8BfT0PU8kaqAgqTLX@hoppscotch-postgresql:5432/hoppscotch-db"

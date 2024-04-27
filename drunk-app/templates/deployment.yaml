@@ -74,10 +74,14 @@ spec:
           command: "{{ .Values.deployment.command }}"
           {{- end }}
           args: {{ .Values.deployment.args }}
+          {{- if .Values.deployment.ports }}
           ports:
-            - name: http
-              containerPort: {{ .Values.deployment.port | default 8080 }}
+            {{- range $k,$v := .Values.deployment.ports }}
+            - name: {{ $k }}
+              containerPort: {{ $v }}
               protocol: TCP
+            {{- end }}
+          {{- end }}
           {{- if .Values.deployment.liveness }}
           livenessProbe:
             httpGet:

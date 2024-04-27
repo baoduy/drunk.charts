@@ -17,7 +17,8 @@ tests:
     deployment:
       enabled: true
       replicaCount: 1
-      port: 8080
+      ports:
+        http: 8080
     app:
       fullname: test-deployment
       name: test-app
@@ -64,7 +65,8 @@ tests:
     deployment:
       enabled: true
       replicaCount: 3
-      port: 9090
+      ports:
+        http: 9090
       liveness: "/health"
       readiness: "/ready"
     app:
