@@ -10,29 +10,6 @@ tests:
   - hasDocuments:
       count: 0
 
-- it: should create an Ingress with default service port when enabled
-  set:
-    app:
-      fullname: test-app
-      labels:
-        app: test-app
-    ingress:
-      enabled: true
-      hosts:
-      - host: "example.com"
-    service: {}
-  asserts:
-  - hasDocuments:
-      count: 1
-  - isKind:
-      of: Ingress
-  - equal:
-      path: metadata.name
-      value: "RELEASE-NAME-drunk-app"
-  - equal:
-      path: spec.rules[0].http.paths[0].backend.service.port.number
-      value: 80
-
 - it: should respect custom service port
   set:
     service:

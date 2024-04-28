@@ -70,6 +70,8 @@ ingress:
     kubernetes.io/ingress.class: nginx
   hosts:
     - host: hello.drunkcoding.net
+      port: 8080
+      path: /
   tls: chart-example-tls
 
 resources:

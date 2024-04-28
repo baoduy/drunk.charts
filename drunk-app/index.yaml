@@ -3,9 +3,9 @@ entries:
   drunk-app:
   - apiVersion: v2
     appVersion: latest
-    created: "2024-04-27T21:40:32.803441+08:00"
+    created: "2024-04-28T14:55:00.664267+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 2f578808c243b671b0efd4b76c14d4e32935ef75aa8408cded78e3bcc6ebe0a6
+    digest: 289c0d90b7326e9fcdafab84d04103c357df42a518bbf090dfd78ccdcf1d7883
     icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
     name: drunk-app
     type: application
@@ -14,7 +14,7 @@ entries:
     version: 1.0.4
   - apiVersion: v2
     appVersion: latest
-    created: "2024-04-27T21:40:32.803157+08:00"
+    created: "2024-04-28T14:55:00.663699+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: 13947bcdee0b6665dcc3e9f44e0e38789caa96c1111d14236a7b0a8e01312f9d
     icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
@@ -25,7 +25,7 @@ entries:
     version: 1.0.3
   - apiVersion: v2
     appVersion: latest
-    created: "2024-04-27T21:40:32.802847+08:00"
+    created: "2024-04-28T14:55:00.663064+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: e7721411d9b56a14f5f75d5b8115139d76a82a0aae94b43c7ada62b5d35b5a46
     name: drunk-app
@@ -35,7 +35,7 @@ entries:
     version: 1.0.2
   - apiVersion: v2
     appVersion: latest
-    created: "2024-04-27T21:40:32.802462+08:00"
+    created: "2024-04-28T14:55:00.662379+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: 9cd7afa72cc1b584f29f39aa3547be007adfa927be9ccc3ee36bcb38501bbbad
     name: drunk-app
@@ -45,7 +45,7 @@ entries:
     version: 1.0.1
   - apiVersion: v2
     appVersion: latest
-    created: "2024-04-27T21:40:32.802037+08:00"
+    created: "2024-04-28T14:55:00.661683+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: 7061ae0d7dfbbfdf79211670cd191a5ea678ce1f05ba2a6b4bd09d577bba2dc5
     name: drunk-app
@@ -53,4 +53,4 @@ entries:
     urls:
     - drunk-app-1.0.0.tgz
     version: 1.0.0
-generated: "2024-04-27T21:40:32.80149+08:00"
+generated: "2024-04-28T14:55:00.660537+08:00"

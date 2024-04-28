@@ -1,6 +1,11 @@
 rm -rf ../_output
-helm lint --values ./values.yaml ./
-helm template test ./ --values ./values.test.yaml --output-dir ../_output --debug
+
+helm template test ./ --values ./values.yaml --values ./values.test.yaml --output-dir ../_output --debug
+helm install -f ./values.yaml -f ./values.test.yaml test ./ --debug --dry-run
+#sleep 5
+
 helm package ./
-helm install -f ./values.test.yaml test ./ --debug --dry-run
 helm repo index ./
+#sleep 5
+
+helm lint --values ./values.yaml ./

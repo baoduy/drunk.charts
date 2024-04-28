@@ -1,3 +1,4 @@
+{{- if .Values.deployment }}
 {{- if .Values.deployment.ports }}
 apiVersion: v1
 kind: Service
@@ -9,9 +10,10 @@ spec:
   ports:
     {{- range $k,$v := .Values.deployment.ports}}
     - port: {{ $v }}
-      targetPort: {{ $v }}
+      targetPort: {{ $k }}
       protocol: TCP
       name: {{ $k }}
     {{- end }}
   selector: {{ include "app.selectorLabels" . | nindent 4 }}
+{{- end }}
 {{- end }}
