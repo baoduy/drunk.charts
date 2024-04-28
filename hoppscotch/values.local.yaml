@@ -43,8 +43,8 @@ app:
     SESSION_SECRET: "7Ym33GEEwy9PhfE@234"
 
     # Hoppscotch App Domain Config
-    REDIRECT_URL: https://app.dev.local
-    WHITELISTED_ORIGINS: https://app.dev.local,https://api.dev.local,https://admin.dev.local
+    REDIRECT_URL: "https://app.dev.local"
+    WHITELISTED_ORIGINS: "https://app.dev.local,https://api.dev.local,https://admin.dev.local"
     VITE_ALLOWED_AUTH_PROVIDERS: "MICROSOFT,GITHUB,EMAIL" #GOOGLE,GITHUB,MICROSOFT,EMAIL
 
     # Google Auth Config
@@ -60,15 +60,15 @@ app:
     GITHUB_SCOPE: "user:email"
 
     # Microsoft Auth Config
-    MICROSOFT_CLIENT_ID: "309e7d73-850b-46d7-91b6-3f659ced7978"
+    MICROSOFT_CLIENT_ID: "95acfcdb-a8a6-4aae-b3f6-da7e8a24b124"
     MICROSOFT_CLIENT_SECRET: ""
     MICROSOFT_CALLBACK_URL: "https://api.dev.local/v1/auth/microsoft/callback"
     MICROSOFT_SCOPE: "openid profile user.read"
     MICROSOFT_TENANT: "d430a78c-dd8c-4515-bb49-b35ba765359f"
 
     # Mailer config
-    MAILER_SMTP_URL: smtps://user@domain.com:pass@smtp.domain.com
-    MAILER_ADDRESS_FROM: from@example.com
+    MAILER_SMTP_URL: ""
+    MAILER_ADDRESS_FROM: "noreply@drunkcoding.net"
     
     # Rate Limit Config
     RATE_LIMIT_TTL: "60"
@@ -86,8 +86,8 @@ app:
     VITE_BACKEND_API_URL: "https://api.dev.local/v1"
     
     # Terms Of Service And Privacy Policy Links (Optional)
-    VITE_APP_TOS_LINK: https://docs.hoppscotch.io/support/terms
-    VITE_APP_PRIVACY_POLICY_LINK: https://docs.hoppscotch.io/support/privacy
+    VITE_APP_TOS_LINK: "https://docs.hoppscotch.io/support/terms"
+    VITE_APP_PRIVACY_POLICY_LINK: "https://docs.hoppscotch.io/support/privacy"
     
     ENABLE_SUBPATH_BASED_ACCESS: "false"
 
