@@ -30,8 +30,8 @@ app:
     tag: 'latest'
     port: 3000
     initContainer:
-      image: 'hoppscotch/hoppscotch'
-      command: [ 'pnpx', 'prisma', 'migrate','deploy' ]
+      image: 'hoppscotch/hoppscotch-backend:latest'
+      command: ["/bin/sh", '-c', 'cd /usr/src/app/packages/hoppscotch-backend && pnpx prisma migrate deploy' ]
   secrets:
     #-----------------------Backend Config------------------------------#
     DATABASE_URL: "postgresql://postgres:7Ym33GEEwy9PhfE@hoppscotch-postgresql:5432/hoppscotch-db"
