@@ -9,8 +9,10 @@ tests:
       name: test-app
       labels:
         app: test-app-label
+    global:
+      storageClassName: "123"
     volumes:
-    - name: data
+      data: {}
   asserts:
   - hasDocuments:
       count: 1
@@ -35,7 +37,7 @@ tests:
       value: "ReadWriteOnce"
   - equal:
       path: spec.storageClassName
-      value: null
+      value: "123"
 
 - it: should create a PVC with custom size, accessMode, and storageClassName
   set:
@@ -44,10 +46,10 @@ tests:
       labels:
         app: custom-app-label
     volumes:
-    - name: logs
-      size: "10Gi"
-      accessMode: "ReadWriteMany"
-      storageClassName: "fast-storage"
+      logs:
+        size: "10Gi"
+        accessMode: "ReadWriteMany"
+        storageClassName: "fast-storage"
   asserts:
   - hasDocuments:
       count: 1

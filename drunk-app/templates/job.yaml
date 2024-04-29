@@ -45,21 +45,21 @@ spec:
         {{- toYaml $.Values.resources | nindent 14 }}
         {{- if $.Values.volumes }}
         volumeMounts:
-        {{- range $.Values.volumes }}
-        - name: {{ .name }}
+        {{- range $k,$v := $.Values.volumes }}
+        - name: {{ $k }}
           readOnly: {{ .readOnly | default false }}
-          mountPath: {{ .mountPath }}
-        {{- if .subPath }}
-          subPath: {{ .subPath }}
+          mountPath: {{ $v.mountPath }}
+        {{- if $v.subPath }}
+          subPath: {{ $v.subPath }}
         {{- end }}
         {{- end }}
         {{- end }}
      {{- if $.Values.volumes }}
       volumes:
-      {{- range $.Values.volumes }}
-      - name: {{ .name }}
+      {{- range $k,$v := $.Values.volumes }}
+      - name: {{ $k }}
         persistentVolumeClaim:
-          claimName: {{ include "app.name" $root }}-{{ .name }}
+          claimName: {{ include "app.name" $root }}-{{ $k }}
       {{- end }}
       {{- end }}
 {{- end }}

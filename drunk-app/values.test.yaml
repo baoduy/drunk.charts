@@ -6,6 +6,7 @@ global:
   image: 'baoduy2412/astro-blog'
   tag: 'latest'
   imagePullPolicy: 'IfNotPresent'
+  storageClassName: '111'
   #imagePullSecret: 'abc'
   initContainer:
     image: 'baoduy2412/astro-blog'
@@ -66,17 +67,23 @@ jobs:
   - hello-2
 
 volumes:
-- name: data-vol
-  size: '2Gi'
-  storageClassName: 'abc'
-  accessMode: 'ReadWriteOnce'
-  mountPath: '/data'
-  subPath: 'abc.dev'
-  readOnly: false
-- name: tmp
-  mountPath: '/tmp'
-  readOnly: false
-  emptyDir: true
+  data-vol:
+    size: '2Gi'
+    storageClassName: 'abc'
+    accessMode: 'ReadWriteOnce'
+    mountPath: '/data'
+    subPath: 'abc.dev'
+    readOnly: false
+  other-vol:
+    size: '2Gi'
+    accessMode: 'ReadWriteOnce'
+    mountPath: '/data'
+    subPath: 'abc.dev'
+    readOnly: false
+  tmp:
+    mountPath: '/tmp'
+    readOnly: false
+    emptyDir: true
 
 serviceAccount:
   create: true

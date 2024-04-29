@@ -59,12 +59,12 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- if .Values.volumes }}
           volumeMounts:
-          {{- range .Values.volumes }}
-            - name: {{ .name }}
-              readOnly: {{ .readOnly | default false }}
-              mountPath: {{ .mountPath }}
-            {{- if .subPath }}
-              subPath: {{ .subPath }}
+          {{- range $k,$v := .Values.volumes }}
+            - name: {{ $k }}
+              readOnly: {{ $v.readOnly | default false }}
+              mountPath: {{ $v.mountPath }}
+            {{- if $v.subPath }}
+              subPath: {{ $v.subPath }}
             {{- end }}
           {{- end }}
           {{- end }}
@@ -119,12 +119,12 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- if .Values.volumes }}
           volumeMounts:
-          {{- range .Values.volumes }}
-            - name: {{ .name }}
-              readOnly: {{ .readOnly | default false }}
-              mountPath: {{ .mountPath }}
-            {{- if .subPath }}
-              subPath: {{ .subPath }}
+          {{- range $k,$v := .Values.volumes }}
+            - name: {{ $k }}
+              readOnly: {{ $v.readOnly | default false }}
+              mountPath: {{ $v.mountPath }}
+            {{- if $v.subPath }}
+              subPath: {{ $v.subPath }}
             {{- end }}
           {{- end }}
           {{- end }}
@@ -132,13 +132,13 @@ spec:
       
       {{- if .Values.volumes }}
       volumes:
-      {{- range .Values.volumes }}
-        - name: {{ .name }}
-        {{- if .emptyDir }}
+      {{- range $k,$v := .Values.volumes }}
+        - name: {{ $k }}
+        {{- if $v.emptyDir }}
           emptyDir: {}
         {{- else }}
           persistentVolumeClaim:
-            claimName: {{ include "app.name" $root }}-{{ .name }}
+            claimName: {{ include "app.name" $root }}-{{ $k }}
         {{- end }}
       {{- end }}
       {{- end }}
