@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Define variables
-RELEASE_NAME="drunk-nginx-proxy"
-NAMESPACE="drunk-apps"
+RELEASE_NAME="hoppscotch"
+NAMESPACE="hoppscotch"
 CHART_PATH="./"
-VALUES_FILE="./values.test.yaml"
+VALUES_FILE="./values.local.yaml"
 
 # Check if the Helm release already exists in the namespace
 helm status $RELEASE_NAME --namespace $NAMESPACE > /dev/null 2>&1

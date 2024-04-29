@@ -1,0 +1,18 @@
+nginx:
+  enabled: false
+proxy:
+  enabled: true
+  service:
+    type: ClusterIP
+  deployment:
+    enabled: true
+    ports:
+      tcp: '3128'
+  odSecurityContext: {}
+  securityContext:
+#    capabilities:
+#      drop:
+#        - ALL
+    readOnlyRootFilesystem: false
+    allowPrivilegeEscalation: true
+    runAsNonRoot: false

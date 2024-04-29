@@ -4,12 +4,10 @@ nameOverride: "ms-hello-world"
 global:
   image: "mcr.microsoft.com/azuredocs/aci-helloworld"
   tag: "latest"
-  #imagePullSecrets: []
   port: 80
-  replicaCount: 1
-  #liveness: "/healthz"
-  #readiness: "/healthz/ready"
 
+deployment:
+  enabled: true
 #Environments variables through configMap and secrets
 
 configMap:
