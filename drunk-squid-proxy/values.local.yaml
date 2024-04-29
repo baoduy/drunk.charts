@@ -1,0 +1,22 @@
+nginx:
+  enabled: true
+  tcp:
+    8099: 'drunk-proxy/drunk-squid-proxy:3128'
+proxy:
+  enabled: true
+  global:
+    image: 'baoduy2412/squid-auth'
+    imagePullPolicy: 'IfNotPresent'
+  configMap:
+    PROXY_DEBUG: '1'
+  secrets:
+    PROXY_USERNAME: '9e7a282d-91be-4e66-88a8-78a939157cf8'
+    PROXY_PASSWORD: '2e262a10-b0cc-49a6-ae59-97d3b7b00f48'
+  volumes:
+    - name: data-vol
+      size: '1Gi'
+      storageClassName: 'hostpath'
+      accessMode: 'ReadWriteOnce'
+      mountPath: '/var/squid'
+      readOnly: false
+

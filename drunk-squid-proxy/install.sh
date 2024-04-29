@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Define variables
-RELEASE_NAME="hoppscotch"
-NAMESPACE="hoppscotch"
+RELEASE_NAME="drunk-squid-proxy"
+NAMESPACE="drunk-proxy"
 CHART_PATH="./"
 VALUES_FILE="./values.local.yaml"
 
