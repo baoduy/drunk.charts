@@ -2,7 +2,7 @@
 nginx:
   enabled: true
   tcp:
-    8099: 'drunk-proxy/drunk-proxy:3128'
+    9090: 'drunk-proxy/drunk-proxy:3128'
     3389: 'drunk-proxy/drunk-squid-proxy:389'
 
 # LDAP Server & phpLDAPAdmin

@@ -1,7 +1,7 @@
 nginx:
   enabled: true
   tcp:
-    8099: 'drunk-proxy/drunk-squid-proxy:3128'
+    9090: 'drunk-proxy/drunk-squid-proxy:3128'
 proxy:
   enabled: true
   global:
@@ -9,9 +9,9 @@ proxy:
     imagePullPolicy: 'IfNotPresent'
   configMap:
     PROXY_DEBUG: '1'
-    PROXY_ALLOWED_DSTDOMAINS: 'drunkcoding.net'
+    #PROXY_ALLOWED_DSTDOMAINS: 'drunkcoding.net'
   secrets:
-    PROXY_USERNAME: '9e7a282d-91be-4e66-88a8-78a939157cf8'
+    PROXY_USERNAME: 'baoduy2412'
     PROXY_PASSWORD: '2e262a10-b0cc-49a6-ae59-97d3b7b00f48'
   volumes:
     - name: data-vol
