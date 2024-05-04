@@ -1,7 +1,14 @@
 nginx:
   enabled: false
+  fullnameOverride: 'drunk-nginx'
+
+openldap:
+  enabled: true
+  #fullnameOverride: 'drunk-openldap'
+
 proxy:
   enabled: true
+  fullnameOverride: 'drunk-proxy'
   service:
     type: ClusterIP
   deployment:

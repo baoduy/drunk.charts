@@ -3,7 +3,7 @@ entries:
   drunk-app:
   - apiVersion: v2
     appVersion: latest
-    created: "2024-05-04T12:57:59.98819+08:00"
+    created: "2024-05-04T16:20:31.900468+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: d8459d2a22811d152c186e39e9184c6f57e0df338e52ff917912dcdfa583b4de
     icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
@@ -12,15 +12,20 @@ entries:
     urls:
     - charts/drunk-app-1.0.4.tgz
     version: 1.0.4
-  drunk-squid-proxy:
+  drunk-squid-ldap-auth-proxy:
   - apiVersion: v2
     appVersion: latest
-    created: "2024-05-04T12:57:59.987825+08:00"
+    created: "2024-05-04T16:20:31.900019+08:00"
     dependencies:
     - alias: nginx
       condition: nginx.enabled
       name: ingress-nginx
       repository: https://kubernetes.github.io/ingress-nginx
+      version: 4.x.x
+    - alias: openldap
+      condition: openldap.enabled
+      name: openldap-stack-ha
+      repository: https://jp-gouin.github.io/helm-openldap
       version: 4.x.x
     - alias: proxy
       condition: proxy.enabled
@@ -28,12 +33,12 @@ entries:
       repository: https://baoduy.github.io/hbd.charts/drunk-app
       version: 1.x.x
     description: The drunkcoding template to deploy an proxy using squid to Kubernetes
-    digest: ad973c5c7e6fb67368af4a36fabe0d1f6c98c2c2c5c8ec1e673875c150718e75
+    digest: d7f09465059cd8fa6a9352475f93897085ce05f68d9e5093afea905d9aca70ec
     icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
-    name: drunk-squid-proxy
+    name: drunk-squid-ldap-auth-proxy
     type: application
     urls:
-    - drunk-squid-proxy-1.0.0.tgz
+    - drunk-squid-ldap-auth-proxy-1.0.0.tgz
     version: 1.0.0
   ingress-nginx:
   - annotations:
@@ -44,7 +49,7 @@ entries:
       artifacthub.io/prerelease: "false"
     apiVersion: v2
     appVersion: 1.10.1
-    created: "2024-05-04T12:57:59.991193+08:00"
+    created: "2024-05-04T16:20:31.903943+08:00"
     description: Ingress controller for Kubernetes using NGINX as a reverse proxy
       and load balancer
     digest: b3e4b14509f56080e09b022cde05dd02822fb054616ea212d93981b461732913
@@ -65,4 +70,40 @@ entries:
     urls:
     - charts/ingress-nginx-4.10.1.tgz
     version: 4.10.1
-generated: "2024-05-04T12:57:59.983136+08:00"
+  openldap-stack-ha:
+  - apiVersion: v2
+    appVersion: 2.6.6
+    created: "2024-05-04T16:20:31.906468+08:00"
+    dependencies:
+    - condition: ltb-passwd.enabled
+      name: ltb-passwd
+      repository: ""
+      version: 0.1.x
+    - condition: phpldapadmin.enabled
+      name: phpldapadmin
+      repository: ""
+      version: 0.1.x
+    - name: common
+      repository: https://charts.bitnami.com/bitnami
+      tags:
+      - bitnami-common
+      version: 1.x.x
+    description: Community developed LDAP software
+    digest: 158b71d16af5780baa4c61f14c91803bc028f85a8dbf43f8d92893b9c65b6e34
+    home: https://www.openldap.org
+    icon: https://raw.githubusercontent.com/jp-gouin/helm-openldap/master/logo.png
+    keywords:
+    - ldap
+    - openldap
+    - iam-stack
+    - high availability
+    maintainers:
+    - email: jp-gouin@hotmail.fr
+      name: Jean-Philippe Gouin
+    name: openldap-stack-ha
+    sources:
+    - https://github.com/jp-gouin/helm-openldap
+    urls:
+    - charts/openldap-stack-ha-4.2.2.tgz
+    version: 4.2.2
+generated: "2024-05-04T16:20:31.891233+08:00"

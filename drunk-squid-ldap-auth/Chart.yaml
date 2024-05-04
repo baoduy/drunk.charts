@@ -14,6 +14,12 @@ dependencies:
     condition: nginx.enabled
     repository: "https://kubernetes.github.io/ingress-nginx"
 
+  - name: openldap-stack-ha
+    alias: openldap
+    version: 4.x.x
+    condition: openldap.enabled
+    repository: "https://jp-gouin.github.io/helm-openldap"
+
   - name: drunk-app
     alias: proxy
     version: 1.x.x
