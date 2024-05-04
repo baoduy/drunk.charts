@@ -1,0 +1,9 @@
+dependencies:
+- name: ingress-nginx
+  repository: https://kubernetes.github.io/ingress-nginx
+  version: 4.10.1
+- name: drunk-app
+  repository: https://baoduy.github.io/hbd.charts/drunk-app
+  version: 1.0.4
+digest: sha256:2169b0d784e6029459d75c59c03fe17ebfd3113452f7441fb1b9755207dc2595
+generated: "2024-04-29T14:04:01.579023+08:00"
