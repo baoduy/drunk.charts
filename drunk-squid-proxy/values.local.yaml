@@ -5,10 +5,11 @@ nginx:
 proxy:
   enabled: true
   global:
-    image: 'baoduy2412/squid-auth'
+    image: 'baoduy2412/squid-basic-auth'
     imagePullPolicy: 'IfNotPresent'
   configMap:
     PROXY_DEBUG: '1'
+    #PROXY_ALLOWED_DSTDOMAINS: 'drunkcoding.net'
   secrets:
     PROXY_USERNAME: '9e7a282d-91be-4e66-88a8-78a939157cf8'
     PROXY_PASSWORD: '2e262a10-b0cc-49a6-ae59-97d3b7b00f48'
