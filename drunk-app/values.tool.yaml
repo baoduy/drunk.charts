@@ -2,7 +2,7 @@
 nameOverride: 'drunk-blog'
 
 global:
-  image: 'baoduy2412/astro-blog'
+  image: 'baoduy2412/toolbox'
   tag: 'latest'
   imagePullPolicy: 'Always'
 
