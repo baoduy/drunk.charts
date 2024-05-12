@@ -1,5 +1,5 @@
 {{- if .Values.deployment }}
-{{- if .Values.deployment.ports }}
+{{- if and .Values.deployment.ports (ne .Values.service.enabled false) }}
 apiVersion: v1
 kind: Service
 metadata:
