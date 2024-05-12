@@ -1,5 +1,5 @@
 # Default values for app.
-nameOverride: 'drunk-blog'
+nameOverride: 'drunk-toolbox'
 
 global:
   image: 'baoduy2412/toolbox'
