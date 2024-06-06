@@ -20,6 +20,8 @@ deployment:
   ports:
     http: 8080
   replicaCount: 1
+  #command:
+  #args:
   #liveness: "/healthz"
   #readiness: "/healthz/ready"
 

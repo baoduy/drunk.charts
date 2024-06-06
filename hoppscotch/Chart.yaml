@@ -23,4 +23,4 @@ dependencies:
     alias: app
     version: 1.x.x
     condition: app.enabled
-    repository: "https://baoduy.github.io/hbd.charts/drunk-app"
+    repository: "https://baoduy.github.io/drunk.charts/drunk-app"
