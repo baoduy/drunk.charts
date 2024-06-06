@@ -25,7 +25,7 @@ entries:
     - alias: proxy
       condition: proxy.enabled
       name: drunk-app
-      repository: https://baoduy.github.io/hbd.charts/drunk-app
+      repository: https://baoduy.github.io/drunk.charts/drunk-app
       version: 1.x.x
     description: The drunkcoding template to deploy an proxy using squid to Kubernetes
     digest: 8e8d76369de8af3855b5b98aee758cf0743144f100d1c2509aa0d736cd2ff513

@@ -12,7 +12,7 @@ This Helm chart deploys the Drunk Proxy, an NGINX-based proxy, on a Kubernetes c
 To install the chart with the release name `drunk-nginx-proxy`:
 
 ```bash
-$ helm install drunk-nginx-proxy https://baoduy.github.io/hbd.charts/drunk-nginx-proxy/
+$ helm install drunk-nginx-proxy https://baoduy.github.io/drunk.charts/drunk-nginx-proxy/
 ```
 
 This command deploys Drunk Proxy on the Kubernetes cluster in the default configuration. The parameters that can be configured during installation are listed in the configuration section.
@@ -67,7 +67,7 @@ dependencies:
 You can specify a custom values file to override the default settings during the Helm install command:
 
 ```bash
-$ helm install drunk-nginx-proxy -f custom-values.yaml https://baoduy.github.io/hbd.charts/drunk-nginx-proxy/
+$ helm install drunk-nginx-proxy -f custom-values.yaml https://baoduy.github.io/drunk.charts/drunk-nginx-proxy/
 ```
 
 ## Testing the Chart
