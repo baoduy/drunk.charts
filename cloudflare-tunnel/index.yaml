@@ -1,0 +1,33 @@
+apiVersion: v1
+entries:
+  cf-tunnel:
+  - apiVersion: v2
+    appVersion: latest
+    created: "2024-06-06T11:05:44.788527+08:00"
+    dependencies:
+    - alias: cf-tunnel
+      condition: cf-tunnel.enabled
+      name: drunk-app
+      repository: https://baoduy.github.io/drunk.charts/drunk-app
+      version: 1.x.x
+    description: The drunkcoding template to deploy an cloudflare tunnel to Kubernetes
+    digest: 63a0bb8856b11797c254eafdf0a8b7c5e3a39c0e85d9b1d996b705eace79ed70
+    icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
+    name: cf-tunnel
+    type: application
+    urls:
+    - cf-tunnel-1.0.0.tgz
+    version: 1.0.0
+  drunk-app:
+  - apiVersion: v2
+    appVersion: latest
+    created: "2024-06-06T11:05:44.788726+08:00"
+    description: The drunkcoding template to deploy an application to Kubernetes
+    digest: 6bcb63d4ee2a805d024d9e68637729abcfac2a0ad9557b20455e482c573181ba
+    icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
+    name: drunk-app
+    type: application
+    urls:
+    - charts/drunk-app-1.0.4.tgz
+    version: 1.0.4
+generated: "2024-06-06T11:05:44.787844+08:00"
