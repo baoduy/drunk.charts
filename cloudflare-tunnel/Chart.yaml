@@ -1,5 +1,5 @@
 apiVersion: v2
-name: cloudflare-tunnel
+name: cf-tunnel
 icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
 description: The drunkcoding template to deploy an cloudflare tunnel to Kubernetes
 # A chart can be either an 'application' or a 'library' chart.
@@ -11,4 +11,5 @@ dependencies:
   - name: drunk-app
     alias: cf-tunnel
     version: 1.x.x
+    condition: cf-tunnel.enabled
     repository: "https://baoduy.github.io/drunk.charts/drunk-app"

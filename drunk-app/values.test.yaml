@@ -2,6 +2,12 @@
 # fullnameOverride: "" # DONOT use this update in the chard name instead
 nameOverride: 'drunk-test-app'
 
+imageCredentials:
+  name: 'drunkcoding-acr-secret'
+  registry: 'drunkcoding.net'
+  username: 'drunk'
+  password: 'coding'
+
 global:
   image: 'baoduy2412/astro-blog'
   tag: 'latest'
@@ -38,11 +44,11 @@ deployment:
   liveness: '/healthz'
   #readiness: "/healthz/ready"
   args:
-    - tunnel
-    - '--no-autoupdate'
-    - run
-    - '--token'
-    - $(token)
+  - tunnel
+  - '--no-autoupdate'
+  - run
+  - '--token'
+  - $(token)
 
 cronJobs:
 - name: 'drunk-cjob-1'

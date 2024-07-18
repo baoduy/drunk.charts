@@ -1,4 +1,5 @@
-cfTunnel:
+cf-tunnel:
+  enabled: true
   global:
     image: cloudflare/cloudflared
     tag: 'latest'

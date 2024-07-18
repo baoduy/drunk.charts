@@ -64,5 +64,11 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
-Set default value to service
+Create imagePullSecret
 */}}
+{{- define "drunk.utils.imagePullSecretName" }}
+{{- .Values.imageCredentials.name | default (printf "%s-dcr-secret" (include "app.name" .)) }}
+{{- end }}
+{{- define "drunk.utils.imagePullSecret" }}
+{{- printf "{\"auths\": {\"%s\": {\"auth\": \"%s\"}}}" .Values.imageCredentials.registry (printf "%s:%s" .Values.imageCredentials.username .Values.imageCredentials.password | b64enc) | b64enc }}
+{{- end }}
