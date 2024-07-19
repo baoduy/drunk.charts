@@ -85,10 +85,9 @@ tests:
   - equal:
       path: spec.replicas
       value: 3
-  - isSubset:
-      path: spec.template.spec.imagePullSecrets
-      content:
-        name: "my-secret"
+  - equal:
+      path: spec.template.spec.imagePullSecrets[0].name
+      value: "my-secret"
   - equal:
       path: spec.template.spec.containers[0].livenessProbe.httpGet.path
       value: "/health"

@@ -23,7 +23,7 @@ spec:
       automountServiceAccountToken: false
       {{- if .Values.global.imagePullSecret }}
       imagePullSecrets:
-        name: {{ .Values.global.imagePullSecret }}
+      - name: {{ .Values.global.imagePullSecret }}
       {{- end }}
       {{- if and .Values.serviceAccount .Values.serviceAccount.enabled }}
       serviceAccountName: {{ include "app.serviceAccountName" . }}
