@@ -13,7 +13,7 @@ global:
   tag: 'latest'
   imagePullPolicy: 'IfNotPresent'
   storageClassName: '111'
-  #imagePullSecret: 'abc'
+  imagePullSecret: 'drunkcoding-acr-secret'
   initContainer:
     image: 'baoduy2412/astro-blog'
     command: ['sh', '-c', 'echo Init complete;']

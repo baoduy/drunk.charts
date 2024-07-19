@@ -19,7 +19,7 @@ spec:
           automountServiceAccountToken: false
           {{- if $.Values.global.imagePullSecret }}
           imagePullSecrets:
-             name: {{ $.Values.global.imagePullSecret }}
+          - name: {{ $.Values.global.imagePullSecret }}
           {{- end }}
           serviceAccountName: {{ include "app.serviceAccountName" $root }}
           securityContext:
