@@ -31,9 +31,11 @@ spec:
               {{- toYaml $.Values.securityContext | nindent 14 }}
             image: "{{ $.Values.global.image }}:{{ $.Values.global.tag | default $.Chart.AppVersion }}"
             imagePullPolicy: "{{ $.Values.global.imagePullPolicy | default "Always" }}"
-           {{- with .command }}
-            command:
-              {{- toYaml . | nindent 12 }}
+            {{- if .command }}
+            command: {{- toYaml .command | nindent 12 }}
+            {{- end }}
+            {{- if .args }}
+            args: {{- toYaml .args | nindent 12 }}
             {{- end }}
             envFrom:
             {{- if $.Values.configMap }}

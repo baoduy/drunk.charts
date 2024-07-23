@@ -53,7 +53,7 @@ deployment:
 cronJobs:
 - name: 'drunk-cjob-1'
   schedule: "* 0 * * *"
-  command:
+  args:
   - hello
 - name: 'drunk-cjob-2'
   schedule: "* 0 * * *"
@@ -64,7 +64,7 @@ cronJobs:
 
 jobs:
 - name: 'drunk-job-1'
-  command:
+  args:
   - hello
 - name: 'drunk-job-2'
   restartPolicy: Always
