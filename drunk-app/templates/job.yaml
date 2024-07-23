@@ -35,11 +35,11 @@ spec:
         envFrom:
         {{- if $.Values.configMap }}
         - configMapRef:
-            name: {{ include "app.fullname" $root }}-config
+            name: {{ include "app.name" $root }}-config
         {{- end }}
         {{- if $.Values.secrets }}
         - secretRef:
-            name: {{ include "app.fullname" $root }}-secret
+            name: {{ include "app.name" $root }}-secret
         {{- end }}
         resources:
         {{- toYaml $.Values.resources | nindent 14 }}
