@@ -52,6 +52,13 @@ spec:
           {{- if .Values.global.initContainer.args }}
           args: {{- toYaml .Values.global.initContainer.args | nindent 12 }}
           {{- end }}
+          {{- if .Values.env }}
+          env:
+          {{- range $k,$v := .Values.env }}
+          - name: {{ $k }}
+            value: {{ $v | quote }}
+          {{- end }}
+          {{- end }}
           envFrom:
           {{- if .Values.configMap }}
             - configMapRef:
@@ -120,14 +127,29 @@ spec:
               path: {{ .Values.deployment.readiness }}
               port: http
           {{- end }}
+          {{- if .Values.env }}
+          env:
+          {{- range $k,$v := .Values.env }}
+          - name: {{ $k }}
+            value: {{ $v | quote }}
+          {{- end }}
+          {{- end }}
           envFrom:
           {{- if .Values.configMap }}
-            - configMapRef:
-                name: {{ include "app.name" . }}-config
+          - configMapRef:
+              name: {{ include "app.name" . }}-config
+          {{- end }}
+          {{- range $c := .Values.configFrom }}
+          - configMapRef:
+              name: {{ $c }}
           {{- end }}
           {{- if .Values.secrets }}
-            - secretRef:
-                name: {{ include "app.name" . }}-secret
+          - secretRef:
+              name: {{ include "app.name" . }}-secret
+          {{- end }}
+          {{- range $s := .Values.secretForm }}
+          - secretRef:
+              name: {{ $s }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
