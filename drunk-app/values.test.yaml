@@ -19,6 +19,10 @@ global:
     command: ['sh', '-c', 'echo Init complete;']
 
 #Environments variables through configMap and secrets
+env:
+  env1: 'hello'
+  env2: 'drunkcoding'
+
 configMap:
   hello: '1'
 configFrom:
