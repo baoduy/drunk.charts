@@ -13,10 +13,16 @@ spec:
       {{- include "app.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        {{- if .Values.configMap }}
+        checksum/configs: {{ include (print $.Template.BasePath "/configMap.yaml") . | sha256sum }}
+        {{- end }}
+        {{- if .Values.secrets }}
+        checksum/secrets: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.deployment.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "app.selectorLabels" . | nindent 8 }}
     spec:
