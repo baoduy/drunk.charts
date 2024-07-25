@@ -54,7 +54,7 @@ spec:
         - secretRef:
             name: {{ include "app.name" $root }}-secret
         {{- end }}
-        {{- range $s := $.Values.secretForm }}
+        {{- range $s := $.Values.secretFrom }}
         - secretRef:
             name: {{ $s }}
         {{- end }}
