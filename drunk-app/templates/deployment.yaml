@@ -88,7 +88,7 @@ spec:
           {{- end }}
           {{- if .Values.deployment.ports }}
           ports:
-            {{- range $k,$v := .Values.deployment.ports }}
+          {{- range $k,$v := .Values.deployment.ports }}
             - name: {{ $k }}
               containerPort: {{ $v }}
               protocol: TCP
