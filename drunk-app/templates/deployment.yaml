@@ -57,9 +57,17 @@ spec:
             - configMapRef:
                 name: {{ include "app.name" . }}-config
           {{- end }}
+          {{- range $c := .Values.configFrom }}
+            - configMapRef:
+                name: {{ $c }}
+          {{- end }}
           {{- if .Values.secrets }}
             - secretRef:
                 name: {{ include "app.name" . }}-secret
+          {{- end }}
+          {{- range $s := .Values.secretForm }}
+            - secretRef:
+                name: {{ $s }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

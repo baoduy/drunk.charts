@@ -21,9 +21,13 @@ global:
 #Environments variables through configMap and secrets
 configMap:
   hello: '1'
+configFrom:
+  - name_of_other_config
 
 secrets:
   connectionString: "ABC"
+secretForm:
+  - name_of_other_secret
 
 tlsSecrets:
   cloudflare:
