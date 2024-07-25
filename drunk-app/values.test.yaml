@@ -30,7 +30,7 @@ configFrom:
 
 secrets:
   connectionString: "ABC"
-secretForm:
+secretFrom:
   - name_of_other_secret
 
 tlsSecrets:
