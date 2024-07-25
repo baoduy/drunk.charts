@@ -49,6 +49,8 @@ deployment:
   - run
   - '--token'
   - $(token)
+  podAnnotations:
+    testMe: drunk-coding
 
 cronJobs:
 - name: 'drunk-cjob-1'
