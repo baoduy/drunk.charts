@@ -9,6 +9,7 @@ metadata:
     {{- include "app.labels" $root | nindent 4 }}
 spec:
   schedule: "{{ .schedule }}"
+  concurrencyPolicy: "{{ .concurrencyPolicy | default "Forbid" }}"
   # Keep only one successful and one failed job history
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 1
