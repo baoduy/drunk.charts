@@ -3,9 +3,9 @@ entries:
   drunk-app:
   - apiVersion: v2
     appVersion: latest
-    created: "2024-07-25T15:51:48.042264+08:00"
+    created: "2024-08-11T15:55:19.92+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 12d4ce4647998eeccfc8ac34752e1e3ee63d73bbf0e6f9bbca7e045a127f23e8
+    digest: b8e3d5d7ab449602c0f0f6fa5b7f88ebab27ea9a4080d806e807fc7db3c07b16
     icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
     name: drunk-app
     type: application
@@ -14,7 +14,7 @@ entries:
     version: 1.0.8
   - apiVersion: v2
     appVersion: latest
-    created: "2024-07-25T15:51:48.041834+08:00"
+    created: "2024-08-11T15:55:19.91967+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: 986d2998c822b2c5b19e731d23e2e380c8c5b3e6afad5713fe5b018d4bd6298d
     icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
@@ -25,7 +25,7 @@ entries:
     version: 1.0.7
   - apiVersion: v2
     appVersion: latest
-    created: "2024-07-25T15:51:48.041621+08:00"
+    created: "2024-08-11T15:55:19.919309+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: f172f9a90cd871a90616ae5317f4621862da7a16a875c46ce932ae992b762f74
     icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
@@ -36,7 +36,7 @@ entries:
     version: 1.0.6
   - apiVersion: v2
     appVersion: latest
-    created: "2024-07-25T15:51:48.041403+08:00"
+    created: "2024-08-11T15:55:19.918973+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: 3f17d8e5b5d610612837caeacc3e2dfe13ae3641401bd49cc349894f99143999
     icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
@@ -47,7 +47,7 @@ entries:
     version: 1.0.5
   - apiVersion: v2
     appVersion: latest
-    created: "2024-07-25T15:51:48.04118+08:00"
+    created: "2024-08-11T15:55:19.918584+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: 6bcb63d4ee2a805d024d9e68637729abcfac2a0ad9557b20455e482c573181ba
     icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
@@ -58,7 +58,7 @@ entries:
     version: 1.0.4
   - apiVersion: v2
     appVersion: latest
-    created: "2024-07-25T15:51:48.040977+08:00"
+    created: "2024-08-11T15:55:19.91812+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: 13947bcdee0b6665dcc3e9f44e0e38789caa96c1111d14236a7b0a8e01312f9d
     icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
@@ -69,7 +69,7 @@ entries:
     version: 1.0.3
   - apiVersion: v2
     appVersion: latest
-    created: "2024-07-25T15:51:48.040784+08:00"
+    created: "2024-08-11T15:55:19.917755+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: e7721411d9b56a14f5f75d5b8115139d76a82a0aae94b43c7ada62b5d35b5a46
     name: drunk-app
@@ -79,7 +79,7 @@ entries:
     version: 1.0.2
   - apiVersion: v2
     appVersion: latest
-    created: "2024-07-25T15:51:48.040549+08:00"
+    created: "2024-08-11T15:55:19.917305+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: 9cd7afa72cc1b584f29f39aa3547be007adfa927be9ccc3ee36bcb38501bbbad
     name: drunk-app
@@ -89,7 +89,7 @@ entries:
     version: 1.0.1
   - apiVersion: v2
     appVersion: latest
-    created: "2024-07-25T15:51:48.040278+08:00"
+    created: "2024-08-11T15:55:19.91612+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: 7061ae0d7dfbbfdf79211670cd191a5ea678ce1f05ba2a6b4bd09d577bba2dc5
     name: drunk-app
@@ -97,4 +97,4 @@ entries:
     urls:
     - drunk-app-1.0.0.tgz
     version: 1.0.0
-generated: "2024-07-25T15:51:48.039951+08:00"
+generated: "2024-08-11T15:55:19.915537+08:00"
