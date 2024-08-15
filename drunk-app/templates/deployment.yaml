@@ -120,6 +120,8 @@ spec:
             httpGet:
               path: {{ .Values.deployment.liveness }}
               port: http
+              initialDelaySeconds: 10
+              periodSeconds: 300
           {{- end }}
           {{- if .Values.deployment.readiness }}
           readinessProbe:
