@@ -117,11 +117,11 @@ spec:
           {{- end }}
           {{- if .Values.deployment.liveness }}
           livenessProbe:
+            initialDelaySeconds: 60
+            periodSeconds: 300
             httpGet:
               path: {{ .Values.deployment.liveness }}
               port: http
-              initialDelaySeconds: 10
-              periodSeconds: 300
           {{- end }}
           {{- if .Values.deployment.readiness }}
           readinessProbe:
