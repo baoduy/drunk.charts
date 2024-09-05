@@ -60,23 +60,30 @@ spec:
         {{- end }}
         resources:
         {{- toYaml $.Values.resources | nindent 14 }}
+        
         {{- if $.Values.volumes }}
         volumeMounts:
         {{- range $k,$v := $.Values.volumes }}
-        - name: {{ $k }}
-          readOnly: {{ .readOnly | default false }}
-          mountPath: {{ $v.mountPath }}
-        {{- if $v.subPath }}
-          subPath: {{ $v.subPath }}
+          - name: {{ $k }}
+            readOnly: {{ $v.readOnly | default false }}
+            mountPath: {{ $v.mountPath }}
+          {{- if $v.subPath }}
+            subPath: {{ $v.subPath }}
+          {{- end }}
         {{- end }}
         {{- end }}
-        {{- end }}
+     
      {{- if $.Values.volumes }}
       volumes:
       {{- range $k,$v := $.Values.volumes }}
-      - name: {{ $k }}
-        persistentVolumeClaim:
-          claimName: {{ include "app.name" $root }}-{{ $k }}
+        - name: {{ $k }}
+        {{- if $v.emptyDir }}
+          emptyDir: {}
+        {{- else }}
+          persistentVolumeClaim:
+            claimName: {{ include "app.name" $root }}-{{ $k }}
+        {{- end }}
       {{- end }}
       {{- end }}
+
 {{- end }}

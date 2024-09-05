@@ -64,6 +64,7 @@ spec:
               {{- end }}
             resources:
             {{- toYaml $.Values.resources | nindent 14 }}
+            
             {{- if $.Values.volumes }}
             volumeMounts:
             {{- range $k,$v := $.Values.volumes }}
@@ -75,12 +76,17 @@ spec:
               {{- end }}
             {{- end }}
             {{- end }}
-         {{- if $.Values.volumes }}
+        
+          {{- if $.Values.volumes }}
           volumes:
           {{- range $k,$v := $.Values.volumes }}
-          - name: {{ $k }}
-            persistentVolumeClaim:
-              claimName: {{ include "app.name" $root }}-{{ $k }}
+            - name: {{ $k }}
+            {{- if $v.emptyDir }}
+              emptyDir: {}
+            {{- else }}
+              persistentVolumeClaim:
+                claimName: {{ include "app.name" $root }}-{{ $k }}
+            {{- end }}
           {{- end }}
           {{- end }}
 {{- end }}
