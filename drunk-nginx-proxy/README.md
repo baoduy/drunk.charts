@@ -52,14 +52,14 @@ The following table lists the configurable parameters of the `drunk-nginx-proxy`
 | `proxies.webhook.ingressHost`        | Host for webhook ingress               | `localhost`      | string  |
 | `proxies.webhook.ingressPath`        | Path for webhook ingress               | `/webhook/?(.*)` | string  |
 | `proxies.webhook.target`             | Target IP address for webhook          | `192.168.1.68`   | string  |
-| `proxies.webhook.backendTlsCert.ca`  | CA certificate for webhook backend TLS | `123`            | string  |
-| `proxies.webhook.backendTlsCert.crt` | Certificate for webhook backend TLS    | `444`            | string  |
-| `proxies.webhook.backendTlsCert.key` | Key for webhook backend TLS            | `555`            | string  |
+| `proxies.webhook.targetMTlsCert.ca`  | CA certificate for webhook backend TLS | `123`            | string  |
+| `proxies.webhook.targetMTlsCert.crt` | Certificate for webhook backend TLS    | `444`            | string  |
+| `proxies.webhook.targetMTlsCert.key` | Key for webhook backend TLS            | `555`            | string  |
 | `proxies.webapp.ingressHost`         | Host for webapp ingress                | `api.dev.local`  | string  |
 | `proxies.webapp.ingressPath`         | Path for webapp ingress                | `/webapp/?(.*)`  | string  |
 | `proxies.webapp.target`              | Target service for webapp              | `webhook.site`   | string  |
 | `proxies.webapp.targetPort`          | Target port for webapp                 | `443`            | int     |
-| `proxies.webapp.tlsSecret`           | TLS secret name for the webapp         | `tls-dev-local`  | string  |
+| `proxies.webapp.ingressTlsSecret`    | TLS secret name for the webapp         | `tls-dev-local`  | string  |
 
 ## Usage
 

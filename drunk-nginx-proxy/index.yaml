@@ -3,13 +3,13 @@ entries:
   drunk-nginx-proxy:
   - apiVersion: v2
     appVersion: latest
-    created: "2024-10-20T09:52:43.537259+08:00"
+    created: "2024-10-20T10:09:28.82522+08:00"
     description: The drunkcoding template to deploy an proxy using nginx to Kubernetes
-    digest: a49c7e1a065988c1abbd92b3532652d623962035cad66f23b7f318ada64d24f0
+    digest: d024e42fffd90003905900734241f4a47694a44ea408b82d5f48f15bf61dfd11
     icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
     name: drunk-nginx-proxy
     type: application
     urls:
     - drunk-nginx-proxy-1.0.1.tgz
     version: 1.0.1
-generated: "2024-10-20T09:52:43.536888+08:00"
+generated: "2024-10-20T10:09:28.824714+08:00"

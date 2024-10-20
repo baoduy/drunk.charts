@@ -9,7 +9,7 @@ metadata:
   labels: {{ include "app.labels" $root | nindent 4 }}
   {{- with $v.annotations }}
   annotations:
-    {{- if $v.backendTlsCert}}
+    {{- if $v.targetMTlsCert}}
     nginx.ingress.kubernetes.io/proxy-ssl-secret: "{{$root.Release.Namespace}}/tls-{{ $k }}-ingress-proxy"
     nginx.ingress.kubernetes.io/proxy-ssl-server-name: "on"
     nginx.ingress.kubernetes.io/proxy-ssl-name: "{{$v.targetHost}}"
@@ -21,11 +21,11 @@ metadata:
   {{- end }}
 spec:
   ingressClassName: {{ $v.ingressClassName | default "nginx" }}
-  {{- if $v.tlsSecret }}
+  {{- if $v.ingressTlsSecret }}
   tls:
     - hosts:
         - {{ $v.ingressHost | default nil }}
-      secretName: {{ $v.tlsSecret }}
+      secretName: {{ $v.ingressTlsSecret }}
   {{- end }}
   rules:
   - host: {{ $v.ingressHost | default nil }}

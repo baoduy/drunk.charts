@@ -9,11 +9,12 @@ tests:
           enabled: true
           ingressHost: "webapp.drunk.dev"
           ingressPath: "/web"
+          ingressClassName: internal
           targetPort: 8080
           targetHost: "webapp.example.com"
           annotations:
             nginx.ingress.kubernetes.io/rewrite-target: "/"
-          backendTlsCert:
+          targetMTlsCert:
             ca: "123"
             crt: "444"
             key: "555"
@@ -23,6 +24,9 @@ tests:
       - matchRegex:
           path: metadata.name
           pattern: webapp-ingress
+      - equal:
+          path: spec.ingressClassName
+          value: "internal"
       - equal:
           path: spec.rules[0].host
           value: "webapp.drunk.dev"
