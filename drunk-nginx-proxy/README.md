@@ -1,84 +1,78 @@
-# Drunk Proxy Helm Chart
+# Project Name Helm Chart
 
-This Helm chart deploys the Drunk Proxy, an NGINX-based proxy, on a Kubernetes cluster using the Helm package manager.
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://helm.sh/)
+
+## Table of Contents
+
+- [Project Name Helm Chart](#project-name-helm-chart)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Parameters](#parameters)
+  - [Usage](#usage)
+  - [Contributing](#contributing)
+  - [License](#license)
+    - [Thanks](#thanks)
+
+## Introduction
+
+This Helm chart deploys the **nginx-proxy**.
 
 ## Prerequisites
 
-- Kubernetes 1.20+
+- Kubernetes 1.19+
 - Helm 3.0+
+- A running Kubernetes cluster
+- `kubectl` configured to access your Kubernetes cluster
 
-## Installing the Chart
+## Installation
 
-To install the chart with the release name `drunk-nginx-proxy`:
+To install the chart with the release name `drunk-nginx-proxy`, follow these steps:
 
-```bash
-$ helm install drunk-nginx-proxy https://baoduy.github.io/drunk.charts/drunk-nginx-proxy/
-```
+1. Add the Helm repository (if needed):
 
-This command deploys Drunk Proxy on the Kubernetes cluster in the default configuration. The parameters that can be configured during installation are listed in the configuration section.
+   ```bash
+   helm repo add drunk-nginx-proxy https://baoduy.github.io/drunk.charts/drunk-nginx-proxy
+   helm repo update
+   ```
 
-## Uninstalling the Chart
+2. Install the chart:
+   ```bash
+   helm install drunk-nginx-proxy drunk-nginx-proxy/drunk-nginx-proxy
+   ```
 
-To uninstall/delete the `drunk-nginx-proxy` deployment:
+## Parameters
 
-```bash
-$ helm delete drunk-nginx-proxy
-```
+The following table lists the configurable parameters of the `drunk-nginx-proxy` chart and their default values in `values.test.yaml`.
 
-This command removes all the Kubernetes components associated with the chart and deletes the release.
+| Parameter                            | Description                            | Default          | Type    |
+| ------------------------------------ | -------------------------------------- | ---------------- | ------- |
+| `proxies.webhook.enabled`            | Enable webhook proxy                   | `false`          | boolean |
+| `proxies.webhook.ingressHost`        | Host for webhook ingress               | `localhost`      | string  |
+| `proxies.webhook.ingressPath`        | Path for webhook ingress               | `/webhook/?(.*)` | string  |
+| `proxies.webhook.target`             | Target IP address for webhook          | `192.168.1.68`   | string  |
+| `proxies.webhook.targetMTlsCert.ca`  | CA certificate for webhook backend TLS | `123`            | string  |
+| `proxies.webhook.targetMTlsCert.crt` | Certificate for webhook backend TLS    | `444`            | string  |
+| `proxies.webhook.targetMTlsCert.key` | Key for webhook backend TLS            | `555`            | string  |
+| `proxies.webapp.ingressHost`         | Host for webapp ingress                | `api.dev.local`  | string  |
+| `proxies.webapp.ingressPath`         | Path for webapp ingress                | `/webapp/?(.*)`  | string  |
+| `proxies.webapp.target`              | Target service for webapp              | `webhook.site`   | string  |
+| `proxies.webapp.targetPort`          | Target port for webapp                 | `443`            | int     |
+| `proxies.webapp.ingressTlsSecret`    | TLS secret name for the webapp         | `tls-dev-local`  | string  |
 
-## Configuration
+## Usage
 
-The following table lists the configurable parameters of the Drunk Proxy chart and their default values.
+Please refer the [`values.test.yaml`](values.test.yaml) for details.
 
-# Configuration Parameters for Drunk Proxy Helm Chart
+## Contributing
 
-| Parameter                                         | Description                                           | Default Value                                         |
-|---------------------------------------------------|-------------------------------------------------------|-------------------------------------------------------|
-| `nginx.enabled`                                   | Enable NGINX as the proxy                             | `true`                                                |
-| `toolbox.enabled`                                 | Enable toolbox utilities                              | `true`                                                |
-| `tlsSecrets.[name].enabled`                   | Enable TLS secrets for [name]                     | `true`                                                |
-| `tlsSecrets.[name].crt`                       | TLS certificate for [name]                        | *certificate content*                                 |
-| `tlsSecrets.[name].key`                       | TLS key for [name]                                | *key content*                                         |
-| `tlsSecrets.dev-local.crt`                        | Development local TLS certificate                     | *certificate content*                                 |
-| `tlsSecrets.dev-local.key`                        | Development local TLS key                             | *key content*                                         |
-| `proxies.[name].ingressHost`                      | Ingress host for [name]                               |                                           |
-| `proxies.[name].ingressPath`                      | Ingress path for [name]                               |                                       |
-| `proxies.[name].target`                           | Target IP for [name]                                  |                                       |
-| `proxies.[name].targetPort`                       | Target port for [name]                                |  443                                          |
-| `proxies.[name].annotations` | Backend protocol for NGINX ingress | [HTTPS]                                    |
+Contributions are welcome!. For any questions or issues, please open an issue in the project's GitHub repository.
 
-Note: Refer `values.test.yaml` for details
+## License
 
-## Dependencies
+This project is licensed under the MIT License.
 
-Drunk Proxy depends on the `ingress-nginx` chart for setting up NGINX as a reverse proxy and load balancer. Ensure that this dependency is correctly configured in your Helm repository.
+### Thanks
 
-```yaml
-dependencies:
-  - name: ingress-nginx
-    version: "4.x.x"
-    repository: "https://kubernetes.github.io/ingress-nginx"
-    condition: nginx.enabled
-```
-
-## Values File
-
-You can specify a custom values file to override the default settings during the Helm install command:
-
-```bash
-$ helm install drunk-nginx-proxy -f custom-values.yaml https://baoduy.github.io/drunk.charts/drunk-nginx-proxy/
-```
-
-## Testing the Chart
-
-To verify that the chart is configured correctly:
-
-```shell
-$ helm lint ./drunk-nginx-proxy
-$ helm template test ./drunk-nginx-proxy --debug
-```
-
-This will check for syntax errors and render the templates with the provided values without actually deploying them.
-
-For more detailed information on configuring and using this chart, refer to the official Helm documentation.
+[Steven Hoang](https://drunkcoding.net)

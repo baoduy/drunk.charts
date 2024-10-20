@@ -1,168 +1,183 @@
-# Drunk App Helm Chart Template
+# Drunk App Helm Chart
 
-This Helm chart deploys the Drunk Test App on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
+The Drunk App Helm Chart provides a robust and flexible framework for deploying the App on Kubernetes clusters. This chart allows users to easily manage, configure, and scale applications using the Helm package manager, streamlining the deployment process and facilitating the integration of essential application components such as container images, environment variables, secrets, and persistent storage.
 
-## Prerequisites
+## Key Features
 
-- Kubernetes 1.12+
-- Helm 3.0+
+- **Simplified Deployment**: Quickly deploy complex applications with customizable configurations tailored to specific environments using Helm.
+- **Flexible Configuration**: Fine-tune application settings including image repositories, environment variables, secrets, and more through an organized set of parameters.
 
-## Installing the Chart
+- **Automatic Scaling**: Enable horizontal pod autoscaling to dynamically adjust the number of running pods based on resource utilization.
 
-To install the chart with the release name `drunk-app`:
+- **Integrated Security**: Leverage Kubernetes secrets and TLS configurations to securely manage sensitive information and encrypted communications.
 
-```bash
-$ helm install drunk-app https://baoduy.github.io/drunk.charts/drunk-app/
-```
+- **Job Scheduling**: Streamline recurring tasks with CronJobs and batch processing workflows with Jobs, integrated directly into your Kubernetes environment.
 
-The command deploys Drunk Test App on the Kubernetes cluster in the default configuration. The [configuration](#configuration) section lists the parameters that can be configured during installation.
+- **Comprehensive Ingress Management**: Configure external access to your application using Kubernetes ingress resources, complete with TLS support and multiple host routing options.
 
-## Uninstalling the Chart
+Perfectly suited for both development and production environments, this Helm chart ensures that deploying the Drunk Test App is seamless, repeatable, and efficient while maintaining a high degree of customization. Whether you're setting up a simple app or managing a complex microservices architecture.
 
-To uninstall/delete the `drunk-app` deployment:
+## Installation
 
-```bash
-$ helm delete drunk-app
-```
+To install the chart with the release name `drunk-app`, follow these steps:
 
-The command removes all the Kubernetes components associated with the chart and deletes the release.
+1. Add the Helm repository (if needed):
 
-## Configuration
+   ```bash
+   helm repo add drunk-app https://baoduy.github.io/drunk.charts/drunk-app
+   helm repo update
+   ```
 
-The following table lists the configurable parameters of the Drunk Test App chart and their default values.
+2. Install the chart:
+   ```bash
+   helm install drunk-app drunk-app/drunk-app
+   ```
 
-| Parameter                         | Description                                      | Default                        |
-|-----------------------------------|--------------------------------------------------|--------------------------------|
-| `nameOverride`                    | Override the app name                            | `drunk-test-app`               |
-| `global.image`                    | Global image for the application                 | `baoduy2412/astro-blog`        |
-| `global.tag`                      | Global image tag                                 | `latest`                       |
-| `global.imagePullPolicy`          | Image pull policy                                | `IfNotPresent`                 |
-| `global.port`                     | Application port                                 | `8080`                         |
-| `global.replicaCount`             | Number of replicas                               | `1`                            |
-| `global.liveness`                 | Liveness probe endpoint                          | `/healthz`                     |
-| `configMap.hello`                 | Sample configMap entry                           | `1`                            |
-| `secrets.connectionString`        | Connection string (use external secret)          | `ABC`                          |
-| `deploymentEnabled`               | Enable deployment of the pod                     | `true`                         |
-| `cronJobs`                        | Configuration for cron jobs                      | See values.yaml                |
-| `jobs`                            | Configuration for jobs                           | See values.yaml                |
-| `serviceAccount.create`           | Specifies whether a service account should be created | `true`                     |
-| `podSecurityContext`              | Security context for the pod                     | `{fsGroup: 10000, runAsUser: 10000, runAsGroup: 10000}` |
-| `securityContext`                 | Security settings for containers in the pod      | See values.yaml                |
-| `service.type`                    | Kubernetes Service type                          | `ClusterIP`                    |
-| `ingress.enabled`                 | Enable ingress controller resource               | `true`                         |
-| `resources`                       | CPU/Memory resource requests/limits              | `{}`                           |
-| `autoscaling.enabled`             | Enable horizontal pod autoscaler                 | `false`                        |
+### General
 
-## Customizing the Chart Before Installing
+These parameters are overarching settings that impact the entire deployment.
 
-To configure the chart with custom values:
+| Parameter      | Description                           | Default          |
+| -------------- | ------------------------------------- | ---------------- |
+| `nameOverride` | Overrides the name of the application | `drunk-test-app` |
 
+### Image Credentials
 
+Credentials for accessing the Docker registry.
 
-Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,
+| Parameter                   | Description                        | Default                  |
+| --------------------------- | ---------------------------------- | ------------------------ |
+| `imageCredentials.name`     | Name of the Docker registry secret | `drunkcoding-acr-secret` |
+| `imageCredentials.registry` | URL of the Docker registry         | `drunkcoding.net`        |
+| `imageCredentials.username` | Username for Docker registry       | `drunk`                  |
+| `imageCredentials.password` | Password for Docker registry       | `coding`                 |
 
-```bash
-$ helm install drunk-app --set global.tag=latest https://baoduy.github.io/drunk.charts/drunk-app/
-```
+### Global
 
-Alternatively, a YAML file that specifies the values for the parameters can be provided while installing the chart. For example,
+Settings applicable to all deployed containers and resources.
 
-```bash
-$ helm install drunk-app -f values.yaml https://baoduy.github.io/drunk.charts/drunk-app/
-```
+| Parameter                      | Description                                  | Default                               |
+| ------------------------------ | -------------------------------------------- | ------------------------------------- |
+| `global.image`                 | Docker image to use                          | `baoduy2412/astro-blog`               |
+| `global.tag`                   | Docker image tag                             | `latest`                              |
+| `global.imagePullPolicy`       | Image pull policy                            | `IfNotPresent`                        |
+| `global.storageClassName`      | Default storage class for persistent volumes | `111`                                 |
+| `global.imagePullSecret`       | Secret for pulling images                    | `drunkcoding-acr-secret`              |
+| `global.initContainer.image`   | Initial setup container image                | `baoduy2412/astro-blog`               |
+| `global.initContainer.command` | Command for init container                   | `['sh', '-c', 'echo Init complete;']` |
 
-> **Tip**: You can use the default [values.yaml](values.yaml)
+### Environment Variables
 
-## CronJobs
+Variables set via ConfigMap for application configuration.
 
-The chart includes support for scheduling CronJobs. Here are the configurable parameters:
+| Parameter  | Description            | Default       |
+| ---------- | ---------------------- | ------------- |
+| `env.env1` | Environment variable 1 | `hello`       |
+| `env.env2` | Environment variable 2 | `drunkcoding` |
 
-| Parameter                | Description             | Default        |
-| ------------------------ | ----------------------- | -------------- |
-| `cronJobs[].name`        | Name of the CronJob     | `` |
-| `cronJobs[].schedule`    | Schedule of the CronJob | ``    |
-| `cronJobs[].command`     | Command of the CronJob  | ``        |
+### ConfigMap
 
-## Jobs
+Configuration through Kubernetes ConfigMap.
 
-The chart also includes support for running Jobs. Here are the configurable parameters:
+| Parameter         | Description                              | Default                  |
+| ----------------- | ---------------------------------------- | ------------------------ |
+| `configMap.hello` | Sample ConfigMap entry                   | `1`                      |
+| `configFrom`      | Additional configs from external sources | `[name_of_other_config]` |
 
-| Parameter                | Description             | Default        |
-| ------------------------ | ----------------------- | -------------- |
-| `jobs[].name`            | Name of the Job         | ``  |
-| `jobs[].command`         | Command of the Job      | ``        |
+### Secrets
 
-## Service Account
+Sensitive information such as passwords or connection strings.
 
-The chart creates a service account for the application. Here are the configurable parameters:
+| Parameter                  | Description                              | Default                  |
+| -------------------------- | ---------------------------------------- | ------------------------ |
+| `secrets.connectionString` | Example connection string                | `"ABC"`                  |
+| `secretFrom`               | Additional secrets from external sources | `[name_of_other_secret]` |
 
-| Parameter                | Description             | Default        |
-| ------------------------ | ----------------------- | -------------- |
-| `serviceAccount.create`  | Whether to create a service account | `true` |
-| `serviceAccount.annotations` | Annotations to add to the service account | `{}` |
+### TLS Secrets
 
-## Ingress
+Configuration for TLS certificates.
 
-The chart configures Ingress for the application. Here are the configurable parameters:
+| Parameter                       | Description                      | Default                 |
+| ------------------------------- | -------------------------------- | ----------------------- |
+| `tlsSecrets.cloudflare.enabled` | Whether to enable Cloudflare TLS | `true`                  |
+| `tlsSecrets.cloudflare.crt`     | TLS certificate                  | (truncated certificate) |
+| `tlsSecrets.cloudflare.key`     | TLS key                          | (truncated key)         |
 
-| Parameter                | Description             | Default        |
-| ------------------------ | ----------------------- | -------------- |
-| `ingress.enabled`        | Whether to enable ingress | `false` |
-| `ingress.annotations`    | Annotations to add to the ingress | `{kubernetes.io/ingress.class: nginx}` |
-| `ingress.hosts`          | List of hosts for ingress | `[{host: hello.drunkcoding.net}]` |
-| `ingress.tls`            | TLS settings for ingress | `chart-example-tls` |
+### Deployment
 
-## Resources
+Deployment-related configurations for the application.
 
-The chart allows you to specify resource requests and limits for the application. Here are the configurable parameters:
+| Parameter                   | Description                                | Default                |
+| --------------------------- | ------------------------------------------ | ---------------------- |
+| `deployment.enabled`        | Enable or disable deployment               | `true`                 |
+| `deployment.ports.http`     | HTTP port                                  | `8080`                 |
+| `deployment.ports.tcp`      | TCP port                                   | `9090`                 |
+| `deployment.liveness`       | Liveness endpoint                          | `/healthz`             |
+| `deployment.args`           | Command-line arguments for the application | (multiple args)        |
+| `deployment.podAnnotations` | Annotations for the pod                    | `testMe: drunk-coding` |
 
-| Parameter                | Description             | Default        |
-| ------------------------ | ----------------------- | -------------- |
-| `resources.limits.cpu`   | CPU limit | `100m` |
-| `resources.limits.memory`| Memory limit | `128Mi` |
-| `resources.requests.cpu` | CPU request | `100m` |
-| `resources.requests.memory` | Memory request | `128Mi` |
+### CronJobs
 
+Scheduled jobs run at regular intervals.
 
-# Contribution
+| Parameter                  | Description                     | Default                        |
+| -------------------------- | ------------------------------- | ------------------------------ |
+| `cronJobs[].name`          | CronJob name                    | `drunk-cjob-1`, `drunk-cjob-2` |
+| `cronJobs[].schedule`      | CronJob schedule format         | `"* 0 * * *"`                  |
+| `cronJobs[].args`          | Arguments passed to the CronJob | `hello`                        |
+| `cronJobs[].command`       | Commands for the CronJob        | `hello-1`, `hello-2`           |
+| `cronJobs[].restartPolicy` | Restart policy (if set)         | `Always`                       |
 
-## How to run unit test
+### Jobs
 
-- install helm unit test plugin refer [here](https://github.com/helm-unittest/helm-unittest) for details:
-```shell
-helm plugin install https://github.com/helm-unittest/helm-unittest
-```
+One-time tasks executed as batch jobs.
 
-- add test file `$ChartFolder/tests/name_test.yaml`
-```yaml
-suite: test configMap
-templates:
-  - configMap.yaml
-tests:
-  - it: should enabled when
-    set:
-      configMap:
-        key: "hello"
-    asserts:
-      - isKind:
-          of: ConfigMap
-      - matchRegex:
-          path: metadata.name
-          pattern: drunk-app
-      - equal:
-          path: data.key
-          value: "hello"
-```
+| Parameter              | Description                 | Default                      |
+| ---------------------- | --------------------------- | ---------------------------- |
+| `jobs[].name`          | Job name                    | `drunk-job-1`, `drunk-job-2` |
+| `jobs[].args`          | Arguments passed to the Job | `hello`                      |
+| `jobs[].command`       | Commands for the Job        | `hello-1`, `hello-2`         |
+| `jobs[].restartPolicy` | Restart policy (if set)     | `Always`                     |
 
-- run unit-tests
-```shell
-helm unittest ./
+### Volumes
 
-### Chart [ drunk-app ] ./
+Persistent and ephemeral storage settings.
 
-Charts:      1 passed, 1 total
-Test Suites: 0 passed, 0 total
-Tests:       0 passed, 0 total
-Snapshot:    0 passed, 0 total
-Time:        1.563896ms
-```
+| Parameter                           | Description                             | Default         |
+| ----------------------------------- | --------------------------------------- | --------------- |
+| `volumes.data-vol.size`             | Size of the volume                      | `2Gi`           |
+| `volumes.data-vol.storageClassName` | Storage class for the volume            | `abc`           |
+| `volumes.data-vol.accessMode`       | Access mode for the volume              | `ReadWriteOnce` |
+| `volumes.data-vol.mountPath`        | Mount path for the volume               | `/data`         |
+| `volumes.data-vol.subPath`          | Subpath within the volume               | `abc.dev`       |
+| `volumes.data-vol.readOnly`         | Whether the volume is read-only         | `false`         |
+| `volumes.other-vol`                 | Additional volume similar to `data-vol` | (similar setup) |
+| `volumes.tmp.mountPath`             | Mount path for temporary storage        | `/tmp`          |
+| `volumes.tmp.emptyDir`              | Use EmptyDir for `/tmp` storage         | `true`          |
+
+### Ingress
+
+Settings for managing external access to the application.
+
+| Parameter           | Description               | Default                                                                                            |
+| ------------------- | ------------------------- | -------------------------------------------------------------------------------------------------- |
+| `ingress.enabled`   | Enable ingress            | `true`                                                                                             |
+| `ingress.className` | Class name for ingress    | `nginx`                                                                                            |
+| `ingress.hosts`     | Hosts for ingress routing | `[{"host": "hello.drunkcoding.net", "port": 8080}, {"host": "api.drunkcoding.net", "port": 9090}]` |
+| `ingress.tls`       | TLS configuration         | `chart-example-tls`                                                                                |
+
+### Usage
+
+Please refer the file [`values.test.yaml`](values.test.yaml) for details.
+
+## Contributing
+
+Contributions are welcome!. For any questions or issues, please open an issue in the project's GitHub repository.
+
+## License
+
+This project is licensed under the MIT License.
+
+### Thanks
+
+[Steven Hoang](https://drunkcoding.net)
