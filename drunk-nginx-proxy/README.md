@@ -52,15 +52,16 @@ The following table lists the configurable parameters of the `drunk-nginx-proxy`
 
 | Parameter                           | Description                                                | Example           | Type    |
 | ----------------------------------- | ---------------------------------------------------------- | ----------------- | ------- |
-| `proxies.[name].enabled`            | Enable webhook proxy                                       | `true`            | boolean |
-| `proxies.[name].ingressHost`        | Host for webhook ingress                                   | `localhost`       | string  |
-| `proxies.[name].ingressPath`        | Path for webhook ingress                                   | `/webhook/?(.*)`  | string  |
+| `proxies.[name].enabled`            | Enable proxy                                               | `true`            | boolean |
+| `proxies.[name].ingressHost`        | Host ingress                                               | `localhost`       | string  |
+| `proxies.[name].ingressPath`        | Path ingress                                               | `/webhook/?(.*)`  | string  |
 | `proxies.[name].ingressClassName`   | The nginx ClassName                                        | `nginx`           | string  |
 | `proxies.[name].ingressTlsSecret`   | The secret name of Tls cert If running ingress under HTTPS | `tls-secret-name` | string  |
-| `proxies.[name].targetHost`         | Target IP address for webhook                              | `webhook.site`    | string  |
-| `proxies.[name].targetMTlsCert.ca`  | CA certificate for webhook backend TLS                     | `123`             | string  |
-| `proxies.[name].targetMTlsCert.crt` | Certificate for webhook backend TLS                        | `444`             | string  |
-| `proxies.[name].targetMTlsCert.key` | Key for webhook backend TLS                                | `555`             | string  |
+| `proxies.[name].targetHost`         | Target IP address                                          | `webhook.site`    | string  |
+| `proxies.[name].targetPort`         | Target port                                                | `webhook.site`    | string  |
+| `proxies.[name].targetMTlsCert.ca`  | CA certificate backend TLS                                 | `123`             | string  |
+| `proxies.[name].targetMTlsCert.crt` | Certificate backend TLS                                    | `444`             | string  |
+| `proxies.[name].targetMTlsCert.key` | private Key backend TLS                                    | `555`             | string  |
 
 ## Usage
 
