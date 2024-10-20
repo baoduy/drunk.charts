@@ -1,66 +1,83 @@
 suite: test ingresses
 templates:
-- ingresses.yaml
+  - ingresses.yaml
 tests:
-- it: should create an ingress for each proxy enabled
-  set:
-    proxies:
-      webapp:
-        enabled: true
-        ingressHost: "webapp.example.com"
-        ingressPath: "/web"
-        targetPort: 8080
-        annotations:
-          nginx.ingress.kubernetes.io/rewrite-target: "/"
-  asserts:
-  - isKind:
-      of: Ingress
-  - matchRegex:
-      path: metadata.name
-      pattern: webapp-ingress
-  - equal:
-      path: spec.rules[0].host
-      value: "webapp.example.com"
-  - equal:
-      path: spec.rules[0].http.paths[0].path
-      value: "/web"
-  - equal:
-      path: spec.rules[0].http.paths[0].backend.service.port.number
-      value: 8080
-  - equal:
-      path: metadata.annotations["nginx.ingress.kubernetes.io/rewrite-target"]
-      value: "/"
+  - it: should create an ingress for each proxy enabled
+    set:
+      proxies:
+        webapp:
+          enabled: true
+          ingressHost: "webapp.drunk.dev"
+          ingressPath: "/web"
+          targetPort: 8080
+          targetHost: "webapp.example.com"
+          annotations:
+            nginx.ingress.kubernetes.io/rewrite-target: "/"
+          backendTlsCert:
+            ca: "123"
+            crt: "444"
+            key: "555"
+    asserts:
+      - isKind:
+          of: Ingress
+      - matchRegex:
+          path: metadata.name
+          pattern: webapp-ingress
+      - equal:
+          path: spec.rules[0].host
+          value: "webapp.drunk.dev"
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: "/web"
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 8080
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/backend-protocol"]
+          value: "HTTPS"
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/proxy-ssl-server-name"]
+          value: "on"
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/use-proxy-protocol"]
+          value: "true"
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/proxy-ssl-name"]
+          value: "webapp.example.com"
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/upstream-vhost"]
+          value: "webapp.example.com"
 
-- it: should default to nginx as the ingress class if not specified
-  set:
-    proxies:
-      api:
-        enabled: true
-        ingressHost: "api.example.com"
-  asserts:
-  - equal:
-      path: spec.ingressClassName
-      value: "nginx"
+  - it: should default to nginx as the ingress class if not specified
+    set:
+      proxies:
+        api:
+          enabled: true
+          ingressHost: "api.example.com"
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: "nginx"
 
-- it: should allow overriding the ingress class name
-  set:
-    proxies:
-      api:
-        enabled: true
-        ingressClassName: "custom-class"
-        ingressHost: "api.example.com"
-  asserts:
-  - equal:
-      path: spec.ingressClassName
-      value: "custom-class"
+  - it: should allow overriding the ingress class name
+    set:
+      proxies:
+        api:
+          enabled: true
+          ingressClassName: "custom-class"
+          ingressHost: "api.example.com"
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: "custom-class"
 
-- it: should not create an ingress if proxy is disabled
-  set:
-    proxies:
-      backend:
-        enabled: false
-  asserts:
-  - hasDocuments:
-      count: 0
-      of:
-        Kind: Ingress
+  - it: should not create an ingress if proxy is disabled
+    set:
+      proxies:
+        backend:
+          enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+          of:
+            Kind: Ingress

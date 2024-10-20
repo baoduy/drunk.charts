@@ -1,51 +1,51 @@
 suite: test services
 templates:
-- services.yaml
+  - services.yaml
 tests:
-- it: should create a service for each enabled proxy
-  set:
-    proxies:
-      webapp:
-        enabled: true
-        target: "webapp.example.com"
-  asserts:
-  - isKind:
-      of: Service
-  - equal:
-      path: metadata.name
-      value: "webapp-svc"
-  - equal:
-      path: spec.type
-      value: "ExternalName"
-  - equal:
-      path: spec.externalName
-      value: "webapp.example.com"
+  - it: should create a service for each enabled proxy
+    set:
+      proxies:
+        webapp:
+          enabled: true
+          targetHost: "webapp.example.com"
+    asserts:
+      - isKind:
+          of: Service
+      - equal:
+          path: metadata.name
+          value: "nginx-webapp-proxy-svc"
+      - equal:
+          path: spec.type
+          value: "ExternalName"
+      - equal:
+          path: spec.externalName
+          value: "webapp.example.com"
 
-- it: should not create a service if proxy is disabled
-  set:
-    proxies:
-      backend:
-        enabled: false
-  asserts:
-  - hasDocuments:
-      count: 0
-      of:
-        Kind: Service
+  - it: should not create a service if proxy is disabled
+    set:
+      proxies:
+        backend:
+          enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+          of:
+            Kind: Service
 
-- it: should handle the case where enabled is not specified (default to enabled)
-  set:
-    proxies:
-      api:
-        target: "api.example.com"
-  asserts:
-  - isKind:
-      of: Service
-  - equal:
-      path: metadata.name
-      value: "api-svc"
-  - equal:
-      path: spec.type
-      value: "ExternalName"
-  - equal:
-      path: spec.externalName
-      value: "api.example.com"
+  - it: should handle the case where enabled is not specified (default to enabled)
+    set:
+      proxies:
+        api:
+          targetHost: "api.example.com"
+    asserts:
+      - isKind:
+          of: Service
+      - equal:
+          path: metadata.name
+          value: "nginx-api-proxy-svc"
+      - equal:
+          path: spec.type
+          value: "ExternalName"
+      - equal:
+          path: spec.externalName
+          value: "api.example.com"
