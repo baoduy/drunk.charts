@@ -1,10 +1,14 @@
-# Project Name Helm Chart
+# drunk-nginx-proxy Chart
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://helm.sh/)
 
+This Helm chart facilitates the deployment of an nginx-proxy that acts as a forward proxy. The proxy is designed to enable internal services within your Kubernetes cluster to securely communicate with external services using mutual TLS (mTLS) authentication. By leveraging nginx's robust capabilities, the chart provides configuration options to specify target hosts, paths, and the necessary mTLS credentials. This forward proxy setup not only ensures encrypted communication but also validates both parties' authenticity, providing an additional layer of security for your webhooks and web applications.
+
+![nginx-proxy](../docs/nginx-proxy.png)
+
 ## Table of Contents
 
-- [Project Name Helm Chart](#project-name-helm-chart)
+- [drunk-nginx-proxy Chart](#drunk-nginx-proxy-chart)
   - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
   - [Prerequisites](#prerequisites)
