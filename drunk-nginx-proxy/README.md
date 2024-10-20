@@ -50,20 +50,17 @@ To install the chart with the release name `drunk-nginx-proxy`, follow these ste
 
 The following table lists the configurable parameters of the `drunk-nginx-proxy` chart and their default values in `values.test.yaml`.
 
-| Parameter                            | Description                            | Default          | Type    |
-| ------------------------------------ | -------------------------------------- | ---------------- | ------- |
-| `proxies.webhook.enabled`            | Enable webhook proxy                   | `false`          | boolean |
-| `proxies.webhook.ingressHost`        | Host for webhook ingress               | `localhost`      | string  |
-| `proxies.webhook.ingressPath`        | Path for webhook ingress               | `/webhook/?(.*)` | string  |
-| `proxies.webhook.target`             | Target IP address for webhook          | `192.168.1.68`   | string  |
-| `proxies.webhook.targetMTlsCert.ca`  | CA certificate for webhook backend TLS | `123`            | string  |
-| `proxies.webhook.targetMTlsCert.crt` | Certificate for webhook backend TLS    | `444`            | string  |
-| `proxies.webhook.targetMTlsCert.key` | Key for webhook backend TLS            | `555`            | string  |
-| `proxies.webapp.ingressHost`         | Host for webapp ingress                | `api.dev.local`  | string  |
-| `proxies.webapp.ingressPath`         | Path for webapp ingress                | `/webapp/?(.*)`  | string  |
-| `proxies.webapp.target`              | Target service for webapp              | `webhook.site`   | string  |
-| `proxies.webapp.targetPort`          | Target port for webapp                 | `443`            | int     |
-| `proxies.webapp.ingressTlsSecret`    | TLS secret name for the webapp         | `tls-dev-local`  | string  |
+| Parameter                           | Description                                                | Example           | Type    |
+| ----------------------------------- | ---------------------------------------------------------- | ----------------- | ------- |
+| `proxies.[name].enabled`            | Enable webhook proxy                                       | `true`            | boolean |
+| `proxies.[name].ingressHost`        | Host for webhook ingress                                   | `localhost`       | string  |
+| `proxies.[name].ingressPath`        | Path for webhook ingress                                   | `/webhook/?(.*)`  | string  |
+| `proxies.[name].ingressClassName`   | The nginx ClassName                                        | `nginx`           | string  |
+| `proxies.[name].ingressTlsSecret`   | The secret name of Tls cert If running ingress under HTTPS | `tls-secret-name` | string  |
+| `proxies.[name].targetHost`         | Target IP address for webhook                              | `webhook.site`    | string  |
+| `proxies.[name].targetMTlsCert.ca`  | CA certificate for webhook backend TLS                     | `123`             | string  |
+| `proxies.[name].targetMTlsCert.crt` | Certificate for webhook backend TLS                        | `444`             | string  |
+| `proxies.[name].targetMTlsCert.key` | Key for webhook backend TLS                                | `555`             | string  |
 
 ## Usage
 
