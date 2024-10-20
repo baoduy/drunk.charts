@@ -23,7 +23,7 @@ tests:
           of: Ingress
       - matchRegex:
           path: metadata.name
-          pattern: webapp-ingress
+          pattern: drunk-nginx-proxy-webapp-proxy
       - equal:
           path: spec.ingressClassName
           value: "internal"
