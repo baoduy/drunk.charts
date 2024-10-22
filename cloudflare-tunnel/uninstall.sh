@@ -1,1 +1,0 @@
-helm uninstall cf-tunnel --namespace cf-system
