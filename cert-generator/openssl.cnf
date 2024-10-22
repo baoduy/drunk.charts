@@ -1,26 +1,33 @@
 [req]
-default_bits = 2048
-prompt = no
-default_md = sha256
+default_bits       = 2048
+prompt             = no
+default_md         = sha256
 distinguished_name = dn
-req_extensions = req_ext
-x509_extensions = v3_req
+req_extensions     = req_ext
 
 [dn]
-C = SG
-ST = Singapore
-L = Singapore
-O = "Dev Local"
-OU = "DLU"
-emailAddress = "email@dev.local"
-CN = *.dev.local
-
-[v3_req]
-subjectAltName = @alt_names
+C            = SG
+ST           = Singapore
+L            = Singapore
+O            = DrunkCoding
+OU           = DRC
+emailAddress = system@$ENV::DOMAIN_NAME
+CN           = $ENV::DOMAIN_NAME
 
 [req_ext]
 subjectAltName = @alt_names
 
+[v3_req]
+keyUsage           = critical, digitalSignature, keyEncipherment
+extendedKeyUsage   = serverAuth
+subjectAltName     = @alt_names
+
+[v3_ca]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints    = critical, CA:true
+keyUsage            = critical, digitalSignature, cRLSign, keyCertSign
+
 [alt_names]
-DNS.1 = *.dev.local
-DNS.2 = dev.local
+DNS.1 = $ENV::DOMAIN_NAME
+DNS.2 = www.$ENV::DOMAIN_NAME
