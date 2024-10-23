@@ -10,5 +10,5 @@ appVersion: "latest"
 dependencies:
   - name: drunk-lib
     version: 1.x.x
-    #repository: "https://baoduy.github.io/drunk.charts/drunk-lib"
-    repository: "file://../drunk-lib"
+    repository: "https://baoduy.github.io/drunk.charts/drunk-lib"
+    #repository: "file://../drunk-lib"
