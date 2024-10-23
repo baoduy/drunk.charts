@@ -50,16 +50,15 @@ app.kubernetes.io/name: {{ include "app.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
+
 {{/*
 Create the name of the service account to use
 */}}
 {{- define "app.serviceAccountName" -}}
-{{- if .Values.serviceAccount }}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "app.fullname" .) .Values.serviceAccount.name }}
+{{- if and .Values.serviceAccount .Values.serviceAccount.enabled }}
+{{- default (include "app.name" .) .Values.serviceAccount.name }}
 {{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
+{{- include "app.name" . }}
 {{- end }}
 {{- end }}
 
@@ -79,10 +78,14 @@ checksum/secrets: {{ toJson .Values.secrets | sha256sum }}
 Create imagePullSecret
 */}}
 {{- define "drunk.utils.imagePullSecretName" }}
+{{- if .Values.imageCredentials -}}
 {{- .Values.imageCredentials.name | default (printf "%s-dcr-secret" (include "app.name" .)) }}
 {{- end }}
+{{- end }}
 {{- define "drunk.utils.imagePullSecret" }}
+{{- if .Values.imageCredentials -}}
 {{- printf "{\"auths\": {\"%s\": {\"auth\": \"%s\"}}}" .Values.imageCredentials.registry (printf "%s:%s" .Values.imageCredentials.username .Values.imageCredentials.password | b64enc) | b64enc }}
+{{- end }}
 {{- end }}
 
 {{/*

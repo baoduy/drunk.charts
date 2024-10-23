@@ -23,7 +23,9 @@ spec:
           imagePullSecrets:
           - name: {{ $.Values.global.imagePullSecret }}
           {{- end }}
+          {{- if and $.Values.serviceAccount $.Values.serviceAccount.enabled }}
           serviceAccountName: {{ include "app.serviceAccountName" $root }}
+          {{- end }}
           securityContext:
             {{- toYaml $.Values.podSecurityContext | nindent 12 }}
           restartPolicy: {{ .restartPolicy | default "OnFailure" }}

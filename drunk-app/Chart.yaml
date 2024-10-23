@@ -6,3 +6,9 @@ description: The drunkcoding template to deploy an application to Kubernetes
 type: application
 version: 1.2.0
 appVersion: "latest"
+
+dependencies:
+  - name: drunk-lib
+    version: 1.x.x
+    #repository: "https://baoduy.github.io/drunk.charts/drunk-lib"
+    repository: "file://../drunk-lib"

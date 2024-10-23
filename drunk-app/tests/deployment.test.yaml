@@ -69,9 +69,6 @@ tests:
         http: 9090
       liveness: "/health"
       readiness: "/ready"
-    app:
-      fullname: custom-deployment
-      serviceAccountName: custom-sa
     global:
       imagePullSecret: my-secret
       image: custom-image

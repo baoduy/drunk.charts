@@ -1,6 +1,5 @@
 {{- define "drunk-lib.serviceAccount" -}}
-{{- if .Values.serviceAccount -}}
-{{- if .Values.serviceAccount.create -}}
+{{- if and .Values.serviceAccount .Values.serviceAccount.enabled -}}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -12,6 +11,5 @@ metadata:
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-{{- end }}
 {{- end }}
 {{- end }}
