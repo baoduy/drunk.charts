@@ -1,6 +1,7 @@
 {{- define "drunk-lib.serviceAccount" -}}
 {{- if .Values.serviceAccount -}}
 {{- if .Values.serviceAccount.create -}}
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:

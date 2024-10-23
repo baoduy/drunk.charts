@@ -1,5 +1,6 @@
 {{- define "drunk-lib.imagePullSecret" -}}
 {{- if .Values.imageCredentials }}
+---
 apiVersion: v1
 kind: Secret
 metadata:

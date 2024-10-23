@@ -64,6 +64,18 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
+Create app checksum for deployments 
+*/}}
+{{- define "app.checksums" -}}
+{{- if .Values.configMap }}
+checksum/configs: {{ toJson .Values.configMap | sha256sum }}
+{{- end }}
+{{- if .Values.secrets }}
+checksum/secrets: {{ toJson .Values.secrets | sha256sum }}
+{{- end }}
+{{- end }}
+
+{{/*
 Create imagePullSecret
 */}}
 {{- define "drunk.utils.imagePullSecretName" }}
@@ -71,4 +83,22 @@ Create imagePullSecret
 {{- end }}
 {{- define "drunk.utils.imagePullSecret" }}
 {{- printf "{\"auths\": {\"%s\": {\"auth\": \"%s\"}}}" .Values.imageCredentials.registry (printf "%s:%s" .Values.imageCredentials.username .Values.imageCredentials.password | b64enc) | b64enc }}
+{{- end }}
+
+{{/*
+Full drunk-lib.all
+*/}}
+{{- define "drunk-lib.all" -}}
+{{ include "drunk-lib.configMap" . }}
+{{ include "drunk-lib.cronJobs" . }}
+{{ include "drunk-lib.deployment" . }}
+{{ include "drunk-lib.hpa" . }}
+{{ include "drunk-lib.imagePullSecret" . }}
+{{ include "drunk-lib.ingress" . }}
+{{ include "drunk-lib.jobs" . }}
+{{ include "drunk-lib.secrets" . }}
+{{ include "drunk-lib.service" . }}
+{{ include "drunk-lib.serviceAccount" . }}
+{{ include "drunk-lib.tls" . }}
+{{ include "drunk-lib.volumes" . }}
 {{- end }}

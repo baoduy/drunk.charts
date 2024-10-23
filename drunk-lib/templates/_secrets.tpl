@@ -1,5 +1,6 @@
 {{- define "drunk-lib.secrets" -}}
 {{- if .Values.secrets -}}
+---
 apiVersion: "v1"
 kind: Secret
 metadata:

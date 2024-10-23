@@ -23,6 +23,5 @@
 .vscode/
 tests
 *.sh
-*.tgz
 *.test.yaml
 index.yaml
