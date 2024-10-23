@@ -1,5 +1,6 @@
 {{- define "drunk-lib.configMap" -}}
 {{- if .Values.configMap -}}
+---
 apiVersion: "v1"
 kind: ConfigMap
 metadata:

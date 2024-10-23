@@ -1,6 +1,7 @@
 {{- define "drunk-lib.hpa" -}}
 {{- if .Values.autoscaling }}
 {{- if .Values.autoscaling.enabled }}
+---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:

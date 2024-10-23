@@ -1,6 +1,7 @@
 {{- define "drunk-lib.deployment" -}}
 {{- $root := . }}
 {{- if and .Values.deployment .Values.deployment.enabled -}}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,12 +16,7 @@ spec:
   template:
     metadata:
       annotations:
-        {{- if .Values.configMap }}
-        checksum/configs: {{ include (print $.Template.BasePath "/configMap.yaml") . | sha256sum }}
-        {{- end }}
-        {{- if .Values.secrets }}
-        checksum/secrets: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
-        {{- end }}
+        {{- include "app.checksums" . | nindent 8 }}
         {{- with .Values.deployment.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

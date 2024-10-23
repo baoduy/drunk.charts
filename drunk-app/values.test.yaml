@@ -106,7 +106,7 @@ volumes:
     emptyDir: true
 
 serviceAccount:
-  create: true
+  enabled: true
   annotations: {}
 
 service:

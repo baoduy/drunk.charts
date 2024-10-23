@@ -1,1 +1,0 @@
-{{ include "drunk-lib.configMap" . }}

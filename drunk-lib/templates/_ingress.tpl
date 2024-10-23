@@ -2,6 +2,7 @@
 {{- if .Values.ingress -}}
 {{- if .Values.ingress.enabled -}}
 {{- $fullName := include "app.fullname" . -}}
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

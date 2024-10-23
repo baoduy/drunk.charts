@@ -1,6 +1,7 @@
 {{- define "drunk-lib.service" -}}
-{{- if .Values.deployment }}
+{{- if and .Values.deployment .Values.service }}
 {{- if and .Values.deployment.ports (ne .Values.service.enabled false) }}
+---
 apiVersion: v1
 kind: Service
 metadata:

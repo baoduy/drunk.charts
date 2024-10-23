@@ -23,6 +23,6 @@
 .vscode/
 tests
 *.sh
-*.tgz
+drunk-lib.tgz
 *.test.yaml
 index.yaml
