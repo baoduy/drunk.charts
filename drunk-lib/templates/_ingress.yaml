@@ -1,3 +1,4 @@
+{{- define "drunk-lib.ingress" -}}
 {{- if .Values.ingress -}}
 {{- if .Values.ingress.enabled -}}
 {{- $fullName := include "app.fullname" . -}}
@@ -34,5 +35,6 @@ spec:
                 port:
                   number: {{ .port | default 8080 }}
     {{- end }}
+{{- end }}
 {{- end }}
 {{- end }}

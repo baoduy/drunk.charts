@@ -1,3 +1,4 @@
+{{- define "drunk-lib.deployment" -}}
 {{- $root := . }}
 {{- if and .Values.deployment .Values.deployment.enabled -}}
 apiVersion: apps/v1
@@ -193,4 +194,5 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+{{- end }}
 {{- end }}

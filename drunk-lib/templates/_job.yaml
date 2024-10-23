@@ -1,3 +1,4 @@
+{{- define "drunk-lib.jobs" -}}
 {{- $root := . }}
 {{- range .Values.jobs }}
 ---
@@ -85,5 +86,5 @@ spec:
         {{- end }}
       {{- end }}
       {{- end }}
-
+{{- end }}
 {{- end }}
