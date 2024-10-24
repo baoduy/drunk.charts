@@ -6,7 +6,7 @@ entries:
     created: "2024-05-04T16:10:54.428966+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: d8459d2a22811d152c186e39e9184c6f57e0df338e52ff917912dcdfa583b4de
-    icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
+    icon: https://drunkcoding.net/assets/logo.png
     name: drunk-app
     type: application
     urls:
@@ -29,7 +29,7 @@ entries:
       version: 1.x.x
     description: The drunkcoding template to deploy an proxy using squid to Kubernetes
     digest: 8e8d76369de8af3855b5b98aee758cf0743144f100d1c2509aa0d736cd2ff513
-    icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
+    icon: https://drunkcoding.net/assets/logo.png
     name: drunk-squid-basic-auth-proxy
     type: application
     urls:

@@ -6,7 +6,7 @@ entries:
     created: "2024-10-20T10:50:41.339745+08:00"
     description: The drunkcoding template to deploy an proxy using nginx to Kubernetes
     digest: 3ea47954ea290522f048018710d545f76ae6f3d56ee2f9174cfeab0ec358ff36
-    icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
+    icon: https://drunkcoding.net/assets/logo.png
     name: drunk-nginx-proxy
     type: application
     urls:
@@ -17,7 +17,7 @@ entries:
     created: "2024-10-20T10:50:41.339364+08:00"
     description: The drunkcoding template to deploy an proxy using nginx to Kubernetes
     digest: 410a5ee956593999b001216fb5d2de010216c9ad082893324053bd8a4aaa1f8f
-    icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
+    icon: https://drunkcoding.net/assets/logo.png
     name: drunk-nginx-proxy
     type: application
     urls:
