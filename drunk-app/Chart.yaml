@@ -1,6 +1,6 @@
 apiVersion: v2
 name: drunk-app
-icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
+icon: https://drunkcoding.net/assets/logo.png
 description: The drunkcoding template to deploy an application to Kubernetes
 # A chart can be either an 'application' or a 'library' chart.
 type: application
