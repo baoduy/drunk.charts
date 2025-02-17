@@ -1,6 +1,6 @@
 dependencies:
 - name: drunk-lib
   repository: https://baoduy.github.io/drunk.charts/drunk-lib
-  version: 1.0.1
-digest: sha256:4233e9f3e6dfa241ce1ff8eae8842aadc316ac48e026365de5ec05a0d8aec15e
-generated: "2025-02-17T19:29:47.854502+08:00"
+  version: 1.0.2
+digest: sha256:32c0e9d6c3eb18fd93e35a941269f611b35c601b2ebd61ac62a2d636e7c8a4e4
+generated: "2025-02-17T19:32:54.758199+08:00"
