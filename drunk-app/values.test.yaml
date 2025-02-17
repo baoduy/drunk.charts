@@ -25,11 +25,15 @@ env:
 
 configMap:
   hello: "1"
+  log: "123"
+
 configFrom:
   - name_of_other_config
 
 secrets:
-  connectionString: "ABC"
+  connectionString: 'ABC'
+  redis: "BAC123"
+
 secretFrom:
   - name_of_other_secret
 

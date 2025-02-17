@@ -6,6 +6,6 @@ kind: ConfigMap
 metadata:
   name: {{ include "app.name" . }}-config
 data:
-{{- toYaml .Values.configMap | quote | nindent 2 }}
+  {{- include "quoteStrings" .Values.configMap }}
 {{- end }}
 {{- end }}
