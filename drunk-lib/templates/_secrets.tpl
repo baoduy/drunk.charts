@@ -6,6 +6,6 @@ kind: Secret
 metadata:
   name: {{ include "app.name" . }}-secret
 stringData:
-  {{- toYaml .Values.secrets | nindent 2 }}
+  {{- toYaml .Values.secrets | quote | nindent 2 }}
 {{- end }}
 {{- end }}
