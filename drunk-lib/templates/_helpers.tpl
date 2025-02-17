@@ -105,3 +105,25 @@ Full drunk-lib.all
 {{ include "drunk-lib.tls" . }}
 {{ include "drunk-lib.volumes" . }}
 {{- end }}
+
+{{- define "quoteStrings" -}}
+{{- /*
+Recursively quotes all string values in the given data structure.
+*/ -}}
+{{- $root := . -}}
+{{- if kindIs "map" $root }}
+{{- range $key, $value := $root }}
+{{- $quotedValue := include "quoteStrings" $value }}
+{{- printf "%s: %s" $key $quotedValue | nindent 2 }}
+{{- end }}
+{{- else if kindIs "slice" $root }}
+{{- range $index, $value := $root }}
+{{- $quotedValue := include "quoteStrings" $value }}
+{{- printf "- %s" $quotedValue | nindent 2 }}
+{{- end }}
+{{- else if kindIs "string" $root }}
+{{- printf "%q" $root }}
+{{- else }}
+{{- $root }}
+{{- end }}
+{{- end }}
