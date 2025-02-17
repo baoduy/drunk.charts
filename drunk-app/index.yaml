@@ -3,51 +3,29 @@ entries:
   drunk-app:
   - apiVersion: v2
     appVersion: latest
-    created: "2024-10-23T20:28:03.988587+08:00"
+    created: "2025-02-17T19:36:16.507408+08:00"
     dependencies:
     - name: drunk-lib
-      repository: file://../drunk-lib
+      repository: https://baoduy.github.io/drunk.charts/drunk-lib
       version: 1.x.x
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 176be3b176ccd417316440503e49bc899b81d5dee3d778e582c8ef844b7f1c61
+    digest: 3e59b75c3168fa68e8d90365d905a3df16c715d0c597c1f6aeb2945de6819ead
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-app
     type: application
     urls:
-    - drunk-app-1.2.0.tgz
-    version: 1.2.0
-  - apiVersion: v2
-    appVersion: latest
-    created: "2024-10-23T20:28:03.981208+08:00"
-    description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 56647d3e50cb615cbb7676c208a887e96b0eff1fbe4ff5b806803785887af3a6
-    icon: https://drunkcoding.net/assets/logo.png
-    name: drunk-app
-    type: application
-    urls:
-    - drunk-app-1.1.0.tgz
-    version: 1.1.0
-  - apiVersion: v2
-    appVersion: latest
-    created: "2024-10-23T20:28:03.980795+08:00"
-    description: The drunkcoding template to deploy an application to Kubernetes
-    digest: f0f91270da9f1dbb26608a9cc84e5da4ef9be2be9674abb5363536e795b98fc4
-    icon: https://drunkcoding.net/assets/logo.png
-    name: drunk-app
-    type: application
-    urls:
-    - drunk-app-1.0.9.tgz
-    version: 1.0.9
+    - drunk-app-1.2.1.tgz
+    version: 1.2.1
   drunk-lib:
   - apiVersion: v2
     appVersion: latest
-    created: "2024-10-23T20:28:03.989308+08:00"
+    created: "2025-02-17T19:36:16.508271+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 7b9c4067c4ece53c3fc916a3f4ae7088847969fd1a1f7884653e8dfe848e5896
+    digest: 5fb20abef4ece803b21940b7a576d54fb2d15901f144aa84b3bcb5e7aba8de8e
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-lib
     type: library
     urls:
-    - charts/drunk-lib-1.0.1.tgz
-    version: 1.0.1
-generated: "2024-10-23T20:28:03.98028+08:00"
+    - charts/drunk-lib-1.0.2.tgz
+    version: 1.0.2
+generated: "2025-02-17T19:36:16.506214+08:00"
