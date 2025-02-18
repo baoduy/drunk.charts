@@ -3,13 +3,13 @@ entries:
   drunk-app:
   - apiVersion: v2
     appVersion: latest
-    created: "2025-02-18T17:40:53.379201+08:00"
+    created: "2025-02-18T15:07:26.657092+08:00"
     dependencies:
     - name: drunk-lib
       repository: file://../drunk-lib
       version: 1.x.x
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 9db45d23b339bb4ca74113f640cf060ca2633b1071df578cde7c78915a4cd6d2
+    digest: 2102fd9b48c943def17efd77022e005bf3b957795bae87948ec0c561115bc400
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-app
     type: application
@@ -18,13 +18,13 @@ entries:
     version: 1.2.3
   - apiVersion: v2
     appVersion: latest
-    created: "2025-02-18T17:40:53.350041+08:00"
+    created: "2025-02-18T15:07:26.624135+08:00"
     dependencies:
     - name: drunk-lib
       repository: file://../drunk-lib
       version: 1.x.x
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 38ec24d63d002614b3d5ee23c7842a642546e5bb68857803ec48e2cfd9012675
+    digest: 4147b7eac4e5e7b91969a3ab87527366e5e2d594fb9b5640a07d540c6e00b638
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-app
     type: application
@@ -33,7 +33,7 @@ entries:
     version: 1.2.2
   - apiVersion: v2
     appVersion: latest
-    created: "2025-02-18T17:40:53.330866+08:00"
+    created: "2025-02-18T15:07:26.615811+08:00"
     dependencies:
     - name: drunk-lib
       repository: file://../drunk-lib
@@ -49,13 +49,13 @@ entries:
   drunk-lib:
   - apiVersion: v2
     appVersion: latest
-    created: "2025-02-18T17:40:53.384583+08:00"
+    created: "2025-02-18T15:07:26.658846+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 495f579bd1ba5792c9ea98b28116d346e7acec000f6938324cd5bf0c7b3bd33e
+    digest: a1ccdf9fa68225c1e6a9cefeca0f6d661fe51e09653a8923a273adf27bc41116
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-lib
     type: library
     urls:
     - charts/drunk-lib-1.0.3.tgz
     version: 1.0.3
-generated: "2025-02-18T17:40:53.32354+08:00"
+generated: "2025-02-18T15:07:26.613583+08:00"
