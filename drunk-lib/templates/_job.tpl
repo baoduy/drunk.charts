@@ -29,8 +29,8 @@ spec:
       - name: {{ .name }}
         securityContext:
         {{- toYaml $.Values.securityContext | nindent 12 }}
-        image: "{{ $.Values.global.image }}:{{ $.Values.global.tag | default $.Chart.AppVersion }}"
-        imagePullPolicy: "{{ $.Values.global.imagePullPolicy | default "Always" }}"
+        image: "{{ .image | default (printf "%s:%s" $.Values.global.image ($.Values.global.tag | default $.Chart.AppVersion)) }}"
+        imagePullPolicy: "{{ .imagePullPolicy | default ($.Values.global.imagePullPolicy | default "Always") }}"
         {{- if .command }}
         command: {{- toYaml .command | nindent 10 }}
         {{- end }}
