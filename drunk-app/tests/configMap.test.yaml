@@ -4,6 +4,7 @@ templates:
 tests:
 - it: should create a ConfigMap when configMap values are provided
   set:
+    global: {}
     app:
       name: my-app
     configMap:
@@ -26,6 +27,7 @@ tests:
 
 - it: should not create a ConfigMap when configMap values are not provided
   set:
+    global: {}
     app:
       name: my-app
     configMap: {}

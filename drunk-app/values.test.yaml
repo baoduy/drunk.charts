@@ -50,8 +50,26 @@ tlsSecrets:
     keyFile: "certs/drunkcoding.net.key"
     caFile: "certs/drunkcoding.net-ca.crt"
 
-# The flag to disable pod-deployment incase of Job/CronJob only deployment
+# The flag to disable pod-deployment incase of deployment
 deployment:
+  enabled: true
+  ports:
+    http: 8080
+    tcp: 9090
+  replicaCount: 1
+  liveness: "/healthz"
+  #readiness: "/healthz/ready"
+  args:
+    - tunnel
+    - "--no-autoupdate"
+    - run
+    - "--token"
+    - $(token)
+  podAnnotations:
+    testMe: drunk-coding
+
+# The flag to disable pod-deployment incase of statefulset deployment
+statefulset:
   enabled: true
   ports:
     http: 8080
