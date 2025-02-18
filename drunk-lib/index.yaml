@@ -3,9 +3,9 @@ entries:
   drunk-lib:
   - apiVersion: v2
     appVersion: latest
-    created: "2025-02-18T17:44:00.3069+08:00"
+    created: "2025-02-18T20:52:25.133216+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 0ea387ef10f836d234b51979f55f43ad19746e52f586fc47ceee4822671e5d54
+    digest: 7a78046d5f94803ce426ef082f727b89f4b878bafde805a9fba8b4902b902871
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-lib
     type: library
@@ -14,7 +14,7 @@ entries:
     version: 1.0.3
   - apiVersion: v2
     appVersion: latest
-    created: "2025-02-18T17:44:00.300122+08:00"
+    created: "2025-02-18T20:52:25.123029+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: c3de147cdc433fb509dd87792dfbe0e88b331171cc5e235cd7951aeb493b96a7
     icon: https://drunkcoding.net/assets/logo.png
@@ -25,7 +25,7 @@ entries:
     version: 1.0.2
   - apiVersion: v2
     appVersion: latest
-    created: "2025-02-18T17:44:00.296382+08:00"
+    created: "2025-02-18T20:52:25.119387+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: 7b9c4067c4ece53c3fc916a3f4ae7088847969fd1a1f7884653e8dfe848e5896
     icon: https://github.com/baoduy/Images/raw/a0b73e4fcb03128ac7ece2a71ee2b40a9c33104d/NugetLogo.PNG
@@ -34,4 +34,4 @@ entries:
     urls:
     - drunk-lib-1.0.1.tgz
     version: 1.0.1
-generated: "2025-02-18T17:44:00.295053+08:00"
+generated: "2025-02-18T20:52:25.118538+08:00"
