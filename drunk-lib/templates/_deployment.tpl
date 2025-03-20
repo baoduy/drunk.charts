@@ -10,6 +10,19 @@ metadata:
     {{- include "app.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.deployment.replicaCount | default 1 }}
+{{- if .Values.deployment.strategy }}
+  strategy:
+    type: {{ .Values.deployment.strategy.type | default "RollingUpdate" }}
+    rollingUpdate:
+      maxSurge: {{.Values.deployment.strategy.maxSurge | default 1 }}
+      maxUnavailable: {{.Values.deployment.strategy.maxUnavailable | default 0 }}
+{{- else }}
+  strategy:
+    type: "RollingUpdate"
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+{{- end }}
   selector:
     matchLabels:
       {{- include "app.selectorLabels" . | nindent 6 }}

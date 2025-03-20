@@ -1,2 +1,1 @@
-configMap:
-  hello: "steven"
+configMap: []
