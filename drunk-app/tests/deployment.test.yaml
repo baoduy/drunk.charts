@@ -113,3 +113,57 @@ tests:
       path: spec.template.spec.initContainers[0].image
       value: "init-image-name:tag"
 
+- it: should use default RollingUpdate strategy when strategy is not provided
+  set:
+    deployment:
+      enabled: true
+    global:
+      image: nginx
+      tag: latest
+  asserts:
+  - equal:
+      path: spec.strategy.type
+      value: "RollingUpdate"
+  - equal:
+      path: spec.strategy.rollingUpdate.maxSurge
+      value: 1
+  - equal:
+      path: spec.strategy.rollingUpdate.maxUnavailable
+      value: 0
+
+- it: should use custom strategy configuration when provided
+  set:
+    deployment:
+      enabled: true
+      strategy:
+        type: "Recreate"
+    global:
+      image: nginx
+      tag: latest
+  asserts:
+  - equal:
+      path: spec.strategy.type
+      value: "Recreate"
+
+- it: should use custom rollingUpdate parameters when provided
+  set:
+    deployment:
+      enabled: true
+      strategy:
+        type: "RollingUpdate"
+        maxSurge: 2
+        maxUnavailable: 1
+    global:
+      image: nginx
+      tag: latest
+  asserts:
+  - equal:
+      path: spec.strategy.type
+      value: "RollingUpdate"
+  - equal:
+      path: spec.strategy.rollingUpdate.maxSurge
+      value: 2
+  - equal:
+      path: spec.strategy.rollingUpdate.maxUnavailable
+      value: 1
+

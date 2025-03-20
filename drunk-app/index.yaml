@@ -3,59 +3,29 @@ entries:
   drunk-app:
   - apiVersion: v2
     appVersion: latest
-    created: "2025-02-18T20:52:39.547205+08:00"
+    created: "2025-03-20T12:53:52.462874+08:00"
     dependencies:
     - name: drunk-lib
       repository: file://../drunk-lib
       version: 1.x.x
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 25f6a1eee08d79c15212031dd700a00de8e39a92e7cdf06d90d4f82dc0d949c9
+    digest: 4b22ef5906b624406b8297228e63b23730a16037cf2e0d02df1df7d7a5fcd3ae
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-app
     type: application
     urls:
-    - drunk-app-1.2.3.tgz
-    version: 1.2.3
-  - apiVersion: v2
-    appVersion: latest
-    created: "2025-02-18T20:52:39.295299+08:00"
-    dependencies:
-    - name: drunk-lib
-      repository: file://../drunk-lib
-      version: 1.x.x
-    description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 4147b7eac4e5e7b91969a3ab87527366e5e2d594fb9b5640a07d540c6e00b638
-    icon: https://drunkcoding.net/assets/logo.png
-    name: drunk-app
-    type: application
-    urls:
-    - drunk-app-1.2.2.tgz
-    version: 1.2.2
-  - apiVersion: v2
-    appVersion: latest
-    created: "2025-02-18T20:52:39.256114+08:00"
-    dependencies:
-    - name: drunk-lib
-      repository: file://../drunk-lib
-      version: 1.x.x
-    description: The drunkcoding template to deploy an application to Kubernetes
-    digest: d7744b61faad5bd0ace1e11b715f635382fffac0d91e8b8a920e47ee949f6d29
-    icon: https://drunkcoding.net/assets/logo.png
-    name: drunk-app
-    type: application
-    urls:
-    - drunk-app-1.2.1.tgz
-    version: 1.2.1
+    - drunk-app-1.2.4.tgz
+    version: 1.2.4
   drunk-lib:
   - apiVersion: v2
     appVersion: latest
-    created: "2025-02-18T20:52:39.557955+08:00"
+    created: "2025-03-20T12:53:52.463172+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 1541b43054ea654ef3b7224b113182a8f48f7b9b4cf1e126320cb9320002fb8a
+    digest: bbebc8a74595256eb3b3eb3c01e9870b208dc2beecee70e6cb7faebea845be48
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-lib
     type: library
     urls:
-    - charts/drunk-lib-1.0.3.tgz
-    version: 1.0.3
-generated: "2025-02-18T20:52:39.247818+08:00"
+    - charts/drunk-lib-1.0.4.tgz
+    version: 1.0.4
+generated: "2025-03-20T12:53:52.462188+08:00"
