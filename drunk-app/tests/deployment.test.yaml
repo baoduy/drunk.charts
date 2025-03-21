@@ -144,6 +144,8 @@ tests:
   - equal:
       path: spec.strategy.type
       value: "Recreate"
+  - isNull:
+      path: spec.strategy.rollingUpdate
 
 - it: should use custom rollingUpdate parameters when provided
   set:
@@ -166,4 +168,78 @@ tests:
   - equal:
       path: spec.strategy.rollingUpdate.maxUnavailable
       value: 1
+
+- it: should use default RollingUpdate strategy with custom maxSurge when only maxSurge is provided
+  set:
+    deployment:
+      enabled: true
+      strategy:
+        maxSurge: 3
+    global:
+      image: nginx
+      tag: latest
+  asserts:
+  - equal:
+      path: spec.strategy.type
+      value: "RollingUpdate"
+  - equal:
+      path: spec.strategy.rollingUpdate.maxSurge
+      value: 3
+  - equal:
+      path: spec.strategy.rollingUpdate.maxUnavailable
+      value: 0
+
+- it: should use default RollingUpdate strategy with custom maxUnavailable when only maxUnavailable is provided
+  set:
+    deployment:
+      enabled: true
+      strategy:
+        maxUnavailable: 2
+    global:
+      image: nginx
+      tag: latest
+  asserts:
+  - equal:
+      path: spec.strategy.type
+      value: "RollingUpdate"
+  - equal:
+      path: spec.strategy.rollingUpdate.maxSurge
+      value: 1
+  - equal:
+      path: spec.strategy.rollingUpdate.maxUnavailable
+      value: 2
+
+- it: should use Recreate strategy when explicitly set
+  set:
+    deployment:
+      enabled: true
+      strategy:
+        type: "Recreate"
+    global:
+      image: nginx
+      tag: latest
+  asserts:
+  - equal:
+      path: spec.strategy.type
+      value: "Recreate"
+  - isNull:
+      path: spec.strategy.rollingUpdate
+
+- it: should ignore rollingUpdate parameters when strategy is Recreate
+  set:
+    deployment:
+      enabled: true
+      strategy:
+        type: "Recreate"
+        maxSurge: 5
+        maxUnavailable: 3
+    global:
+      image: nginx
+      tag: latest
+  asserts:
+  - equal:
+      path: spec.strategy.type
+      value: "Recreate"
+  - isNull:
+      path: spec.strategy.rollingUpdate
 

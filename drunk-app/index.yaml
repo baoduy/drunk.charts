@@ -3,13 +3,13 @@ entries:
   drunk-app:
   - apiVersion: v2
     appVersion: latest
-    created: "2025-03-20T12:53:52.462874+08:00"
+    created: "2025-03-21T09:20:09.83638+08:00"
     dependencies:
     - name: drunk-lib
       repository: file://../drunk-lib
       version: 1.x.x
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 4b22ef5906b624406b8297228e63b23730a16037cf2e0d02df1df7d7a5fcd3ae
+    digest: 1645a0391df6eceadf8345cf12f408231fb653273507de3ab1bfe1894d85c735
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-app
     type: application
@@ -19,13 +19,13 @@ entries:
   drunk-lib:
   - apiVersion: v2
     appVersion: latest
-    created: "2025-03-20T12:53:52.463172+08:00"
+    created: "2025-03-21T09:20:09.83669+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: bbebc8a74595256eb3b3eb3c01e9870b208dc2beecee70e6cb7faebea845be48
+    digest: 96d68530b746081854a571d3278c5ca884420441bc7a041ba6672a2f74855a58
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-lib
     type: library
     urls:
     - charts/drunk-lib-1.0.4.tgz
     version: 1.0.4
-generated: "2025-03-20T12:53:52.462188+08:00"
+generated: "2025-03-21T09:20:09.835603+08:00"
