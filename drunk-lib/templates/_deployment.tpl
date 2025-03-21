@@ -13,9 +13,11 @@ spec:
 {{- if .Values.deployment.strategy }}
   strategy:
     type: {{ .Values.deployment.strategy.type | default "RollingUpdate" }}
+    {{- if or (not .Values.deployment.strategy.type) (eq .Values.deployment.strategy.type "RollingUpdate") }}
     rollingUpdate:
       maxSurge: {{.Values.deployment.strategy.maxSurge | default 1 }}
       maxUnavailable: {{.Values.deployment.strategy.maxUnavailable | default 0 }}
+    {{- end }}
 {{- else }}
   strategy:
     type: "RollingUpdate"
