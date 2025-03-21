@@ -12,15 +12,4 @@ entries:
     urls:
     - drunk-lib-1.0.4.tgz
     version: 1.0.4
-  - apiVersion: v2
-    appVersion: latest
-    created: "2025-03-20T12:50:22.174051+08:00"
-    description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 33dd7f1d9626fce8942ee1d03804831f84ebb4aee7a1fa83bc301c87b445e321
-    icon: https://drunkcoding.net/assets/logo.png
-    name: drunk-lib
-    type: library
-    urls:
-    - drunk-lib-1.0.3.tgz
-    version: 1.0.3
 generated: "2025-03-20T12:50:22.156724+08:00"
