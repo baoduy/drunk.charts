@@ -61,3 +61,66 @@ tests:
   asserts:
   - hasDocuments:
       count: 0
+
+- it: should create Service with default port if only 1 port us defined in the deployment
+  set:
+    app:
+      fullname: default-port-service
+    deployment:
+      ports:
+        http: 9090
+    service:
+      enabled: true
+      type: ClusterIP
+  asserts:
+  - hasDocuments:
+      count: 1
+  - equal:
+      path: spec.ports[0].port
+      value: 80
+  - equal:
+      path: spec.ports[0].targetPort
+      value: http
+
+- it: should create Service with multiple custom ports
+  set:
+    app:
+      fullname: multi-port-service
+    deployment:
+      ports:
+        http: 8080
+        https: 8443
+        metrics: 9090
+    service:
+      enabled: true
+      type: ClusterIP
+  asserts:
+  - hasDocuments:
+      count: 1
+  - equal:
+      path: spec.ports[0].port
+      value: 8080
+  - equal:
+      path: spec.ports[0].targetPort
+      value: http
+  - equal:
+      path: spec.ports[1].port
+      value: 8443
+  - equal:
+      path: spec.ports[1].targetPort
+      value: https
+  - equal:
+      path: spec.ports[2].port
+      value: 9090
+  - equal:
+      path: spec.ports[2].targetPort
+      value: metrics
+  - equal:
+      path: spec.ports[0].protocol
+      value: TCP
+  - equal:
+      path: spec.ports[1].protocol
+      value: TCP
+  - equal:
+      path: spec.ports[2].protocol
+      value: TCP
