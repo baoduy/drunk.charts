@@ -10,11 +10,18 @@ metadata:
 spec:
   type: {{ .Values.service.type | default "ClusterIP" }}
   ports:
+    {{- if eq (len .Values.deployment.ports) 1 }}
+    - port: 80
+      targetPort: {{ keys .Values.deployment.ports | first }}
+      protocol: TCP
+      name: {{ keys .Values.deployment.ports | first }}
+    {{- else }}
     {{- range $k,$v := .Values.deployment.ports}}
     - port: {{ $v }}
       targetPort: {{ $k }}
       protocol: TCP
       name: {{ $k }}
+    {{- end }}
     {{- end }}
   selector: {{ include "app.selectorLabels" . | nindent 4 }}
 {{- end }}

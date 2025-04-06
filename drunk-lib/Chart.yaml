@@ -4,5 +4,5 @@ icon: https://drunkcoding.net/assets/logo.png
 description: The drunkcoding template to deploy an application to Kubernetes
 # A chart can be either an 'application' or a 'library' chart.
 type: library
-version: 1.0.4
+version: 1.0.5
 appVersion: "latest"
