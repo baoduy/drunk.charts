@@ -16,6 +16,7 @@ spec:
   parameters:
     usePodIdentity: {{ ternary "true" "false" $usePod | quote }}
     useWorkloadIdentity: {{ ternary "true" "false" $useWI | quote }}
+    userAssignedIdentityID: {{ $sp.userAssignedIdentityID | quote }}
     tenantId: {{ $sp.tenantId | quote }}
     keyvaultName: {{ $sp.vaultName | quote }}
     objects: |
