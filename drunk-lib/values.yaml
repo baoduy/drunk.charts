@@ -1,1 +1,19 @@
 configMap: []
+
+# SecretProvider (Azure Key Vault CSI Driver)
+secretProvider:
+  enabled: false
+  # name: my-spc # default: <app.name>-spc
+  # tenantId: ""
+  # vaultName: ""
+  # usePodIdentity: false
+  # useWorkloadIdentity: true
+  objects: []
+  # - objectName: my-secret
+  #   objectType: secret # secret, key, cert
+  #   objectVersion: ""   # optional
+  # secretObjects:
+  #   - type: Opaque
+  #     data:
+  #       - key: MY_ENV
+  #         objectName: my-secret

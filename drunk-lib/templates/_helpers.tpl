@@ -100,6 +100,7 @@ Full drunk-lib.all
 {{ include "drunk-lib.ingress" . }}
 {{ include "drunk-lib.jobs" . }}
 {{ include "drunk-lib.secrets" . }}
+{{ include "drunk-lib.secretProvider" . }}
 {{ include "drunk-lib.service" . }}
 {{ include "drunk-lib.serviceAccount" . }}
 {{ include "drunk-lib.tls" . }}

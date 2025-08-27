@@ -31,9 +31,31 @@ configFrom:
   - name_of_other_config
 
 secrets:
-  connectionString: 'ABC'
+  connectionString: "ABC"
   redis: "BAC123"
 
+secretProvider:
+  enabled: true
+  provider: aws
+  name: "my-secret-class"
+  tenantId: "your-tenant-id"
+  vaultName: "your-vault-name"
+  usePodIdentity: false
+  useWorkloadIdentity: false
+  objects:
+    - objectName: my-secret-1
+      objectType: secret
+      objectVersion: ""
+    - objectName: my-secret-2
+      objectType: secret
+      objectVersion: ""
+  secretObjects:
+    - type: Opaque
+      data:
+        - key: secret-1
+          objectName: my-secret-1
+        - key: secret-2
+          objectName: my-secret-2
 secretFrom:
   - name_of_other_secret
 
@@ -68,9 +90,9 @@ deployment:
     testMe: drunk-coding
   replicaCount: 1
   strategy:
-    type: 'RollingUpdate' # or Recreate
-    maxSurge: '1' # default 1
-    maxUnavailable: '1' # default 1
+    type: "RollingUpdate" # or Recreate
+    maxSurge: "1" # default 1
+    maxUnavailable: "1" # default 1
 
 # The flag to disable pod-deployment incase of statefulset deployment
 statefulset:

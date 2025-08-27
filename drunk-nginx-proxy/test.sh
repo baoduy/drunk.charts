@@ -1,1 +1,0 @@
-helm unittest -f './tests/*.test.yaml' ./

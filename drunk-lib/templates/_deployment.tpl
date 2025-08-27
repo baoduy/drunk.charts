@@ -88,6 +88,12 @@ spec:
             - secretRef:
                 name: {{ $s }}
           {{- end }}
+          {{- with .Values.secretProvider }}
+          {{- if and .enabled .secretObjects }}
+            - secretRef:
+                name: {{ default (printf "%s-spc" (include "app.name" $root)) .name }}
+          {{- end }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           {{- if .Values.volumes }}
@@ -164,6 +170,12 @@ spec:
           {{- range $s := .Values.secretFrom }}
           - secretRef:
               name: {{ $s }}
+          {{- end }}
+          {{- with .Values.secretProvider }}
+          {{- if and .enabled .secretObjects }}
+          - secretRef:
+              name: {{ default (printf "%s-spc" (include "app.name" $root)) .name }}
+          {{- end }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

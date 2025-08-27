@@ -3,7 +3,29 @@ entries:
   drunk-lib:
   - apiVersion: v2
     appVersion: latest
-    created: "2025-04-06T10:00:41.754521+08:00"
+    created: "2025-08-27T20:38:41.342388+08:00"
+    description: The drunkcoding template to deploy an application to Kubernetes
+    digest: ae29521e1efbec9d29c334772238db1008a5043a862d9caf9117a99a145bc1d2
+    icon: https://drunkcoding.net/assets/logo.png
+    name: drunk-lib
+    type: library
+    urls:
+    - drunk-lib-1.0.7.tgz
+    version: 1.0.7
+  - apiVersion: v2
+    appVersion: latest
+    created: "2025-08-27T20:38:41.341867+08:00"
+    description: The drunkcoding template to deploy an application to Kubernetes
+    digest: 68b046a574caabbf96e073265876705da3b3c4554b331ad343b316c1fa634514
+    icon: https://drunkcoding.net/assets/logo.png
+    name: drunk-lib
+    type: library
+    urls:
+    - drunk-lib-1.0.6.tgz
+    version: 1.0.6
+  - apiVersion: v2
+    appVersion: latest
+    created: "2025-08-27T20:38:41.341688+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: 54fbee85f30420752f01f26693de5233d09efbb66df5d45a7caa2ce951d53509
     icon: https://drunkcoding.net/assets/logo.png
@@ -14,13 +36,13 @@ entries:
     version: 1.0.5
   - apiVersion: v2
     appVersion: latest
-    created: "2025-04-06T10:00:41.754222+08:00"
+    created: "2025-08-27T20:38:41.341515+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: cfe423d5b0efc26830806e4ee3de0bf9a5962ff28274521a782291d60de86f91
+    digest: c24f19718b8c4d7f0029cbda73906b22f8e845e25356f1a4b9a56cc7c892e7d7
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-lib
     type: library
     urls:
     - drunk-lib-1.0.4.tgz
     version: 1.0.4
-generated: "2025-04-06T10:00:41.753812+08:00"
+generated: "2025-08-27T20:38:41.341232+08:00"
