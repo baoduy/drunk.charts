@@ -106,6 +106,14 @@ spec:
               subPath: {{ $v.subPath }}
             {{- end }}
           {{- end }}
+          # SecretProvider volume
+          {{- with .Values.secretProvider }}
+          {{- if .enabled }}
+            - name: {{ printf "%s-vol" .name }}
+              mountPath: /mnt/secrets-store
+              readOnly: true
+          {{- end }}
+          {{- end }}
           {{- end }}
       # End initContainers
       {{- end }}
@@ -189,6 +197,14 @@ spec:
               subPath: {{ $v.subPath }}
             {{- end }}
           {{- end }}
+          # SecretProvider volume
+          {{- with .Values.secretProvider }}
+          {{- if .enabled }}
+            - name: {{ printf "%s-vol" .name }}
+              mountPath: /mnt/secrets-store
+              readOnly: true
+          {{- end }}
+          {{- end }}
           {{- end }}
       # End Containers
       
@@ -202,6 +218,17 @@ spec:
           persistentVolumeClaim:
             claimName: {{ include "app.name" $root }}-{{ $k }}
         {{- end }}
+      {{- end }}
+      # SecretProvider volume
+      {{- with .Values.secretProvider }}
+      {{- if .enabled }}
+        - name: {{ printf "%s-vol" .name }}
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: {{ printf "%s-cls" .name }}
+      {{- end }}
       {{- end }}
       {{- end }}
       
