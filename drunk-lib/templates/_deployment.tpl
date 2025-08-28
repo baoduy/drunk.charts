@@ -110,7 +110,7 @@ spec:
           {{- with .Values.secretProvider }}
           {{- if .enabled }}
             - name: {{ printf "%s-vol" .name }}
-              mountPath: /mnt/secrets-store
+              mountPath: "/mnt/secrets-store"
               readOnly: true
           {{- end }}
           {{- end }}
@@ -201,7 +201,7 @@ spec:
           {{- with .Values.secretProvider }}
           {{- if .enabled }}
             - name: {{ printf "%s-vol" .name }}
-              mountPath: /mnt/secrets-store
+              mountPath: "/mnt/secrets-store"
               readOnly: true
           {{- end }}
           {{- end }}

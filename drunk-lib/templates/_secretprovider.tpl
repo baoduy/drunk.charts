@@ -2,8 +2,6 @@
 {{- $sp := .Values.secretProvider -}}
 {{- if and $sp $sp.enabled }}
 {{- $spName := default (printf "%s-spc" (include "app.name" .)) $sp.name -}}
-{{- $usePod := (hasKey $sp "usePodIdentity") | ternary $sp.usePodIdentity false -}}
-{{- $useWI := (hasKey $sp "useWorkloadIdentity") | ternary $sp.useWorkloadIdentity true -}}
 ---
 apiVersion: secrets-store.csi.x-k8s.io/v1
 kind: SecretProviderClass
@@ -14,8 +12,9 @@ metadata:
 spec:
   provider: {{ $sp.provider | default "azure" }}
   parameters:
-    usePodIdentity: {{ ternary "true" "false" $usePod | quote }}
-    useWorkloadIdentity: {{ ternary "true" "false" $useWI | quote }}
+    usePodIdentity: {{ $sp.usePodIdentity | default false | quote }}
+    useWorkloadIdentity: {{ $sp.useWorkloadIdentity | default false | quote }}
+    useVMManagedIdentity: {{ $sp.useVMManagedIdentity | default true | quote }}
     userAssignedIdentityID: {{ $sp.userAssignedIdentityID | quote }}
     tenantId: {{ $sp.tenantId | quote }}
     keyvaultName: {{ $sp.vaultName | quote }}
