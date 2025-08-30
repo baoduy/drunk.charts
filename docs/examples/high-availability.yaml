@@ -1,0 +1,702 @@
+# High Availability Configuration Example
+
+This example demonstrates a production-ready, high-availability deployment with comprehensive resilience, monitoring, and security features.
+
+## Use Case
+
+- Mission-critical applications requiring maximum uptime
+- Multi-region or multi-zone deployment
+- Advanced auto-scaling and resource management
+- Comprehensive monitoring and alerting
+- Security hardening and compliance
+
+## Configuration
+
+```yaml
+# High Availability Configuration
+# Deploy with: helm install my-ha-app drunk-charts/drunk-app -f high-availability.yaml
+
+# Application configuration
+global:
+  image: "mycompany/critical-app"
+  tag: "v2.1.0"
+  imagePullPolicy: "IfNotPresent"
+  imagePullSecret: "production-registry"
+
+# High availability deployment settings
+deployment:
+  enabled: true
+  # Higher replica count for availability
+  replicaCount: 5
+  
+  ports:
+    http: 8080
+    https: 8443
+    metrics: 9090
+    health: 8081
+  
+  # Comprehensive health checks
+  liveness: "/health/live"
+  readiness: "/health/ready"
+  
+  # Advanced probe configuration
+  livenessProbe:
+    httpGet:
+      path: "/health/live"
+      port: 8081
+      scheme: "HTTP"
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
+  
+  readinessProbe:
+    httpGet:
+      path: "/health/ready"
+      port: 8081
+      scheme: "HTTP"
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+  
+  # Startup probe for slow-starting applications
+  startupProbe:
+    httpGet:
+      path: "/health/startup"
+      port: 8081
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30  # Allow up to 5 minutes for startup
+  
+  # Rolling update strategy
+  strategy:
+    type: "RollingUpdate"
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 2
+  
+  # Pod disruption budget
+  podDisruptionBudget:
+    minAvailable: 3  # Always keep at least 3 pods running
+
+# Environment configuration
+env:
+  ENV: "production"
+  LOG_LEVEL: "warn"
+  METRICS_ENABLED: "true"
+  HEALTH_CHECK_TIMEOUT: "5000"
+  DATABASE_POOL_SIZE: "20"
+  CIRCUIT_BREAKER_ENABLED: "true"
+
+# Production secrets
+secrets:
+  DATABASE_PASSWORD: "highly-secure-database-password"
+  JWT_SECRET: "production-jwt-secret-key-256-bit"
+  ENCRYPTION_KEY: "aes-256-encryption-key"
+  OAUTH_CLIENT_SECRET: "oauth-provider-client-secret"
+
+# External configuration sources
+secretFrom:
+  - "database-credentials"
+  - "external-api-keys"
+  - "ssl-certificates"
+
+configFrom:
+  - "shared-config"
+  - "environment-config"
+
+# Application configuration
+configMap:
+  config.yaml: |
+    server:
+      port: 8080
+      shutdownTimeout: 30s
+      readTimeout: 30s
+      writeTimeout: 30s
+    
+    database:
+      host: postgres-ha-cluster.database.svc.cluster.local
+      port: 5432
+      maxConnections: 20
+      connectionTimeout: 10s
+      idleTimeout: 5m
+      maxLifetime: 1h
+    
+    redis:
+      cluster:
+        - redis-cluster-0.cache.svc.cluster.local:6379
+        - redis-cluster-1.cache.svc.cluster.local:6379
+        - redis-cluster-2.cache.svc.cluster.local:6379
+    
+    monitoring:
+      prometheus:
+        enabled: true
+        port: 9090
+        path: "/metrics"
+      jaeger:
+        enabled: true
+        endpoint: "jaeger-collector.tracing.svc.cluster.local:14268"
+    
+    circuitBreaker:
+      failureThreshold: 5
+      resetTimeout: 60s
+      maxConcurrentRequests: 100
+
+# Service configuration with session affinity
+service:
+  type: "ClusterIP"
+  sessionAffinity: "ClientIP"
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hours
+  ports:
+    - name: "http"
+      port: 80
+      targetPort: 8080
+    - name: "https"
+      port: 443
+      targetPort: 8443
+    - name: "metrics"
+      port: 9090
+      targetPort: 9090
+
+# Multi-host ingress with advanced routing
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    # SSL and security
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+    
+    # Performance optimization
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/client-max-body-size: "50m"
+    
+    # Rate limiting
+    nginx.ingress.kubernetes.io/rate-limit: "1000"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/rate-limit-connections: "10"
+    
+    # Connection settings
+    nginx.ingress.kubernetes.io/upstream-keepalive-timeout: "60"
+    nginx.ingress.kubernetes.io/upstream-keepalive-connections: "32"
+    
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header X-Frame-Options "DENY" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  
+  hosts:
+    - host: "app.example.com"
+      paths:
+        - path: "/"
+          pathType: "Prefix"
+          port: 80
+    - host: "api.example.com"
+      paths:
+        - path: "/api"
+          pathType: "Prefix"
+          port: 80
+  
+  tls:
+    - secretName: "app-tls-cert"
+      hosts:
+        - "app.example.com"
+        - "api.example.com"
+
+# Production resource allocation
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+    ephemeral-storage: "2Gi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"
+    ephemeral-storage: "5Gi"
+
+# Advanced auto-scaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 5
+  maxReplicas: 50
+  
+  # CPU-based scaling
+  targetCPUUtilizationPercentage: 60
+  
+  # Memory-based scaling
+  targetMemoryUtilizationPercentage: 70
+  
+  # Custom metrics scaling (requires custom metrics API)
+  metrics:
+    - type: "Pods"
+      pods:
+        metricName: "http_requests_per_second"
+        targetAverageValue: "100"
+    - type: "External"
+      external:
+        metricName: "queue_depth"
+        targetAverageValue: "10"
+  
+  # Scaling behavior
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # 5 minutes
+      policies:
+        - type: "Percent"
+          value: 10      # Scale down by 10% at most
+          periodSeconds: 60
+        - type: "Pods"
+          value: 2       # Or remove max 2 pods
+          periodSeconds: 60
+      selectPolicy: "Min"  # Choose the most conservative policy
+    
+    scaleUp:
+      stabilizationWindowSeconds: 60   # 1 minute
+      policies:
+        - type: "Percent"
+          value: 100     # Can double the number of pods
+          periodSeconds: 60
+        - type: "Pods"
+          value: 5       # Or add max 5 pods
+          periodSeconds: 60
+      selectPolicy: "Max"  # Choose the most aggressive policy
+
+# Maximum security configuration
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  seccompProfile:
+    type: "RuntimeDefault"
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  capabilities:
+    drop:
+      - "ALL"
+  seccompProfile:
+    type: "RuntimeDefault"
+
+# Service account with RBAC
+serviceAccount:
+  create: true
+  name: "ha-app-service-account"
+  annotations:
+    # Cloud provider integrations
+    eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT:role/ha-app-role"
+    azure.workload.identity/client-id: "azure-client-id"
+  automountServiceAccountToken: false
+
+# Storage configuration
+volumes:
+  # Required for read-only root filesystem
+  tmp:
+    mountPath: "/tmp"
+    emptyDir: true
+    size: "1Gi"
+  
+  var-tmp:
+    mountPath: "/var/tmp"
+    emptyDir: true
+    size: "1Gi"
+  
+  logs:
+    mountPath: "/app/logs"
+    emptyDir: true
+    size: "5Gi"
+  
+  # Persistent storage for data
+  data:
+    mountPath: "/app/data"
+    size: "100Gi"
+    storageClass: "fast-ssd"
+    accessMode: "ReadWriteOnce"
+  
+  # Shared cache storage (if needed)
+  cache:
+    mountPath: "/app/cache"
+    size: "20Gi"
+    storageClass: "standard"
+    accessMode: "ReadWriteMany"
+
+# Anti-affinity rules for high availability
+affinity:
+  podAntiAffinity:
+    # Hard requirement: no two pods on same node
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: "app.kubernetes.io/name"
+              operator: "In"
+              values: ["drunk-app"]
+        topologyKey: "kubernetes.io/hostname"
+    
+    # Soft preference: spread across availability zones
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: "app.kubernetes.io/name"
+                operator: "In"
+                values: ["drunk-app"]
+          topologyKey: "topology.kubernetes.io/zone"
+
+# Node selection for production workloads
+nodeSelector:
+  node-type: "production"
+  instance-size: "large"
+
+# Tolerations for dedicated nodes
+tolerations:
+  - key: "production-workload"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+  - key: "high-memory"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+# Background maintenance jobs
+cronJobs:
+  - name: "health-check-report"
+    schedule: "*/5 * * * *"  # Every 5 minutes
+    command: ["./scripts/health-report.sh"]
+    restartPolicy: "OnFailure"
+    concurrencyPolicy: "Forbid"
+    
+  - name: "cleanup-logs"
+    schedule: "0 2 * * *"    # Daily at 2 AM
+    command: ["./scripts/cleanup-logs.sh"]
+    args: ["--retention-days=7"]
+    restartPolicy: "OnFailure"
+    
+  - name: "backup-data"
+    schedule: "0 1 * * *"    # Daily at 1 AM
+    command: ["./scripts/backup.sh"]
+    restartPolicy: "OnFailure"
+    concurrencyPolicy: "Replace"
+
+# One-time initialization jobs
+jobs:
+  - name: "database-migration"
+    command: ["./scripts/migrate.sh"]
+    args: ["--timeout=300"]
+    restartPolicy: "Never"
+    backoffLimit: 3
+
+# Network policies (requires separate NetworkPolicy resources)
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: "load-balancer"
+      ports:
+        - protocol: "TCP"
+          port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: "monitoring"
+      ports:
+        - protocol: "TCP"
+          port: 9090
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: "database"
+      ports:
+        - protocol: "TCP"
+          port: 5432
+    - to: []  # Allow all outbound (customize as needed)
+      ports:
+        - protocol: "TCP"
+          port: 443
+
+# TLS certificates
+tlsSecrets:
+  app-tls:
+    enabled: true
+    # Certificate and key would be provided via cert-manager or external system
+```
+
+## Deployment Strategy
+
+### 1. Pre-deployment Checklist
+
+```bash
+# Verify cluster resources
+kubectl top nodes
+kubectl describe nodes
+
+# Check storage classes
+kubectl get storageclass
+
+# Verify ingress controller
+kubectl get pods -n ingress-nginx
+
+# Check monitoring stack
+kubectl get pods -n monitoring
+```
+
+### 2. Blue-Green Deployment
+
+```bash
+# Deploy to staging/blue environment first
+helm install ha-app-blue drunk-charts/drunk-app \
+  -f high-availability.yaml \
+  --set global.tag=v2.1.0 \
+  -n blue
+
+# Test blue deployment
+kubectl port-forward svc/ha-app-blue-drunk-app 8080:80 -n blue
+
+# Switch traffic to blue (update ingress)
+# Then cleanup green environment
+```
+
+### 3. Canary Deployment
+
+```bash
+# Deploy canary with reduced replica count
+helm install ha-app-canary drunk-charts/drunk-app \
+  -f high-availability.yaml \
+  --set deployment.replicaCount=2 \
+  --set global.tag=v2.1.0 \
+  --set ingress.annotations."nginx.ingress.kubernetes.io/canary"="true" \
+  --set ingress.annotations."nginx.ingress.kubernetes.io/canary-weight"="10" \
+  -n canary
+
+# Monitor metrics and gradually increase traffic
+# If successful, update main deployment
+```
+
+## Monitoring and Observability
+
+### Prometheus Integration
+
+```yaml
+# ServiceMonitor for Prometheus Operator
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ha-app-metrics
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: drunk-app
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+```
+
+### Grafana Dashboard
+
+Key metrics to monitor:
+- Request rate and latency
+- Error rate (4xx, 5xx responses)
+- CPU and memory usage
+- Pod restart count
+- Database connection pool usage
+- Cache hit/miss rates
+
+### Alerting Rules
+
+```yaml
+# PrometheusRule for alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ha-app-alerts
+spec:
+  groups:
+    - name: ha-app.rules
+      rules:
+        - alert: HighErrorRate
+          expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High error rate detected"
+        
+        - alert: HighMemoryUsage
+          expr: container_memory_usage_bytes{pod=~"ha-app-.*"} / container_spec_memory_limit_bytes > 0.9
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory usage"
+```
+
+## Disaster Recovery
+
+### Backup Strategy
+
+```bash
+# Database backups
+kubectl create job --from=cronjob/ha-app-backup-data manual-backup-$(date +%s)
+
+# Configuration backups
+kubectl get configmap ha-app-config -o yaml > config-backup.yaml
+kubectl get secret ha-app-secrets -o yaml > secrets-backup.yaml
+```
+
+### Recovery Procedures
+
+```bash
+# Scale down application
+kubectl scale deployment ha-app-drunk-app --replicas=0
+
+# Restore database
+kubectl exec -it database-pod -- pg_restore /backups/latest.sql
+
+# Restore configuration
+kubectl apply -f config-backup.yaml
+kubectl apply -f secrets-backup.yaml
+
+# Scale up application
+kubectl scale deployment ha-app-drunk-app --replicas=5
+```
+
+## Performance Optimization
+
+### JVM Tuning (Java Applications)
+
+```yaml
+env:
+  JAVA_OPTS: >-
+    -server
+    -Xms1g
+    -Xmx1g
+    -XX:+UseG1GC
+    -XX:MaxGCPauseMillis=200
+    -XX:+UseStringDeduplication
+    -Djava.awt.headless=true
+    -Djava.security.egd=file:/dev/./urandom
+```
+
+### Node.js Tuning
+
+```yaml
+env:
+  NODE_OPTIONS: >-
+    --max-old-space-size=1024
+    --gc-interval=100
+    --optimize-for-size
+  UV_THREADPOOL_SIZE: "16"
+```
+
+## Security Hardening
+
+### Pod Security Standards
+
+```yaml
+# PodSecurityPolicy (deprecated) or Pod Security Standards
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+```
+
+### Network Segmentation
+
+```yaml
+# NetworkPolicy example
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ha-app-netpol
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: drunk-app
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: database
+      ports:
+        - protocol: TCP
+          port: 5432
+```
+
+## Load Testing
+
+### Comprehensive Load Test
+
+```bash
+# Install k6 for load testing
+k6 run --vus 1000 --duration 10m - <<EOF
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+
+export let options = {
+  stages: [
+    { duration: '2m', target: 100 },
+    { duration: '5m', target: 500 },
+    { duration: '2m', target: 1000 },
+    { duration: '1m', target: 0 },
+  ],
+  thresholds: {
+    http_req_duration: ['p(95)<500'],
+    http_req_failed: ['rate<0.01'],
+  },
+};
+
+export default function() {
+  let response = http.get('https://app.example.com/health');
+  check(response, {
+    'status is 200': (r) => r.status === 200,
+    'response time < 500ms': (r) => r.timings.duration < 500,
+  });
+  sleep(1);
+}
+EOF
+```
+
+This high-availability configuration ensures:
+- **Zero-downtime deployments** with rolling updates
+- **Automatic failover** with pod anti-affinity rules
+- **Comprehensive monitoring** with Prometheus/Grafana
+- **Advanced auto-scaling** based on multiple metrics
+- **Security hardening** with Pod Security Standards
+- **Disaster recovery** with backup and restore procedures
