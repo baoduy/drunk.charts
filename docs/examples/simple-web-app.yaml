@@ -1,0 +1,285 @@
+# Simple Web Application Example
+
+This example demonstrates a basic web application deployment suitable for getting started with drunk-app.
+
+## Use Case
+
+- Simple web application (e.g., React, Angular, Vue.js frontend)
+- Serves static content with a lightweight web server
+- Basic health checks and external access
+- Suitable for development and small production workloads
+
+## Configuration
+
+```yaml
+# Simple Web App Configuration
+# Deploy with: helm install my-web-app drunk-charts/drunk-app -f simple-web-app.yaml
+
+# Application image and version
+global:
+  image: "nginx"
+  tag: "1.25-alpine"
+  imagePullPolicy: "IfNotPresent"
+
+# Basic deployment settings
+deployment:
+  enabled: true
+  replicaCount: 2
+  ports:
+    http: 80
+  
+  # Health checks
+  liveness: "/index.html"
+  readiness: "/index.html"
+  
+  # Pod annotations for monitoring
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "80"
+
+# Service configuration
+service:
+  type: "ClusterIP"
+  ports:
+    - name: "http"
+      port: 80
+      targetPort: 80
+
+# External access via Ingress
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: "/"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: "myapp.example.com"
+      paths:
+        - path: "/"
+          pathType: "Prefix"
+          port: 80
+  tls:
+    - secretName: "myapp-tls"
+      hosts:
+        - "myapp.example.com"
+
+# Resource limits for cost optimization
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "200m"
+    memory: "128Mi"
+
+# Auto-scaling based on CPU usage
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+
+# Basic security settings
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 101  # nginx user
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# Temporary storage for nginx
+volumes:
+  tmp:
+    mountPath: "/tmp"
+    emptyDir: true
+  nginx-cache:
+    mountPath: "/var/cache/nginx"
+    emptyDir: true
+  nginx-run:
+    mountPath: "/var/run"
+    emptyDir: true
+```
+
+## Deployment Steps
+
+1. **Save the configuration**:
+   ```bash
+   curl -o simple-web-app.yaml https://raw.githubusercontent.com/baoduy/drunk.charts/main/docs/examples/simple-web-app.yaml
+   ```
+
+2. **Customize for your environment**:
+   ```bash
+   # Edit the configuration
+   nano simple-web-app.yaml
+   
+   # Update these values:
+   # - global.image: Your application image
+   # - ingress.hosts[0].host: Your domain name
+   # - tls.hosts: Your domain name
+   ```
+
+3. **Deploy the application**:
+   ```bash
+   # Add the Helm repository
+   helm repo add drunk-charts https://baoduy.github.io/drunk.charts/drunk-app
+   helm repo update
+   
+   # Install the application
+   helm install my-web-app drunk-charts/drunk-app -f simple-web-app.yaml
+   ```
+
+4. **Verify the deployment**:
+   ```bash
+   # Check pods
+   kubectl get pods -l app.kubernetes.io/name=drunk-app
+   
+   # Check service
+   kubectl get svc -l app.kubernetes.io/name=drunk-app
+   
+   # Check ingress
+   kubectl get ingress
+   ```
+
+## Customization Options
+
+### Different Web Servers
+
+**Apache HTTP Server**:
+```yaml
+global:
+  image: "httpd"
+  tag: "2.4-alpine"
+
+deployment:
+  ports:
+    http: 80
+```
+
+**Node.js Application**:
+```yaml
+global:
+  image: "node"
+  tag: "18-alpine"
+
+deployment:
+  ports:
+    http: 3000
+  command: ["node"]
+  args: ["server.js"]
+```
+
+### Custom Configuration
+
+**Add custom nginx configuration**:
+```yaml
+configMap:
+  nginx.conf: |
+    server {
+        listen 80;
+        location / {
+            root /usr/share/nginx/html;
+            index index.html;
+            try_files $uri $uri/ /index.html;
+        }
+    }
+```
+
+**Environment variables**:
+```yaml
+env:
+  NODE_ENV: "production"
+  APP_NAME: "My Web App"
+  API_URL: "https://api.example.com"
+```
+
+### Enhanced Security
+
+**Add network policies** (requires additional configuration):
+```yaml
+# Note: NetworkPolicy would be a custom resource
+podAnnotations:
+  # Enable network policy
+  network-policy: "web-app-policy"
+```
+
+**Content Security Policy headers**:
+```yaml
+ingress:
+  annotations:
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header Content-Security-Policy "default-src 'self'";
+      add_header X-Frame-Options "DENY";
+      add_header X-Content-Type-Options "nosniff";
+```
+
+## Monitoring Integration
+
+Add Prometheus monitoring:
+```yaml
+deployment:
+  ports:
+    metrics: 9090
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Pod not starting**:
+   ```bash
+   kubectl describe pod <pod-name>
+   kubectl logs <pod-name>
+   ```
+
+2. **Ingress not working**:
+   ```bash
+   kubectl describe ingress <ingress-name>
+   # Check ingress controller logs
+   kubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx
+   ```
+
+3. **Certificate issues**:
+   ```bash
+   kubectl describe certificate <certificate-name>
+   kubectl describe certificaterequest <request-name>
+   ```
+
+### Health Check Failures
+
+If health checks fail, adjust the paths:
+```yaml
+deployment:
+  liveness: "/health"     # Must return 200 OK
+  readiness: "/ready"     # Must return 200 OK when ready
+```
+
+### Resource Constraints
+
+If pods are being evicted or OOM killed:
+```yaml
+resources:
+  requests:
+    memory: "128Mi"  # Increase memory request
+  limits:
+    memory: "256Mi"  # Increase memory limit
+```
+
+## Next Steps
+
+- **Add SSL certificates**: Configure cert-manager for automatic SSL
+- **Set up monitoring**: Add Prometheus/Grafana integration
+- **Database integration**: Connect to a database service
+- **CI/CD integration**: Automate deployments with GitOps
+
+See other examples for more advanced configurations:
+- [API Service](./api-service.yaml) - For backend APIs
+- [High Availability](./high-availability.yaml) - For production workloads
+- [Monitoring Setup](./monitoring.yaml) - For observability
