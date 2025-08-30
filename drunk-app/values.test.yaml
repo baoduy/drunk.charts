@@ -36,27 +36,17 @@ secrets:
 
 secretProvider:
   enabled: true
-  provider: aws
   name: "my-secret-class"
-  tenantId: "your-tenant-id"
-  vaultName: "your-vault-name"
-  userAssignedIdentityID: "your-identity-id"
-  usePodIdentity: false
-  useWorkloadIdentity: false
+  provider:
+    name: aws
+    tenantId: "your-tenant-id"
+    vaultName: "your-vault-name"
+    userAssignedIdentityID: "your-identity-id"
+    usePodIdentity: false
+    useWorkloadIdentity: false
   objects:
-    - objectName: my-secret-1
-      objectType: secret
-      objectVersion: ""
-    - objectName: my-secret-2
-      objectType: secret
-      objectVersion: ""
-  secretObjects:
-    - type: Opaque
-      data:
-        - key: secret-1
-          objectName: my-secret-1
-        - key: secret-2
-          objectName: my-secret-2
+    - my-secret-1
+    - my-secret-2
 secretFrom:
   - name_of_other_secret
 
