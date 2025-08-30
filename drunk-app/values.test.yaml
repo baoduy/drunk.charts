@@ -148,9 +148,6 @@ serviceAccount:
   enabled: true
   annotations: {}
 
-service:
-  type: ClusterIP
-
 podAnnotations: {}
 
 podSecurityContext:
