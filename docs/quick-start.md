@@ -122,7 +122,7 @@ volumes:
 
 - **[Complete Configuration Guide](./drunk-app.md)** - Learn about all available options
 - **[Configuration Examples](./examples/)** - See real-world examples
-- **[Troubleshooting](./troubleshooting.md)** - Common issues and solutions
+- **[Troubleshooting Guide](./troubleshooting.md)** - Common issues and solutions
 
 ## 💡 Pro Tips
 
