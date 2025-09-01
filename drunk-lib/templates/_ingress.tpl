@@ -29,7 +29,7 @@ spec:
       http:
         paths:
           - path: {{ .path | default "/" }}
-            pathType: Prefix
+            pathType: {{ .pathType | default "Prefix" }}
             backend:
               service:
                 name: {{ $fullName }}
