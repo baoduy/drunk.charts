@@ -73,25 +73,25 @@ spec:
           {{- end }}
           envFrom:
           {{- if .Values.configMap }}
-            - configMapRef:
-                name: {{ include "app.name" . }}-config
+          - configMapRef:
+              name: {{ include "app.name" . }}-config
           {{- end }}
           {{- range $c := .Values.configFrom }}
-            - configMapRef:
-                name: {{ $c }}
+          - configMapRef:
+              name: {{ $c }}
           {{- end }}
           {{- if .Values.secrets }}
-            - secretRef:
-                name: {{ include "app.name" . }}-secret
+          - secretRef:
+              name: {{ include "app.name" . }}-secret
           {{- end }}
           {{- range $s := .Values.secretFrom }}
-            - secretRef:
-                name: {{ $s }}
+          - secretRef:
+              name: {{ $s }}
           {{- end }}
           {{- with .Values.secretProvider }}
           {{- if and .enabled .secretObjects }}
-            - secretRef:
-                name: {{ default (printf "%s-spc" (include "app.name" $root)) .name }}
+          - secretRef:
+              name: {{ default (printf "%s-spc" (include "app.name" $root)) .name }}
           {{- end }}
           {{- end }}
           resources:
@@ -187,48 +187,48 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- if .Values.volumes }}
+          {{- if or .Values.volumes (and .Values.secretProvider .Values.secretProvider.enabled) }}
           volumeMounts:
+          {{- if .Values.volumes }}
           {{- range $k,$v := .Values.volumes }}
-            - name: {{ $k }}
-              readOnly: {{ $v.readOnly | default false }}
-              mountPath: {{ $v.mountPath }}
+          - name: {{ $k }}
+            readOnly: {{ $v.readOnly | default false }}
+            mountPath: {{ $v.mountPath }}
             {{- if $v.subPath }}
-              subPath: {{ $v.subPath }}
+            subPath: {{ $v.subPath }}
             {{- end }}
           {{- end }}
-          # SecretProvider volume
+          {{- end }}
           {{- with .Values.secretProvider }}
           {{- if .enabled }}
-            - name: {{ printf "%s-vol" .name }}
-              mountPath: "/mnt/secrets-store"
-              readOnly: true
+          - name: {{ printf "%s-vol" (default (printf "%s-spc" (include "app.name" $root)) .name) }}
+            mountPath: "/mnt/secrets-store"
+            readOnly: true
           {{- end }}
           {{- end }}
           {{- end }}
       # End Containers
       
-      {{- if .Values.volumes }}
       volumes:
+      {{- if .Values.volumes }}
       {{- range $k,$v := .Values.volumes }}
-        - name: {{ $k }}
+      - name: {{ $k }}
         {{- if $v.emptyDir }}
-          emptyDir: {}
+        emptyDir: {}
         {{- else }}
-          persistentVolumeClaim:
-            claimName: {{ include "app.name" $root }}-{{ $k }}
+        persistentVolumeClaim:
+          claimName: {{ include "app.name" $root }}-{{ $k }}
         {{- end }}
       {{- end }}
-      # SecretProvider volume
+      {{- end }}
       {{- with .Values.secretProvider }}
       {{- if .enabled }}
-        - name: {{ printf "%s-vol" .name }}
-          csi:
-            driver: secrets-store.csi.k8s.io
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: {{ printf "%s-cls" .name }}
-      {{- end }}
+      - name: {{ printf "%s-vol" (default (printf "%s-spc" (include "app.name" $root)) .name) }}
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: {{ printf "%s-cls" (default (printf "%s-spc" (include "app.name" $root)) .name) }}
       {{- end }}
       {{- end }}
       
