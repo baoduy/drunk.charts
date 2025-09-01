@@ -1,4 +1,22 @@
 {{/*
+Get the mapped service port for ingress
+If deployment has only 1 port, map to 80. If more than 1, map to the first port in the map.
+Usage: {{ include "drunk.utils.ingressPort" . }}
+*/}}
+{{- define "drunk.utils.ingressPort" -}}
+{{- if and .Values.deployment .Values.deployment.ports -}}
+	{{- $ports := .Values.deployment.ports -}}
+	{{- if eq (len $ports) 1 -}}
+		80
+	{{- else -}}
+		{{- $firstPort := (keys $ports | first) -}}
+		{{- get $ports $firstPort -}}
+	{{- end -}}
+{{- else -}}
+	8080
+{{- end -}}
+{{- end -}}
+{{/*
 Expand the name of the chart.
 */}}
 {{- define "app.name" -}}
