@@ -34,7 +34,7 @@ spec:
               service:
                 name: {{ $fullName }}
                 port:
-                  number: {{ .port | default 8080 }}
+                  number: {{ if .port }}{{ .port }}{{ else }}{{ include "drunk.utils.ingressPort" $ }}{{ end }}
     {{- end }}
 {{- end }}
 {{- end }}

@@ -1,92 +1,207 @@
 suites: Ingress Template Test Suite
 templates:
-- ingress.yaml
+  - ingress.yaml
 tests:
-- it: should not create an Ingress when ingress is disabled
-  set:
-    service: {}
-    ingress:
-      enabled: false
-  asserts:
-  - hasDocuments:
-      count: 0
+  - it: should not create an Ingress when ingress is disabled
+    set:
+      service: {}
+      ingress:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
 
-- it: should create an Ingress with default service port when enabled
-  set:
-    app:
-      fullname: test-app
-      labels:
-        app: test-app
-    ingress:
-      enabled: true
-      hosts:
-      - host: "example.com"
-    service: {}
-  asserts:
-  - hasDocuments:
-      count: 1
-  - isKind:
-      of: Ingress
-  - equal:
-      path: metadata.name
-      value: "RELEASE-NAME-drunk-app"
-  - equal:
-      path: spec.rules[0].http.paths[0].backend.service.port.number
-      value: 8080
+  - it: should create an Ingress with default service port when enabled
+    set:
+      app:
+        fullname: test-app
+        labels:
+          app: test-app
+      ingress:
+        enabled: true
+        hosts:
+          - host: "example.com"
+      service: {}
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: "RELEASE-NAME-drunk-app"
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 8080
 
-- it: should respect custom service port
-  set:
-    service:
-      port: 8080
-    ingress:
-      enabled: true
-      hosts:
-      - host: "custom-port.com"
-  asserts:
-  - equal:
-      path: spec.rules[0].http.paths[0].backend.service.port.number
-      value: 8080
+  - it: should respect custom service port
+    set:
+      service:
+        port: 8080
+      ingress:
+        enabled: true
+        hosts:
+          - host: "custom-port.com"
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 8080
 
-- it: should apply ingress annotations when provided
-  set:
-    service: {}
-    ingress:
-      enabled: true
-      annotations:
-        nginx.ingress.kubernetes.io/rewrite-target: "/"
-      hosts:
-      - host: "annotated-host.com"
-  asserts:
-  - matchRegex:
-      path: metadata.annotations['nginx.ingress.kubernetes.io/rewrite-target']
-      pattern: "/"
+  - it: should apply ingress annotations when provided
+    set:
+      service: {}
+      ingress:
+        enabled: true
+        annotations:
+          nginx.ingress.kubernetes.io/rewrite-target: "/"
+        hosts:
+          - host: "annotated-host.com"
+    asserts:
+      - matchRegex:
+          path: metadata.annotations['nginx.ingress.kubernetes.io/rewrite-target']
+          pattern: "/"
 
-- it: should setup TLS when configured
-  set:
-    service: {}
-    ingress:
-      enabled: true
-      tls: test-tls-secret
-      hosts:
-      - host: "secure.example.com"
-  asserts:
-  - isNotEmpty:
-      path: spec.tls
+  - it: should setup TLS when configured
+    set:
+      service: {}
+      ingress:
+        enabled: true
+        tls: test-tls-secret
+        hosts:
+          - host: "secure.example.com"
+    asserts:
+      - isNotEmpty:
+          path: spec.tls
+      - equal:
+          path: spec.tls[0].secretName
+          value: test-tls-secret
+      - equal:
+          path: spec.tls[0].hosts[0]
+          value: "secure.example.com"
 
-- it: should configure multiple hosts correctly
-  set:
-    service: {}
-    ingress:
-      enabled: true
-      hosts:
-      - host: "example.com"
-      - host: "another-example.com"
-  asserts:
-  - hasDocuments:
-      count: 1
-  - equal:
-      path: spec.rules[0].host
-      value: "example.com"
-  - equal:
-      path: spec.rules[1].host
-      value: "another-example.com"
+  - it: should configure multiple hosts correctly
+    set:
+      service: {}
+      ingress:
+        enabled: true
+        hosts:
+          - host: "example.com"
+          - host: "another-example.com"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.rules[0].host
+          value: "example.com"
+      - equal:
+          path: spec.rules[1].host
+          value: "another-example.com"
+
+  - it: should use default ingressClassName when not specified
+    set:
+      service: {}
+      ingress:
+        enabled: true
+        hosts:
+          - host: "example.com"
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: should use custom ingressClassName when specified
+    set:
+      service: {}
+      ingress:
+        enabled: true
+        className: custom-ingress
+        hosts:
+          - host: "example.com"
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: custom-ingress
+
+  - it: should apply app labels to ingress
+    set:
+      service: {}
+      ingress:
+        enabled: true
+        hosts:
+          - host: "example.com"
+    asserts:
+      - isSubset:
+          path: metadata.labels
+          content:
+            helm.sh/chart: drunk-app-1.2.6
+            app.kubernetes.io/name: drunk-app
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/version: latest
+            app.kubernetes.io/managed-by: Helm
+
+  - it: should support custom path and pathType for hosts
+    set:
+      service: {}
+      ingress:
+        enabled: true
+        hosts:
+          - host: "example.com"
+            path: "/api"
+            pathType: "Exact"
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: "/api"
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: "Exact"
+
+  - it: should use default path and pathType when not specified
+    set:
+      service: {}
+      ingress:
+        enabled: true
+        hosts:
+          - host: "example.com"
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: "/"
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: "Prefix"
+
+  - it: should respect host-specific port configuration
+    set:
+      service: {}
+      ingress:
+        enabled: true
+        hosts:
+          - host: "example.com"
+            port: 9090
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 9090
+
+  - it: should apply multiple annotations when provided
+    set:
+      service: {}
+      ingress:
+        enabled: true
+        annotations:
+          nginx.ingress.kubernetes.io/rewrite-target: "/"
+          kubernetes.io/ingress.class: "nginx"
+          cert-manager.io/cluster-issuer: "letsencrypt"
+        hosts:
+          - host: "example.com"
+    asserts:
+      - matchRegex:
+          path: metadata.annotations['nginx.ingress.kubernetes.io/rewrite-target']
+          pattern: "/"
+      - matchRegex:
+          path: metadata.annotations['kubernetes.io/ingress.class']
+          pattern: "nginx"
+      - matchRegex:
+          path: metadata.annotations['cert-manager.io/cluster-issuer']
+          pattern: "letsencrypt"

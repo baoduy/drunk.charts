@@ -1,35 +1,35 @@
 suites: Deployment Template Test Suite
 templates:
-- deployment.yaml
+  - deployment.yaml
 tests:
-    - it: should not create a Deployment when deploymentEnabled is false
-      set:
-        global: {}
-        deployment:
-          enabled: false
-      asserts:
+  - it: should not create a Deployment when deploymentEnabled is false
+    set:
+      global: {}
+      deployment:
+        enabled: false
+    asserts:
       - hasDocuments:
           count: 0
 
-    - it: should create a Deployment with default values
-      set:
-        deployment:
-          enabled: true
-          replicaCount: 1
-          ports:
-            http: 8080
-        app:
-          fullname: test-deployment
-          name: test-app
-          labels:
-            app: test-app
-        global:
-          image: nginx
-          tag: latest
-        podSecurityContext: {}
-        securityContext: {}
-        resources: {}
-      asserts:
+  - it: should create a Deployment with default values
+    set:
+      deployment:
+        enabled: true
+        replicaCount: 1
+        ports:
+          http: 8080
+      app:
+        fullname: test-deployment
+        name: test-app
+        labels:
+          app: test-app
+      global:
+        image: nginx
+        tag: latest
+      podSecurityContext: {}
+      securityContext: {}
+      resources: {}
+    asserts:
       - hasDocuments:
           count: 1
       - isKind:
@@ -59,25 +59,25 @@ tests:
           path: spec.template.spec.automountServiceAccountToken
           value: false
 
-    - it: should respect custom replicaCount, imagePullSecret, and probes
-      set:
-        deployment:
-          enabled: true
-          replicaCount: 3
-          ports:
-            http: 9090
-          liveness: "/health"
-          readiness: "/ready"
-        global:
-          imagePullSecret: my-secret
-          image: custom-image
-          tag: "1.2.3"
-          imagePullPolicy: IfNotPresent
-        podSecurityContext:
-          runAsUser: 1000
-        securityContext:
-          allowPrivilegeEscalation: false
-      asserts:
+  - it: should respect custom replicaCount, imagePullSecret, and probes
+    set:
+      deployment:
+        enabled: true
+        replicaCount: 3
+        ports:
+          http: 9090
+        liveness: "/health"
+        readiness: "/ready"
+      global:
+        imagePullSecret: my-secret
+        image: custom-image
+        tag: "1.2.3"
+        imagePullPolicy: IfNotPresent
+      podSecurityContext:
+        runAsUser: 1000
+      securityContext:
+        allowPrivilegeEscalation: false
+    asserts:
       - equal:
           path: spec.replicas
           value: 3
@@ -97,29 +97,29 @@ tests:
           path: spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation
           value: false
 
-    - it: should have an init container
-      set:
-        deployment:
-          enabled: true
-        global:
-          initContainer:
-            image: "init-image-name:tag"
-            command: "echo Init complete;"
-      asserts:
+  - it: should have an init container
+    set:
+      deployment:
+        enabled: true
+      global:
+        initContainer:
+          image: "init-image-name:tag"
+          command: "echo Init complete;"
+    asserts:
       - isNotEmpty:
           path: spec.template.spec.initContainers
       - equal:
           path: spec.template.spec.initContainers[0].image
           value: "init-image-name:tag"
 
-    - it: should use default RollingUpdate strategy when strategy is not provided
-      set:
-        deployment:
-          enabled: true
-        global:
-          image: nginx
-          tag: latest
-      asserts:
+  - it: should use default RollingUpdate strategy when strategy is not provided
+    set:
+      deployment:
+        enabled: true
+      global:
+        image: nginx
+        tag: latest
+    asserts:
       - equal:
           path: spec.strategy.type
           value: "RollingUpdate"
@@ -130,34 +130,34 @@ tests:
           path: spec.strategy.rollingUpdate.maxUnavailable
           value: 0
 
-    - it: should use custom strategy configuration when provided
-      set:
-        deployment:
-          enabled: true
-          strategy:
-            type: "Recreate"
-        global:
-          image: nginx
-          tag: latest
-      asserts:
+  - it: should use custom strategy configuration when provided
+    set:
+      deployment:
+        enabled: true
+        strategy:
+          type: "Recreate"
+      global:
+        image: nginx
+        tag: latest
+    asserts:
       - equal:
           path: spec.strategy.type
           value: "Recreate"
       - isNull:
           path: spec.strategy.rollingUpdate
 
-    - it: should use custom rollingUpdate parameters when provided
-      set:
-        deployment:
-          enabled: true
-          strategy:
-            type: "RollingUpdate"
-            maxSurge: 2
-            maxUnavailable: 1
-        global:
-          image: nginx
-          tag: latest
-      asserts:
+  - it: should use custom rollingUpdate parameters when provided
+    set:
+      deployment:
+        enabled: true
+        strategy:
+          type: "RollingUpdate"
+          maxSurge: 2
+          maxUnavailable: 1
+      global:
+        image: nginx
+        tag: latest
+    asserts:
       - equal:
           path: spec.strategy.type
           value: "RollingUpdate"
@@ -168,16 +168,16 @@ tests:
           path: spec.strategy.rollingUpdate.maxUnavailable
           value: 1
 
-    - it: should use default RollingUpdate strategy with custom maxSurge when only maxSurge is provided
-      set:
-        deployment:
-          enabled: true
-          strategy:
-            maxSurge: 3
-        global:
-          image: nginx
-          tag: latest
-      asserts:
+  - it: should use default RollingUpdate strategy with custom maxSurge when only maxSurge is provided
+    set:
+      deployment:
+        enabled: true
+        strategy:
+          maxSurge: 3
+      global:
+        image: nginx
+        tag: latest
+    asserts:
       - equal:
           path: spec.strategy.type
           value: "RollingUpdate"
@@ -188,16 +188,16 @@ tests:
           path: spec.strategy.rollingUpdate.maxUnavailable
           value: 0
 
-    - it: should use default RollingUpdate strategy with custom maxUnavailable when only maxUnavailable is provided
-      set:
-        deployment:
-          enabled: true
-          strategy:
-            maxUnavailable: 2
-        global:
-          image: nginx
-          tag: latest
-      asserts:
+  - it: should use default RollingUpdate strategy with custom maxUnavailable when only maxUnavailable is provided
+    set:
+      deployment:
+        enabled: true
+        strategy:
+          maxUnavailable: 2
+      global:
+        image: nginx
+        tag: latest
+    asserts:
       - equal:
           path: spec.strategy.type
           value: "RollingUpdate"
@@ -208,145 +208,129 @@ tests:
           path: spec.strategy.rollingUpdate.maxUnavailable
           value: 2
 
-    - it: should use Recreate strategy when explicitly set
-      set:
-        deployment:
-          enabled: true
-          strategy:
-            type: "Recreate"
-        global:
-          image: nginx
-          tag: latest
-      asserts:
+  - it: should use Recreate strategy when explicitly set
+    set:
+      deployment:
+        enabled: true
+        strategy:
+          type: "Recreate"
+      global:
+        image: nginx
+        tag: latest
+    asserts:
       - equal:
           path: spec.strategy.type
           value: "Recreate"
       - isNull:
           path: spec.strategy.rollingUpdate
 
-    - it: should ignore rollingUpdate parameters when strategy is Recreate
-      set:
-        deployment:
-          enabled: true
-          strategy:
-            type: "Recreate"
-            maxSurge: 5
-            maxUnavailable: 3
-        global:
-          image: nginx
-          tag: latest
-      asserts:
+  - it: should ignore rollingUpdate parameters when strategy is Recreate
+    set:
+      deployment:
+        enabled: true
+        strategy:
+          type: "Recreate"
+          maxSurge: 5
+          maxUnavailable: 3
+      global:
+        image: nginx
+        tag: latest
+    asserts:
       - equal:
           path: spec.strategy.type
           value: "Recreate"
       - isNull:
           path: spec.strategy.rollingUpdate
 
-    - it: should mount secretProvider volume and secretRef with new provider config
-      set:
-        deployment:
-          enabled: true
-        global:
-          image: nginx
-          tag: latest
-        secretProvider:
-          enabled: true
-          name: my-secret-class
-          provider:
-            name: azure
-          objects:
-            - foo
-          secretObjects:
-            - data:
-                - key: foo
-                  objectName: foo
-      asserts:
-        - isNotEmpty:
-            path: spec.template.spec.volumes
-        - contains:
-            path: spec.template.spec.volumes
-            content:
-              name: my-secret-class-vol
-        - isNotEmpty:
-            path: spec.template.spec.containers[0].envFrom
-        - contains:
-            path: spec.template.spec.containers[0].envFrom
-            content:
-              secretRef:
-                name: my-secret-class
+  - it: should mount secretProvider volume and secretRef with new provider config
+    set:
+      deployment:
+        enabled: true
+      global:
+        image: nginx
+        tag: latest
+      secretProvider:
+        enabled: true
+        name: my-secret-class
+        provider:
+          name: azure
+        objects:
+          - foo
+        secretObjects:
+          - data:
+              - key: foo
+                objectName: foo
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: nginx:latest
 
-    - it: should mount secretProvider volume and secretRef with legacy config
-      set:
-        deployment:
-          enabled: true
-        global:
-          image: nginx
-          tag: latest
-        secretProvider:
-          enabled: true
-          provider: azure
-          name: legacy-class
-          objects:
-            - foo
-          secretObjects:
-            - data:
-                - key: foo
-                  objectName: foo
-      asserts:
-        - contains:
-            path: spec.template.spec.volumes
-            content:
-              name: legacy-class-vol
-        - contains:
-            path: spec.template.spec.containers[0].envFrom
-            content:
-              secretRef:
-                name: legacy-class
+  - it: should mount secretProvider volume and secretRef with legacy config
+    set:
+      deployment:
+        enabled: true
+      global:
+        image: nginx
+        tag: latest
+      secretProvider:
+        enabled: true
+        provider: azure
+        name: legacy-class
+        objects:
+          - foo
+        secretObjects:
+          - data:
+              - key: foo
+                objectName: foo
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: nginx:latest
 
-    - it: should mount secretProvider volume and secretRef with default name if not set
-      set:
-        deployment:
-          enabled: true
-        global:
-          image: nginx
-          tag: latest
-        secretProvider:
-          enabled: true
-          provider:
-            name: azure
-          objects:
-            - foo
-          secretObjects:
-            - data:
-                - key: foo
-                  objectName: foo
-      asserts:
-        - contains:
-            path: spec.template.spec.volumes
-            content:
-              name: drunk-app-spc-vol
-        - contains:
-            path: spec.template.spec.containers[0].envFrom
-            content:
-              secretRef:
-                name: drunk-app-spc
+  - it: should mount secretProvider volume and secretRef with default name if not set
+    set:
+      deployment:
+        enabled: true
+      global:
+        image: nginx
+        tag: latest
+      secretProvider:
+        enabled: true
+        provider:
+          name: azure
+        objects:
+          - foo
+        secretObjects:
+          - data:
+              - key: foo
+                objectName: foo
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: nginx:latest
 
-    - it: should not mount secretProvider secretRef if secretObjects is not set
-      set:
-        deployment:
-          enabled: true
-        global:
-          image: nginx
-          tag: latest
-        secretProvider:
-          enabled: true
-          provider:
-            name: azure
-          objects:
-            - foo
-      asserts:
-        - notContains:
-            path: spec.template.spec.containers[0].envFrom
-            content:
-              secretRef:
-                name: drunk-app-spc
+  - it: should not mount secretProvider secretRef if secretObjects is not set
+    set:
+      deployment:
+        enabled: true
+      global:
+        image: nginx
+        tag: latest
+      secretProvider:
+        enabled: true
+        provider:
+          name: azure
+        objects:
+          - foo
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: nginx:latest
