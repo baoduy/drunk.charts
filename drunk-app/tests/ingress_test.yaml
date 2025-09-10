@@ -133,7 +133,7 @@ tests:
       - isSubset:
           path: metadata.labels
           content:
-            helm.sh/chart: drunk-app-1.2.6
+            helm.sh/chart: drunk-app-1.2.7
             app.kubernetes.io/name: drunk-app
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/version: latest

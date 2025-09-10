@@ -61,31 +61,59 @@ spec:
         - secretRef:
             name: {{ $s }}
         {{- end }}
+        # SecretProvider volume
+        {{- with $.Values.secretProvider }}
+        {{- if .enabled }}
+        - secretRef:
+            name: {{ default (printf "%s-spc" (include "app.name" $root)) .name }}
+        {{- end }}
+        {{- end }}
         resources:
         {{- toYaml $.Values.resources | nindent 14 }}
         
-        {{- if $.Values.volumes }}
+        {{- if or $.Values.volumes (and $.Values.secretProvider $.Values.secretProvider.enabled) }}
         volumeMounts:
+        {{- if $.Values.volumes }}
         {{- range $k,$v := $.Values.volumes }}
-          - name: {{ $k }}
-            readOnly: {{ $v.readOnly | default false }}
-            mountPath: {{ $v.mountPath }}
+        - name: {{ $k }}
+          readOnly: {{ $v.readOnly | default false }}
+          mountPath: {{ $v.mountPath }}
           {{- if $v.subPath }}
-            subPath: {{ $v.subPath }}
+          subPath: {{ $v.subPath }}
           {{- end }}
         {{- end }}
         {{- end }}
-     
-     {{- if $.Values.volumes }}
-      volumes:
-      {{- range $k,$v := $.Values.volumes }}
-        - name: {{ $k }}
-        {{- if $v.emptyDir }}
-          emptyDir: {}
-        {{- else }}
-          persistentVolumeClaim:
-            claimName: {{ include "app.name" $root }}-{{ $k }}
+        # SecretProvider volume
+        {{- with $.Values.secretProvider }}
+        {{- if .enabled }}
+        - name: {{ printf "%s-vol" (default (printf "%s-spc" (include "app.name" $root)) .name) }}
+          mountPath: "/mnt/secrets-store"
+          readOnly: true
         {{- end }}
+        {{- end }}
+        {{- end }}
+
+      volumes:
+      {{- if $.Values.volumes }}
+      {{- range $k,$v := $.Values.volumes }}
+      - name: {{ $k }}
+        {{- if $v.emptyDir }}
+        emptyDir: {}
+        {{- else }}
+        persistentVolumeClaim:
+          claimName: {{ include "app.name" $root }}-{{ $k }}
+        {{- end }}
+      {{- end }}
+      {{- end }}
+      # SecretProvider volume
+      {{- with $.Values.secretProvider }}
+      {{- if .enabled }}
+      - name: {{ printf "%s-vol" (default (printf "%s-spc" (include "app.name" $root)) .name) }}
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: {{ printf "%s-cls" (default (printf "%s-spc" (include "app.name" $root)) .name) }}
       {{- end }}
       {{- end }}
 {{- end }}
