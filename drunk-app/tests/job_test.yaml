@@ -1,0 +1,122 @@
+suites: Job Template Test Suite
+templates:
+  - job.yaml
+tests:
+  - it: should create a Job with secretProvider custom name and secretObjects
+    set:
+      global:
+        image: nginx
+        tag: latest
+      jobs:
+        - name: job-custom
+      secretProvider:
+        enabled: true
+        name: my-class
+        provider:
+          name: azure
+        objects:
+          - foo
+        secretObjects:
+          - data:
+              - key: foo
+                objectName: foo
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Job
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: nginx:latest
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].secretRef.name
+          value: my-class
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: my-class-vol
+      - equal:
+          path: spec.template.spec.volumes[0].csi.volumeAttributes.secretProviderClass
+          value: my-class-cls
+
+  - it: should create a Job with secretProvider legacy config (name + secretObjects)
+    set:
+      global:
+        image: nginx
+        tag: latest
+      jobs:
+        - name: job-legacy
+      secretProvider:
+        enabled: true
+        name: legacy-class
+        provider: azure
+        objects:
+          - foo
+        secretObjects:
+          - data:
+              - key: foo
+                objectName: foo
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Job
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].secretRef.name
+          value: legacy-class
+      - equal:
+          path: spec.template.spec.volumes[0].csi.volumeAttributes.secretProviderClass
+          value: legacy-class-cls
+
+  - it: should create a Job with secretProvider default naming when name omitted
+    set:
+      global:
+        image: nginx
+        tag: latest
+      jobs:
+        - name: job-default
+      secretProvider:
+        enabled: true
+        provider:
+          name: azure
+        objects:
+          - foo
+        secretObjects:
+          - data:
+              - key: foo
+                objectName: foo
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Job
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: drunk-app-spc-vol
+      - equal:
+          path: spec.template.spec.volumes[0].csi.volumeAttributes.secretProviderClass
+          value: drunk-app-spc-cls
+
+  - it: should not add secretProvider envFrom secretRef when secretObjects missing
+    set:
+      global:
+        image: nginx
+        tag: latest
+      jobs:
+        - name: job-no-secretobjects
+      secretProvider:
+        enabled: true
+        provider:
+          name: azure
+        objects:
+          - foo
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Job
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: drunk-app-spc-vol
+      - equal:
+          path: spec.template.spec.volumes[0].csi.volumeAttributes.secretProviderClass
+          value: drunk-app-spc-cls

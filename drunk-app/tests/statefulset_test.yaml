@@ -1,0 +1,262 @@
+suites: StatefulSet Template Test Suite
+
+templates:
+  - statefulset.yaml
+tests:
+  - it: should not create a StatefulSet when statefulsetEnabled is false
+    set:
+      global: {}
+      statefulset:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create a StatefulSet with default values
+    set:
+      statefulset:
+        enabled: true
+        replicaCount: 1
+        ports:
+          http: 8080
+      app:
+        fullname: test-statefulset
+        name: test-app
+        labels:
+          app: test-app
+      global:
+        image: nginx
+        tag: latest
+      podSecurityContext: {}
+      securityContext: {}
+      resources: {}
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: StatefulSet
+      - equal:
+          path: metadata.name
+          value: "RELEASE-NAME-drunk-app"
+      - isSubset:
+          path: metadata.labels
+          content:
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/managed-by: Helm
+            app.kubernetes.io/name: drunk-app
+            app.kubernetes.io/version: latest
+      - equal:
+          path: spec.replicas
+          value: 1
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "nginx:latest"
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 8080
+      - equal:
+          path: spec.serviceName
+          value: "RELEASE-NAME-drunk-app"
+
+  - it: should configure StatefulSet-specific features
+    set:
+      statefulset:
+        enabled: true
+        replicaCount: 3
+        podManagementPolicy: Parallel
+        updateStrategy:
+          type: RollingUpdate
+        volumeClaimTemplates:
+          - name: data
+            accessModes: ["ReadWriteOnce"]
+            storageClassName: standard
+            resources:
+              requests:
+                storage: 1Gi
+      global:
+        image: custom-image
+        tag: "1.2.3"
+    asserts:
+      - equal:
+          path: spec.podManagementPolicy
+          value: Parallel
+      - isNotEmpty:
+          path: spec.volumeClaimTemplates
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.accessModes[0]
+          value: ReadWriteOnce
+
+  - it: should respect custom probes and security settings
+    set:
+      statefulset:
+        enabled: true
+        ports:
+          http: 9090
+        liveness: "/health"
+        readiness: "/ready"
+      global:
+        imagePullSecret: my-secret
+        image: custom-image
+        tag: "1.2.3"
+        imagePullPolicy: IfNotPresent
+      podSecurityContext:
+        runAsUser: 1000
+      securityContext:
+        allowPrivilegeEscalation: false
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 9090
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: "/health"
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: "/ready"
+      - isNotEmpty:
+          path: spec.template.spec.imagePullSecrets
+
+  - it: should create StatefulSet with secretProvider and secretObjects
+    set:
+      statefulset:
+        enabled: true
+      global:
+        image: nginx
+        tag: latest
+      secretProvider:
+        enabled: true
+        name: my-spc
+        provider:
+          name: azure
+        objects:
+          - secretName: my-secret
+            type: secret
+            data:
+              - objectName: my-secret
+                key: password
+        secretObjects:
+          - data:
+              - key: password
+                objectName: my-secret
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: StatefulSet
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].secretRef.name
+          value: my-spc
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: my-spc-vol
+      - equal:
+          path: spec.template.spec.volumes[0].csi.volumeAttributes.secretProviderClass
+          value: my-spc-cls
+
+  - it: should create StatefulSet with secretProvider using default naming
+    set:
+      statefulset:
+        enabled: true
+      global:
+        image: nginx
+        tag: latest
+      secretProvider:
+        enabled: true
+        provider:
+          name: azure
+        objects:
+          - secretName: default-secret
+            type: secret
+            data:
+              - objectName: default-secret
+                key: token
+        secretObjects:
+          - data:
+              - key: token
+                objectName: default-secret
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: StatefulSet
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].secretRef.name
+          value: drunk-app-spc
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: drunk-app-spc-vol
+      - equal:
+          path: spec.template.spec.volumes[0].csi.volumeAttributes.secretProviderClass
+          value: drunk-app-spc-cls
+
+  - it: should not add secretProvider envFrom when secretObjects missing
+    set:
+      statefulset:
+        enabled: true
+      global:
+        image: nginx
+        tag: latest
+      secretProvider:
+        enabled: true
+        provider:
+          name: azure
+        objects:
+          - secretName: volume-only-secret
+            type: secret
+            data:
+              - objectName: volume-only-secret
+                key: data
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: StatefulSet
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: drunk-app-spc-vol
+      - equal:
+          path: spec.template.spec.volumes[0].csi.volumeAttributes.secretProviderClass
+          value: drunk-app-spc-cls
+
+  - it: should support secretProvider with initContainers
+    set:
+      statefulset:
+        enabled: true
+      global:
+        image: nginx
+        tag: latest
+        initContainer:
+          image: busybox:latest
+          command: ["sh", "-c", "echo init"]
+      secretProvider:
+        enabled: true
+        name: init-spc
+        provider:
+          name: azure
+        objects:
+          - secretName: init-secret
+            type: secret
+            data:
+              - objectName: init-secret
+                key: init-key
+        secretObjects:
+          - data:
+              - key: init-key
+                objectName: init-secret
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: StatefulSet
+      - equal:
+          path: spec.template.spec.initContainers[0].envFrom[0].secretRef.name
+          value: init-spc
+      - equal:
+          path: spec.template.spec.initContainers[0].volumeMounts[0].name
+          value: init-spc-vol
+      - equal:
+          path: spec.template.spec.containers[0].envFrom[0].secretRef.name
+          value: init-spc
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].name
+          value: init-spc-vol

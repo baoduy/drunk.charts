@@ -1,0 +1,207 @@
+suites: CronJob Template Test Suite
+templates:
+  - cronjob.yaml
+tests:
+  - it: should properly create a CronJob with minimal settings
+    set:
+      app:
+        name: test-app
+        labels:
+          app: test-app
+      global:
+        image: nginx
+        tag: stable
+      cronJobs:
+        - name: job1
+          schedule: "@daily"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: CronJob
+      - equal:
+          path: metadata.name
+          value: drunk-app-job1
+      - equal:
+          path: spec.schedule
+          value: "@daily"
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: "nginx:stable"
+
+  - it: should include imagePullSecrets if specified
+    set:
+      app:
+        name: test-app
+      global:
+        image: nginx
+        tag: stable
+        imagePullSecret: my-secret
+      cronJobs:
+        - name: job2
+          schedule: "@hourly"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isNotEmpty:
+          path: spec.jobTemplate.spec.template.spec.imagePullSecrets
+
+  - it: should mount volumes if specified
+    set:
+      app:
+        name: test-app
+      global:
+        image: nginx
+        tag: stable
+      cronJobs:
+        - name: job3
+          schedule: "@hourly"
+          restartPolicy: Never
+      volumes:
+        - name: my-volume
+          mountPath: /data
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isNotEmpty:
+          path: spec.jobTemplate.spec.template.spec.volumes
+      - isNotEmpty:
+          path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts
+
+  - it: should set correct restartPolicy
+    set:
+      app:
+        name: test-app
+      global:
+        image: nginx
+        tag: stable
+      cronJobs:
+        - name: job4
+          schedule: "@weekly"
+          restartPolicy: Never
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.restartPolicy
+          value: "Never"
+
+  - it: should create CronJob with secretProvider custom name and secretObjects
+    set:
+      global:
+        image: nginx
+        tag: stable
+      cronJobs:
+        - name: cj-custom
+          schedule: "@hourly"
+      secretProvider:
+        enabled: true
+        name: my-class
+        provider:
+          name: azure
+        objects:
+          - foo
+        secretObjects:
+          - data:
+              - key: foo
+                objectName: foo
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: CronJob
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].envFrom[0].secretRef.name
+          value: my-class
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts[0].name
+          value: my-class-vol
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.volumes[0].csi.volumeAttributes.secretProviderClass
+          value: my-class-cls
+
+  - it: should create CronJob with secretProvider legacy config
+    set:
+      global:
+        image: nginx
+        tag: stable
+      cronJobs:
+        - name: cj-legacy
+          schedule: "@hourly"
+      secretProvider:
+        enabled: true
+        name: legacy-class
+        provider: azure
+        objects:
+          - foo
+        secretObjects:
+          - data:
+              - key: foo
+                objectName: foo
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: CronJob
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].envFrom[0].secretRef.name
+          value: legacy-class
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.volumes[0].csi.volumeAttributes.secretProviderClass
+          value: legacy-class-cls
+
+  - it: should create CronJob with secretProvider default naming when name omitted
+    set:
+      global:
+        image: nginx
+        tag: stable
+      cronJobs:
+        - name: cj-default
+          schedule: "@hourly"
+      secretProvider:
+        enabled: true
+        provider:
+          name: azure
+        objects:
+          - foo
+        secretObjects:
+          - data:
+              - key: foo
+                objectName: foo
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: CronJob
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts[0].name
+          value: drunk-app-spc-vol
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.volumes[0].csi.volumeAttributes.secretProviderClass
+          value: drunk-app-spc-cls
+
+  - it: should not add secretProvider envFrom secretRef when secretObjects missing
+    set:
+      global:
+        image: nginx
+        tag: stable
+      cronJobs:
+        - name: cj-no-secretobjects
+          schedule: "@hourly"
+      secretProvider:
+        enabled: true
+        provider:
+          name: azure
+        objects:
+          - foo
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: CronJob
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].volumeMounts[0].name
+          value: drunk-app-spc-vol
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.volumes[0].csi.volumeAttributes.secretProviderClass
+          value: drunk-app-spc-cls

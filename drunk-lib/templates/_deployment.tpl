@@ -88,8 +88,9 @@ spec:
           - secretRef:
               name: {{ $s }}
           {{- end }}
+          # SecretProvider volume
           {{- with .Values.secretProvider }}
-          {{- if and .enabled .secretObjects }}
+          {{- if .enabled }}
           - secretRef:
               name: {{ default (printf "%s-spc" (include "app.name" $root)) .name }}
           {{- end }}
@@ -179,8 +180,9 @@ spec:
           - secretRef:
               name: {{ $s }}
           {{- end }}
+          # SecretProvider volume
           {{- with .Values.secretProvider }}
-          {{- if and .enabled .secretObjects }}
+          {{- if .enabled }}
           - secretRef:
               name: {{ default (printf "%s-spc" (include "app.name" $root)) .name }}
           {{- end }}
@@ -199,6 +201,7 @@ spec:
             {{- end }}
           {{- end }}
           {{- end }}
+          # SecretProvider volume
           {{- with .Values.secretProvider }}
           {{- if .enabled }}
           - name: {{ printf "%s-vol" (default (printf "%s-spc" (include "app.name" $root)) .name) }}
@@ -221,6 +224,7 @@ spec:
         {{- end }}
       {{- end }}
       {{- end }}
+      # SecretProvider volume
       {{- with .Values.secretProvider }}
       {{- if .enabled }}
       - name: {{ printf "%s-vol" (default (printf "%s-spc" (include "app.name" $root)) .name) }}
