@@ -57,6 +57,7 @@ spec:
         - |
           objectName: {{ $obj.objectName }}
           objectType: {{ $obj.objectType | default "secret" }}
+          objectAlias: {{ $obj.objectAlias | default "" | quote }}
           objectVersion: {{ $obj.objectVersion | default "" | quote }}
           objectFormat: {{ $obj.objectFormat | default "" | quote }}
           objectEncoding: {{ $obj.objectEncoding | default "" | quote }}
