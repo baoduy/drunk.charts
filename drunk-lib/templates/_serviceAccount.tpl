@@ -1,3 +1,13 @@
+# Template: _serviceAccount.tpl
+# Author: Duy Bao (baoduy)
+# Repository: https://github.com/baoduy/drunk.charts
+# Description: Helm template library for drunk.charts
+# Created: 2025-09-10
+
+# Generate ServiceAccount resource for pod authentication
+# Creates a ServiceAccount when .Values.serviceAccount.enabled is true
+# Uses .Values.serviceAccount.name if specified, otherwise defaults to app name
+# Includes optional annotations from .Values.serviceAccount.annotations
 {{- define "drunk-lib.serviceAccount" -}}
 {{- if and .Values.serviceAccount .Values.serviceAccount.enabled -}}
 ---
@@ -7,6 +17,7 @@ metadata:
   name: {{ include "app.serviceAccountName" . }}
   labels:
     {{- include "app.labels" . | nindent 4 }}
+  # Include optional annotations for service account (e.g., for IRSA, Workload Identity)
   {{- with .Values.serviceAccount.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
