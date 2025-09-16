@@ -147,8 +147,8 @@ spec:
               claimName: {{ include "app.name" $root }}-{{ $k }}
             {{- end }}
           {{- end }}
-          # SecretProvider volume for external secret management systems
           {{- end }}
+          # SecretProvider volume for external secret management systems
           {{- with $.Values.secretProvider }}
           {{- if .enabled }}
           - name: {{ printf "%s-vol" (default (printf "%s-spc" (include "app.name" $root)) .name) }}
@@ -159,5 +159,6 @@ spec:
                 secretProviderClass: {{ printf "%s-cls" (default (printf "%s-spc" (include "app.name" $root)) .name) }}
           {{- end }}
           {{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
