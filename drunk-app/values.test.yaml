@@ -45,8 +45,12 @@ secretProvider:
     usePodIdentity: false
     useWorkloadIdentity: false
   objects:
-    - my-secret-1
-    - my-secret-2
+    - objectName: my-secret-1
+      objectType: cert
+      objectFormat: pfx
+      objectEncoding: base64
+    - objectName: my-secret-2
+      objectType: secret
 secretFrom:
   - name_of_other_secret
 

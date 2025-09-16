@@ -47,9 +47,7 @@ spec:
     objects: |
       array:
         {{- if $sp.objects }}
-          # Loop through objects defined in .Values.secretProvider.objects
           {{- range $obj := $sp.objects }}
-            # Handle both string and object formats
             {{- if kindIs "string" $obj }}
         - |
           objectName: {{ $obj }}
@@ -60,6 +58,8 @@ spec:
           objectName: {{ $obj.objectName }}
           objectType: {{ $obj.objectType | default "secret" }}
           objectVersion: {{ $obj.objectVersion | default "" | quote }}
+          objectFormat: {{ $obj.objectFormat | default "" | quote }}
+          objectEncoding: {{ $obj.objectEncoding | default "" | quote }}
             {{- end }}
           {{- end }}
         {{- end }}

@@ -7,6 +7,8 @@ Welcome to the **Drunk-lib** Helm chart library. This project serves as a collec
 - [Drunk-lib Helm Chart Library](#drunk-lib-helm-chart-library)
   - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
+    - [SecretProvider (Azure Key Vault)](#secretprovider-azure-key-vault)
+  - [Reference](#reference)
   - [Contributing](#contributing)
   - [License](#license)
 
@@ -47,6 +49,10 @@ Include in a consuming chart template with:
 ```
 {{ include "drunk-lib.secretProvider" . }}
 ```
+
+## Reference
+
+- https://azure.github.io/secrets-store-csi-driver-provider-azure/docs/getting-started/usage/
 
 ## Contributing
 
