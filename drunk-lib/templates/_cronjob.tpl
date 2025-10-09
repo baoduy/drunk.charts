@@ -99,9 +99,8 @@ spec:
                 name: {{ $s }}
             {{- end }}
             # SecretProvider volume - Azure Key Vault, AWS Secrets Manager, etc.
-
+            {{- with $.Values.secretProvider }}
             {{- if .enabled }}
-            {{- if and .enabled .secretObjects }}
             - secretRef:
                 name: {{ default (printf "%s-spc" (include "app.name" $root)) .name }}
             {{- end }}
@@ -132,7 +131,6 @@ spec:
               readOnly: true
             {{- end }}
             {{- end }}
-
 
           # Volume definitions
           volumes:
