@@ -105,6 +105,7 @@ Examples:
 | **HPA** | Horizontal Pod Autoscaler | `drunk-lib.hpa` |
 | **ServiceAccount** | Pod identity | `drunk-lib.serviceAccount` |
 | **ImagePullSecret** | Registry authentication | `drunk-lib.imagePullSecret` |
+| **NetworkPolicy** | Network access control | `drunk-lib.networkPolicies` |
 
 ## Template Reference
 
@@ -396,6 +397,90 @@ autoscaling:
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80
 ```
+
+### NetworkPolicy Template
+
+**Template**: `drunk-lib.networkPolicies`
+
+Creates NetworkPolicy resources to control network access to pods. Supports both legacy single policy and modern multiple policies configurations.
+
+**Note**: Requires a CNI plugin that supports NetworkPolicy (e.g., Calico, Cilium, Weave Net).
+
+#### Legacy Single Policy Configuration:
+
+```yaml
+networkPolicy:
+  policyTypes:
+    - Ingress
+  podSelector:
+    app: my-app
+  ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            app: frontend
+      ports:
+      - protocol: TCP
+        port: 8080
+```
+
+#### Multiple Policies Configuration (Recommended):
+
+```yaml
+networkPolicies:
+  # Allow traffic from private IP ranges
+  - name: allow-private-ips
+    enabled: true
+    policyTypes:
+      - Ingress
+    ingress:
+      - from:
+        - ipBlock:
+            cidr: 10.0.0.0/8
+        - ipBlock:
+            cidr: 172.16.0.0/12
+        - ipBlock:
+            cidr: 192.168.0.0/16
+        ports:
+        - protocol: TCP
+          port: 8080
+  
+  # Allow traffic from same namespace
+  - name: allow-same-namespace
+    enabled: true
+    policyTypes:
+      - Ingress
+    ingress:
+      - from:
+        - podSelector: {}
+  
+  # Restrict egress to specific services
+  - name: allow-egress-database
+    enabled: true
+    policyTypes:
+      - Egress
+    egress:
+      - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+        ports:
+        - protocol: TCP
+          port: 5432
+```
+
+#### Configuration Options:
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `name` | Policy name | Required |
+| `enabled` | Enable/disable this policy | `true` |
+| `nameSuffix` | Custom suffix for resource name | `-{name}` |
+| `podSelector` | Pod selector (defaults to app labels) | App labels |
+| `labels` | Additional labels | `{}` |
+| `policyTypes` | Policy types (`Ingress`, `Egress`) | Required |
+| `ingress` | Ingress rules | `[]` |
+| `egress` | Egress rules | `[]` |
 
 ## Usage Examples
 

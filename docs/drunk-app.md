@@ -483,6 +483,165 @@ tlsSecrets:
       -----END PRIVATE KEY-----
 ```
 
+### Network Policies
+
+Control network access to your pods using Kubernetes NetworkPolicy resources. The drunk-app chart supports both single policy (legacy) and multiple policies configurations.
+
+**Note:** NetworkPolicy requires a CNI plugin that supports NetworkPolicy (e.g., Calico, Cilium, Weave Net).
+
+#### Legacy Single Policy Configuration
+
+```yaml
+networkPolicy:
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+      - podSelector:
+          matchLabels:
+            app: allowed-app
+  egress:
+    - to:
+      - namespaceSelector: {}
+```
+
+#### Multiple Policies Configuration (Recommended)
+
+Define multiple NetworkPolicy resources for fine-grained control:
+
+**Example 1: Allow Traffic Only from Private IP Ranges**
+
+```yaml
+networkPolicies:
+  - name: allow-private-ips
+    enabled: true
+    policyTypes:
+      - Ingress
+    ingress:
+      - from:
+        # Private IP ranges (RFC 1918)
+        - ipBlock:
+            cidr: 10.0.0.0/8
+        - ipBlock:
+            cidr: 172.16.0.0/12
+        - ipBlock:
+            cidr: 192.168.0.0/16
+        ports:
+        - protocol: TCP
+          port: 8080
+```
+
+**Example 2: Allow Traffic Only from Same Namespace**
+
+```yaml
+networkPolicies:
+  - name: allow-same-namespace
+    enabled: true
+    policyTypes:
+      - Ingress
+    ingress:
+      - from:
+        - podSelector: {}  # Empty selector = all pods in namespace
+```
+
+**Example 3: Allow Traffic from Specific Pods**
+
+```yaml
+networkPolicies:
+  - name: allow-from-frontend
+    enabled: true
+    policyTypes:
+      - Ingress
+    ingress:
+      - from:
+        - podSelector:
+            matchLabels:
+              app: frontend
+              tier: web
+        ports:
+        - protocol: TCP
+          port: 8080
+```
+
+**Example 4: Restrict Egress to Specific Services**
+
+```yaml
+networkPolicies:
+  - name: allow-egress-to-database
+    enabled: true
+    policyTypes:
+      - Egress
+    egress:
+      # Allow access to database
+      - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+        ports:
+        - protocol: TCP
+          port: 5432
+      # Allow DNS
+      - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+        ports:
+        - protocol: UDP
+          port: 53
+```
+
+**Example 5: Allow Traffic from Specific Namespace**
+
+```yaml
+networkPolicies:
+  - name: allow-from-monitoring
+    enabled: true
+    policyTypes:
+      - Ingress
+    ingress:
+      - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+        ports:
+        - protocol: TCP
+          port: 8080
+```
+
+**Example 6: Default Deny All Ingress**
+
+```yaml
+networkPolicies:
+  - name: deny-all-ingress
+    enabled: true
+    policyTypes:
+      - Ingress
+    # Empty ingress rules = deny all ingress traffic
+```
+
+#### NetworkPolicy Configuration Options
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `name` | Policy name (used in resource naming) | Required |
+| `enabled` | Enable/disable this policy | `true` |
+| `nameSuffix` | Custom suffix for the NetworkPolicy resource name | `-{name}` |
+| `podSelector` | Custom pod selector (defaults to app selector labels) | App labels |
+| `labels` | Additional labels for the NetworkPolicy resource | `{}` |
+| `policyTypes` | Array of policy types (`Ingress`, `Egress`) | Required |
+| `ingress` | Ingress rules (array) | `[]` |
+| `egress` | Egress rules (array) | `[]` |
+
+#### Best Practices
+
+1. **Start with Allow Lists**: Define what traffic should be allowed, rather than what should be denied
+2. **Test Thoroughly**: Test NetworkPolicies in a non-production environment first
+3. **Consider DNS**: Always allow DNS resolution if using egress policies
+4. **Monitor Impact**: Use monitoring to understand traffic patterns before implementing policies
+5. **Use Multiple Policies**: Break complex rules into multiple, focused policies for better maintainability
+6. **Document CIDR Ranges**: Comment IP ranges and their purpose for future reference
+
 ## Troubleshooting
 
 ### Common Issues
