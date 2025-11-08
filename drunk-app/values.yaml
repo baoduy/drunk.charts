@@ -94,3 +94,108 @@ resources:
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+# Network Policies - Control network access to pods
+# Supports both single policy (legacy) and multiple policies (new)
+# Disabled by default - uncomment and configure as needed
+
+# Legacy single policy configuration (backward compatible):
+# networkPolicy:
+#   policyTypes:
+#     - Ingress
+#     - Egress
+#   ingress:
+#     - from:
+#       - podSelector:
+#           matchLabels:
+#             app: allowed-app
+#   egress:
+#     - to:
+#       - namespaceSelector: {}
+
+# New multiple policies configuration (recommended):
+# networkPolicies:
+#   # Example 1: Allow traffic only from private IP ranges (CIDR-based)
+#   - name: allow-private-ips
+#     enabled: true
+#     policyTypes:
+#       - Ingress
+#     ingress:
+#       - from:
+#         # Private IP ranges (RFC 1918)
+#         - ipBlock:
+#             cidr: 10.0.0.0/8
+#         - ipBlock:
+#             cidr: 172.16.0.0/12
+#         - ipBlock:
+#             cidr: 192.168.0.0/16
+#         ports:
+#         - protocol: TCP
+#           port: 8080
+#
+#   # Example 2: Allow traffic only from within the same namespace
+#   - name: allow-same-namespace
+#     enabled: true
+#     policyTypes:
+#       - Ingress
+#     ingress:
+#       - from:
+#         - podSelector: {}
+#
+#   # Example 3: Allow traffic from specific pods with labels
+#   - name: allow-from-frontend
+#     enabled: true
+#     policyTypes:
+#       - Ingress
+#     ingress:
+#       - from:
+#         - podSelector:
+#             matchLabels:
+#               app: frontend
+#               tier: web
+#         ports:
+#         - protocol: TCP
+#           port: 8080
+#
+#   # Example 4: Allow egress to specific services only
+#   - name: allow-egress-to-database
+#     enabled: true
+#     policyTypes:
+#       - Egress
+#     egress:
+#       - to:
+#         - podSelector:
+#             matchLabels:
+#               app: postgres
+#         ports:
+#         - protocol: TCP
+#           port: 5432
+#       # Allow DNS
+#       - to:
+#         - namespaceSelector:
+#             matchLabels:
+#               name: kube-system
+#         ports:
+#         - protocol: UDP
+#           port: 53
+#
+#   # Example 5: Deny all ingress traffic (default deny)
+#   - name: deny-all-ingress
+#     enabled: false
+#     policyTypes:
+#       - Ingress
+#     # Empty ingress rules = deny all
+#
+#   # Example 6: Allow traffic from specific namespace
+#   - name: allow-from-monitoring
+#     enabled: true
+#     policyTypes:
+#       - Ingress
+#     ingress:
+#       - from:
+#         - namespaceSelector:
+#             matchLabels:
+#               name: monitoring
+#         ports:
+#         - protocol: TCP
+#           port: 8080

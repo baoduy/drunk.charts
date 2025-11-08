@@ -1,0 +1,450 @@
+suites: NetworkPolicy Template Test Suite
+templates:
+  - networkPolicy.yaml
+tests:
+  - it: should not create NetworkPolicy when neither networkPolicy nor networkPolicies is defined
+    set:
+      deployment:
+        enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create a single NetworkPolicy with legacy configuration
+    set:
+      deployment:
+        enabled: true
+      app:
+        fullname: test-app
+        name: test-app
+      networkPolicy:
+        policyTypes:
+          - Ingress
+          - Egress
+        ingress:
+          - from:
+            - podSelector:
+                matchLabels:
+                  app: allowed-app
+            ports:
+            - protocol: TCP
+              port: 8080
+        egress:
+          - to:
+            - namespaceSelector: {}
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: metadata.name
+          value: "RELEASE-NAME-drunk-app"
+      - equal:
+          path: spec.policyTypes
+          value:
+            - Ingress
+            - Egress
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels.app
+          value: "allowed-app"
+
+  - it: should use custom podSelector in legacy configuration
+    set:
+      deployment:
+        enabled: true
+      networkPolicy:
+        podSelector:
+          app: custom-app
+          tier: backend
+        policyTypes:
+          - Ingress
+        ingress:
+          - from:
+            - podSelector: {}
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.podSelector.matchLabels.app
+          value: "custom-app"
+      - equal:
+          path: spec.podSelector.matchLabels.tier
+          value: "backend"
+
+  - it: should create multiple NetworkPolicies with new configuration
+    set:
+      deployment:
+        enabled: true
+      app:
+        fullname: test-app
+        name: test-app
+      networkPolicies:
+        - name: allow-private-ips
+          enabled: true
+          policyTypes:
+            - Ingress
+          ingress:
+            - from:
+              - ipBlock:
+                  cidr: 10.0.0.0/8
+        - name: allow-same-namespace
+          enabled: true
+          policyTypes:
+            - Ingress
+          ingress:
+            - from:
+              - podSelector: {}
+    asserts:
+      - hasDocuments:
+          count: 2
+
+  - it: should create NetworkPolicy with correct name for first policy
+    set:
+      deployment:
+        enabled: true
+      app:
+        fullname: test-app
+      networkPolicies:
+        - name: allow-private-ips
+          enabled: true
+          policyTypes:
+            - Ingress
+          ingress:
+            - from:
+              - ipBlock:
+                  cidr: 10.0.0.0/8
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: metadata.name
+          value: "RELEASE-NAME-drunk-app-allow-private-ips"
+
+  - it: should create NetworkPolicy with CIDR-based ingress rules
+    set:
+      deployment:
+        enabled: true
+      networkPolicies:
+        - name: allow-private-ips
+          enabled: true
+          policyTypes:
+            - Ingress
+          ingress:
+            - from:
+              - ipBlock:
+                  cidr: 10.0.0.0/8
+              - ipBlock:
+                  cidr: 172.16.0.0/12
+              - ipBlock:
+                  cidr: 192.168.0.0/16
+              ports:
+              - protocol: TCP
+                port: 8080
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: spec.ingress[0].from[0].ipBlock.cidr
+          value: "10.0.0.0/8"
+      - equal:
+          path: spec.ingress[0].from[1].ipBlock.cidr
+          value: "172.16.0.0/12"
+      - equal:
+          path: spec.ingress[0].from[2].ipBlock.cidr
+          value: "192.168.0.0/16"
+      - equal:
+          path: spec.ingress[0].ports[0].protocol
+          value: "TCP"
+      - equal:
+          path: spec.ingress[0].ports[0].port
+          value: 8080
+
+  - it: should create NetworkPolicy with namespace selector
+    set:
+      deployment:
+        enabled: true
+      networkPolicies:
+        - name: allow-from-monitoring
+          enabled: true
+          policyTypes:
+            - Ingress
+          ingress:
+            - from:
+              - namespaceSelector:
+                  matchLabels:
+                    name: monitoring
+              ports:
+              - protocol: TCP
+                port: 8080
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: spec.ingress[0].from[0].namespaceSelector.matchLabels.name
+          value: "monitoring"
+
+  - it: should create NetworkPolicy with pod selector
+    set:
+      deployment:
+        enabled: true
+      networkPolicies:
+        - name: allow-from-frontend
+          enabled: true
+          policyTypes:
+            - Ingress
+          ingress:
+            - from:
+              - podSelector:
+                  matchLabels:
+                    app: frontend
+                    tier: web
+              ports:
+              - protocol: TCP
+                port: 8080
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels.app
+          value: "frontend"
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels.tier
+          value: "web"
+
+  - it: should create NetworkPolicy with egress rules
+    set:
+      deployment:
+        enabled: true
+      networkPolicies:
+        - name: allow-egress-to-database
+          enabled: true
+          policyTypes:
+            - Egress
+          egress:
+            - to:
+              - podSelector:
+                  matchLabels:
+                    app: postgres
+              ports:
+              - protocol: TCP
+                port: 5432
+            - to:
+              - namespaceSelector:
+                  matchLabels:
+                    name: kube-system
+              ports:
+              - protocol: UDP
+                port: 53
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: spec.policyTypes[0]
+          value: "Egress"
+      - equal:
+          path: spec.egress[0].to[0].podSelector.matchLabels.app
+          value: "postgres"
+      - equal:
+          path: spec.egress[0].ports[0].port
+          value: 5432
+      - equal:
+          path: spec.egress[1].to[0].namespaceSelector.matchLabels.name
+          value: "kube-system"
+      - equal:
+          path: spec.egress[1].ports[0].port
+          value: 53
+
+  - it: should skip disabled policies
+    set:
+      deployment:
+        enabled: true
+      networkPolicies:
+        - name: enabled-policy
+          enabled: true
+          policyTypes:
+            - Ingress
+          ingress:
+            - from:
+              - podSelector: {}
+        - name: disabled-policy
+          enabled: false
+          policyTypes:
+            - Ingress
+          ingress:
+            - from:
+              - podSelector: {}
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.name
+          value: "RELEASE-NAME-drunk-app-enabled-policy"
+
+  - it: should use custom podSelector for specific policy
+    set:
+      deployment:
+        enabled: true
+      networkPolicies:
+        - name: custom-selector
+          enabled: true
+          podSelector:
+            app: custom-app
+            role: api
+          policyTypes:
+            - Ingress
+          ingress:
+            - from:
+              - podSelector: {}
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.podSelector.matchLabels.app
+          value: "custom-app"
+      - equal:
+          path: spec.podSelector.matchLabels.role
+          value: "api"
+
+  - it: should use default selector labels when podSelector not specified
+    set:
+      deployment:
+        enabled: true
+      nameOverride: my-app
+      networkPolicies:
+        - name: default-selector
+          enabled: true
+          policyTypes:
+            - Ingress
+          ingress:
+            - from:
+              - podSelector: {}
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.podSelector.matchLabels
+          value:
+            app.kubernetes.io/name: my-app
+            app.kubernetes.io/instance: RELEASE-NAME
+
+  - it: should support custom labels on NetworkPolicy
+    set:
+      deployment:
+        enabled: true
+      networkPolicies:
+        - name: with-labels
+          enabled: true
+          labels:
+            environment: production
+            team: platform
+          policyTypes:
+            - Ingress
+          ingress:
+            - from:
+              - podSelector: {}
+    documentIndex: 0
+    asserts:
+      - isSubset:
+          path: metadata.labels
+          content:
+            environment: production
+            team: platform
+
+  - it: should create NetworkPolicy with custom nameSuffix
+    set:
+      deployment:
+        enabled: true
+      app:
+        fullname: test-app
+      networkPolicies:
+        - name: custom-suffix
+          enabled: true
+          nameSuffix: "-custom"
+          policyTypes:
+            - Ingress
+          ingress:
+            - from:
+              - podSelector: {}
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: metadata.name
+          value: "RELEASE-NAME-drunk-app-custom"
+
+  - it: should create deny-all NetworkPolicy
+    set:
+      deployment:
+        enabled: true
+      networkPolicies:
+        - name: deny-all-ingress
+          enabled: true
+          policyTypes:
+            - Ingress
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: spec.policyTypes[0]
+          value: "Ingress"
+      - isNull:
+          path: spec.ingress
+
+  - it: should prefer networkPolicies over legacy networkPolicy when both defined
+    set:
+      deployment:
+        enabled: true
+      networkPolicy:
+        policyTypes:
+          - Ingress
+        ingress:
+          - from:
+            - podSelector: {}
+      networkPolicies:
+        - name: new-policy
+          enabled: true
+          policyTypes:
+            - Ingress
+          ingress:
+            - from:
+              - podSelector:
+                  matchLabels:
+                    app: new-app
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.name
+          value: "RELEASE-NAME-drunk-app-new-policy"
+
+  - it: should handle both Ingress and Egress policy types
+    set:
+      deployment:
+        enabled: true
+      networkPolicies:
+        - name: ingress-egress
+          enabled: true
+          policyTypes:
+            - Ingress
+            - Egress
+          ingress:
+            - from:
+              - podSelector: {}
+          egress:
+            - to:
+              - namespaceSelector: {}
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.policyTypes
+          value:
+            - Ingress
+            - Egress
+      - isNotEmpty:
+          path: spec.ingress
+      - isNotEmpty:
+          path: spec.egress

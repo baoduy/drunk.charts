@@ -103,6 +103,7 @@ checksum/secrets: {{ toJson .Values.secrets | sha256sum }}
 {{ include "drunk-lib.imagePullSecret" . }}
 {{ include "drunk-lib.ingress" . }}
 {{ include "drunk-lib.jobs" . }}
+{{ include "drunk-lib.networkPolicies" . }}
 {{ include "drunk-lib.secrets" . }}
 {{ include "drunk-lib.secretProvider" . }}
 {{ include "drunk-lib.service" . }}
