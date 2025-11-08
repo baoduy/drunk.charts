@@ -18,6 +18,7 @@ This directory contains real-world configuration examples for the drunk-app Helm
 - **[High Availability](./high-availability.yaml)** - HA setup with auto-scaling
 - **[Multi-Environment](./multi-environment/)** - Dev/staging/production configs
 - **[Security Hardened](./security-hardened.yaml)** - Security-focused deployment
+- **[Network Policy](./network-policy.yaml)** - Network segmentation and security policies
 
 ### Integration Examples
 - **[Azure Key Vault](./azure-key-vault.yaml)** - Azure Key Vault secrets integration

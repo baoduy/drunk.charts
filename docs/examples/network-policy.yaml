@@ -1,0 +1,197 @@
+# NetworkPolicy Example for drunk-app Chart
+# This example demonstrates various NetworkPolicy configurations
+# for securing your application's network access
+
+global:
+  image: "myapp/secure-app"
+  tag: "v1.0.0"
+  imagePullPolicy: "IfNotPresent"
+
+deployment:
+  enabled: true
+  replicaCount: 2
+  ports:
+    http: 8080
+    metrics: 9090
+  liveness: "/healthz"
+  readiness: "/healthz/ready"
+
+service:
+  type: ClusterIP
+
+# Multiple NetworkPolicy configuration
+# This setup demonstrates a secure multi-tier application with network segmentation
+networkPolicies:
+  # Policy 1: Allow ingress only from private IP ranges
+  # Use this for applications exposed through private load balancers
+  - name: allow-private-ips
+    enabled: true
+    policyTypes:
+      - Ingress
+    ingress:
+      - from:
+        # RFC 1918 Private IP ranges
+        - ipBlock:
+            cidr: 10.0.0.0/8
+            except:
+              - 10.0.0.0/24  # Exclude specific subnet if needed
+        - ipBlock:
+            cidr: 172.16.0.0/12
+        - ipBlock:
+            cidr: 192.168.0.0/16
+        ports:
+        - protocol: TCP
+          port: 8080
+
+  # Policy 2: Allow traffic from frontend pods in the same namespace
+  # Use this for backend services that should only receive traffic from your frontend
+  - name: allow-from-frontend
+    enabled: true
+    policyTypes:
+      - Ingress
+    ingress:
+      - from:
+        - podSelector:
+            matchLabels:
+              tier: frontend
+              app: web-frontend
+        ports:
+        - protocol: TCP
+          port: 8080
+
+  # Policy 3: Allow metrics scraping from monitoring namespace
+  # Use this to allow Prometheus or other monitoring tools to scrape metrics
+  - name: allow-monitoring
+    enabled: true
+    policyTypes:
+      - Ingress
+    ingress:
+      - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+        ports:
+        - protocol: TCP
+          port: 9090
+
+  # Policy 4: Restrict egress to database and external APIs
+  # Use this to control what external services your app can access
+  - name: allow-egress
+    enabled: true
+    policyTypes:
+      - Egress
+    egress:
+      # Allow access to PostgreSQL database
+      - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+              tier: database
+        ports:
+        - protocol: TCP
+          port: 5432
+      
+      # Allow access to Redis cache
+      - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+        ports:
+        - protocol: TCP
+          port: 6379
+      
+      # Allow DNS resolution (required for egress policies)
+      - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+        ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+      
+      # Allow HTTPS to external APIs (e.g., payment gateway, authentication)
+      - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              # Block private IP ranges for external calls
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16  # Link-local
+        ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+
+  # Policy 5: Allow traffic within same namespace (for development/testing)
+  # Disable this in production for better security
+  - name: allow-same-namespace
+    enabled: false  # Disabled by default
+    policyTypes:
+      - Ingress
+    ingress:
+      - from:
+        - podSelector: {}
+
+  # Policy 6: Default deny all (optional, for maximum security)
+  # Enable this to block all traffic except what's explicitly allowed above
+  - name: default-deny-ingress
+    enabled: false  # Enable for production
+    policyTypes:
+      - Ingress
+    # Empty ingress array = deny all ingress
+
+# Additional Resources Configuration
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+# Security Context
+podSecurityContext:
+  fsGroup: 10000
+  runAsUser: 10000
+  runAsGroup: 10000
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+
+---
+# Alternative: Legacy Single NetworkPolicy Configuration
+# Use this if you only need one policy (backward compatible)
+#
+# networkPolicy:
+#   policyTypes:
+#     - Ingress
+#     - Egress
+#   ingress:
+#     - from:
+#       - podSelector:
+#           matchLabels:
+#             app: allowed-app
+#       ports:
+#       - protocol: TCP
+#         port: 8080
+#   egress:
+#     - to:
+#       - podSelector:
+#           matchLabels:
+#             app: postgres
+#       ports:
+#       - protocol: TCP
+#         port: 5432
