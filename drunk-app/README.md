@@ -198,7 +198,7 @@ See the [Network Policy example](../docs/examples/network-policy.yaml) for detai
 
 ### Usage
 
-Please refer the file [`values.test.yaml`](values.test.yaml) for details.
+Please refer the file [`values.example.yaml`](values.example.yaml) for details.
 
 ## Contributing
 
