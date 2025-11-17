@@ -7,6 +7,7 @@ This directory contains real-world configuration examples for the drunk-app Helm
 ### Basic Deployments
 - **[Simple Web App](./simple-web-app.yaml)** - Basic web application deployment
 - **[API Service](./api-service.yaml)** - RESTful API service with database
+- **[Gateway API](./gateway-api.yaml)** - Modern routing with Kubernetes Gateway API
 - **[Static Website](./static-website.yaml)** - Static website with CDN
 
 ### Advanced Configurations
