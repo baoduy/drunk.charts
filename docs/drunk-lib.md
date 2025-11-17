@@ -45,6 +45,8 @@ drunk-lib/
     ├── _statefulset.tpl      # StatefulSet template
     ├── _service.tpl          # Service template
     ├── _ingress.tpl          # Ingress template
+    ├── _gateway.tpl          # Gateway API Gateway template
+    ├── _httproute.tpl        # Gateway API HTTPRoute template
     ├── _configMap.tpl        # ConfigMap template
     ├── _secrets.tpl          # Secret template
     ├── _secretprovider.tpl   # Azure Key Vault SecretProviderClass
@@ -74,7 +76,9 @@ Examples:
 | **Deployment** | Standard application deployment | `drunk-lib.deployment` |
 | **StatefulSet** | Stateful application deployment | `drunk-lib.statefulSet` |
 | **Service** | Service discovery and load balancing | `drunk-lib.service` |
-| **Ingress** | External access routing | `drunk-lib.ingress` |
+| **Ingress** | External access routing (traditional) | `drunk-lib.ingress` |
+| **Gateway** | External access via Gateway API | `drunk-lib.gateway` |
+| **HTTPRoute** | HTTP routing rules for Gateway API | `drunk-lib.httpRoute` |
 
 ### Configuration Resources
 

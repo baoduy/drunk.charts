@@ -1,0 +1,491 @@
+# Gateway API Example
+# This example demonstrates using Kubernetes Gateway API for routing HTTP/HTTPS traffic
+
+## Use Case
+
+- Modern alternative to Ingress for routing external traffic
+- Support for advanced traffic management features
+- Better role-based access control and multi-tenancy
+- More extensible and expressive than traditional Ingress
+
+## Prerequisites
+
+- Kubernetes Gateway API CRDs installed in the cluster
+- Gateway controller (e.g., Istio, Contour, Envoy Gateway, or NGINX Gateway Fabric)
+- TLS certificates stored as Kubernetes secrets (for HTTPS)
+
+## Configuration
+
+```yaml
+# Gateway API Configuration
+# Deploy with: helm install my-app drunk-charts/drunk-app -f gateway-api.yaml
+
+# Application image and version
+global:
+  image: "nginx"
+  tag: "1.25-alpine"
+  imagePullPolicy: "IfNotPresent"
+
+# Basic deployment settings
+deployment:
+  enabled: true
+  replicaCount: 2
+  ports:
+    http: 80
+  
+  # Health checks
+  liveness: "/index.html"
+  readiness: "/index.html"
+
+# Service configuration
+service:
+  type: "ClusterIP"
+  ports:
+    - name: "http"
+      port: 80
+      targetPort: 80
+
+# Gateway configuration - defines the network entry point
+gateway:
+  enabled: true
+  gatewayClassName: "nginx"  # Use your Gateway controller's class name
+  annotations:
+    # Optional: Add annotations for your Gateway controller
+    # networking.gateway.io/load-balancer-ip: "192.168.1.100"
+  
+  listeners:
+    # HTTP listener on port 80
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: "*.example.com"
+      # Optional: Redirect HTTP to HTTPS
+      # allowedRoutes:
+      #   namespaces:
+      #     from: Same
+    
+    # HTTPS listener on port 443 with TLS
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: "*.example.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: example-com-tls  # Your TLS certificate secret
+
+# HTTPRoute configuration - defines routing rules
+httpRoute:
+  enabled: true
+  
+  # Reference to parent Gateway
+  # If not specified, defaults to the gateway with the same release name
+  # parentRefs:
+  #   - name: custom-gateway
+  #     namespace: gateway-namespace
+  
+  # Hostnames for routing
+  hostnames:
+    - "myapp.example.com"
+  
+  # Routing rules
+  rules:
+    # Route all traffic to the application service
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: RELEASE-NAME-drunk-app  # Will be auto-generated
+          port: 80
+
+# Resource limits
+resources:
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "200m"
+    memory: "128Mi"
+
+# Security settings
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 101
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+```
+
+## Advanced Examples
+
+### Multiple Paths and Services
+
+```yaml
+httpRoute:
+  enabled: true
+  hostnames:
+    - "myapp.example.com"
+  rules:
+    # API traffic
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      backendRefs:
+        - name: api-service
+          port: 8080
+    
+    # Admin traffic
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /admin
+      backendRefs:
+        - name: admin-service
+          port: 9090
+    
+    # Default route for all other traffic
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: frontend-service
+          port: 80
+```
+
+### Traffic Splitting (Canary Deployment)
+
+```yaml
+httpRoute:
+  enabled: true
+  hostnames:
+    - "myapp.example.com"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        # 90% traffic to stable version
+        - name: myapp-stable
+          port: 80
+          weight: 90
+        # 10% traffic to canary version
+        - name: myapp-canary
+          port: 80
+          weight: 10
+```
+
+### Header-based Routing
+
+```yaml
+httpRoute:
+  enabled: true
+  hostnames:
+    - "myapp.example.com"
+  rules:
+    # Route beta users to beta version
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+          headers:
+            - type: Exact
+              name: X-User-Type
+              value: beta
+      backendRefs:
+        - name: myapp-beta
+          port: 80
+    
+    # Default route for all other users
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: myapp-stable
+          port: 80
+```
+
+### HTTP to HTTPS Redirect
+
+```yaml
+httpRoute:
+  enabled: true
+  hostnames:
+    - "myapp.example.com"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+      backendRefs:
+        - name: myapp-service
+          port: 80
+```
+
+### Request Header Modification
+
+```yaml
+httpRoute:
+  enabled: true
+  hostnames:
+    - "myapp.example.com"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      filters:
+        # Add custom headers
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            set:
+              - name: X-Environment
+                value: production
+            add:
+              - name: X-Request-ID
+                value: "${request.id}"
+            remove:
+              - X-Internal-Header
+      backendRefs:
+        - name: myapp-service
+          port: 80
+```
+
+### URL Rewriting
+
+```yaml
+httpRoute:
+  enabled: true
+  hostnames:
+    - "myapp.example.com"
+  rules:
+    # Rewrite /v1/api/* to /api/*
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /v1/api
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /api
+      backendRefs:
+        - name: api-service
+          port: 8080
+```
+
+### Method-based Routing
+
+```yaml
+httpRoute:
+  enabled: true
+  hostnames:
+    - "api.example.com"
+  rules:
+    # POST requests to write service
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+          method: POST
+      backendRefs:
+        - name: write-service
+          port: 8080
+    
+    # GET requests to read service
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+          method: GET
+      backendRefs:
+        - name: read-service
+          port: 8080
+```
+
+### Query Parameter Matching
+
+```yaml
+httpRoute:
+  enabled: true
+  hostnames:
+    - "myapp.example.com"
+  rules:
+    # Route v2 API requests
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+          queryParams:
+            - type: Exact
+              name: version
+              value: v2
+      backendRefs:
+        - name: api-v2-service
+          port: 8080
+    
+    # Default to v1 API
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      backendRefs:
+        - name: api-v1-service
+          port: 8080
+```
+
+## Migration from Ingress
+
+If you're migrating from traditional Ingress to Gateway API, you can run both in parallel:
+
+```yaml
+# Keep existing Ingress for backward compatibility
+ingress:
+  enabled: true
+  className: "nginx"
+  hosts:
+    - host: "myapp.example.com"
+      path: "/"
+      port: 80
+
+# Enable new Gateway API
+gateway:
+  enabled: true
+  gatewayClassName: "nginx"
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+
+httpRoute:
+  enabled: true
+  hostnames:
+    - "myapp.example.com"
+  rules:
+    - backendRefs:
+        - name: myapp-service
+          port: 80
+```
+
+Once you've verified the Gateway API is working correctly, you can disable the Ingress:
+
+```yaml
+ingress:
+  enabled: false
+```
+
+## Deployment Steps
+
+1. **Install Gateway API CRDs** (if not already installed):
+   ```bash
+   kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.0.0/standard-install.yaml
+   ```
+
+2. **Install a Gateway controller** (example with NGINX Gateway Fabric):
+   ```bash
+   kubectl apply -f https://github.com/nginxinc/nginx-gateway-fabric/releases/latest/download/nginx-gateway.yaml
+   ```
+
+3. **Save and customize the configuration**:
+   ```bash
+   # Download the example
+   curl -o gateway-api.yaml https://raw.githubusercontent.com/baoduy/drunk.charts/main/docs/examples/gateway-api.yaml
+   
+   # Edit for your environment
+   nano gateway-api.yaml
+   ```
+
+4. **Deploy the application**:
+   ```bash
+   # Add the Helm repository
+   helm repo add drunk-charts https://baoduy.github.io/drunk.charts/drunk-app
+   helm repo update
+   
+   # Install with Gateway API
+   helm install my-app drunk-charts/drunk-app -f gateway-api.yaml
+   ```
+
+5. **Verify the deployment**:
+   ```bash
+   # Check Gateway
+   kubectl get gateway
+   
+   # Check HTTPRoute
+   kubectl get httproute
+   
+   # Check pods and service
+   kubectl get pods,svc
+   ```
+
+## Troubleshooting
+
+### Gateway not ready
+
+```bash
+# Check Gateway status
+kubectl describe gateway <gateway-name>
+
+# Check Gateway controller
+kubectl get pods -n gateway-system
+kubectl logs -n gateway-system -l control-plane=gateway-controller
+```
+
+### HTTPRoute not routing traffic
+
+```bash
+# Check HTTPRoute status
+kubectl describe httproute <route-name>
+
+# Verify parent Gateway reference
+kubectl get httproute <route-name> -o yaml
+
+# Check if hostnames match
+kubectl get gateway <gateway-name> -o yaml
+```
+
+### Certificate issues
+
+```bash
+# Check TLS secret exists
+kubectl get secret <tls-secret-name>
+
+# Verify certificate in secret
+kubectl get secret <tls-secret-name> -o yaml
+```
+
+## Benefits over Traditional Ingress
+
+1. **Role-based access**: Platform teams manage Gateways, app teams manage Routes
+2. **Advanced routing**: Header, query parameter, method-based routing
+3. **Traffic management**: Request mirroring, retries, timeouts
+4. **Extensibility**: Pluggable filters and backends
+5. **Standardization**: Consistent API across different implementations
+
+## Next Steps
+
+- **Add monitoring**: Integrate with Prometheus and Grafana
+- **Set up observability**: Add tracing with OpenTelemetry
+- **Implement policies**: Use Gateway policy attachments
+- **Multi-cluster**: Extend to multi-cluster routing
+
+## References
+
+- [Kubernetes Gateway API Documentation](https://gateway-api.sigs.k8s.io/)
+- [Gateway API GitHub Repository](https://github.com/kubernetes-sigs/gateway-api)
+- [drunk-lib Documentation](../drunk-lib.md)
+```

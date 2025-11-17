@@ -8,6 +8,7 @@ Welcome to the comprehensive documentation for Drunk Charts - a collection of He
 - **[Drunk App Chart Guide](./drunk-app.md)** - Complete guide to deploying your applications using the drunk-app chart
 - **[Quick Start](./quick-start.md)** - Get up and running in minutes
 - **[Configuration Examples](./examples/)** - Real-world configuration examples
+- **[Nginx to Gateway API Migration](./nginx-to-gateway-migration.md)** - Step-by-step guide to migrate from Ingress to Gateway API
 - **[Troubleshooting](./troubleshooting.md)** - Common issues and solutions
 
 ### For Chart Developers
@@ -38,6 +39,7 @@ Drunk Charts provides an easy way to deploy applications to production Kubernete
 | Deploy my application quickly | [Quick Start Guide](./quick-start.md) |
 | Understand all configuration options | [Drunk App Guide](./drunk-app.md) |
 | See configuration examples | [Examples](./examples/) |
+| Migrate from nginx Ingress to Gateway API | [Migration Guide](./nginx-to-gateway-migration.md) |
 | Fix deployment issues | [Troubleshooting Guide](./troubleshooting.md) |
 | Contribute to the charts | [Development Guide](./development.md) |
 | Understand the architecture | [Architecture Overview](./architecture.md) |
