@@ -1,0 +1,28 @@
+{{- if .Values.gatewayAPI.enabled }}
+---
+# Gateway API CRDs Installation Note
+#
+# The Gateway API CRDs are automatically downloaded and included in this chart
+# during the build process (via build.sh script).
+#
+# The actual CRD definitions are in: templates/gateway-api-crds.yaml
+#
+# If gateway-api-crds.yaml is missing, you can:
+# 1. Run ./build.sh to download the CRDs, or
+# 2. Manually install CRDs using: ./scripts/install-crds.sh
+# 3. Or install via kubectl:
+#    kubectl apply -f {{ include "gateway.crdURL" . }}
+#
+# CRDs included:
+# - gatewayclasses.gateway.networking.k8s.io
+# - gateways.gateway.networking.k8s.io
+# - httproutes.gateway.networking.k8s.io
+# - referencegrants.gateway.networking.k8s.io
+{{- if eq .Values.gatewayAPI.channel "experimental" }}
+# Experimental CRDs (when channel=experimental):
+# - grpcroutes.gateway.networking.k8s.io
+# - tcproutes.gateway.networking.k8s.io
+# - tlsroutes.gateway.networking.k8s.io
+# - udproutes.gateway.networking.k8s.io
+{{- end }}
+{{- end }}

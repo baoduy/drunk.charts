@@ -1,0 +1,160 @@
+# Production Configuration
+# Complete production-ready setup with high availability considerations
+#
+# Prerequisites:
+# 1. Install cert-manager:
+#    helm install cert-manager oci://quay.io/jetstack/charts/cert-manager \
+#      --version v1.19.1 \
+#      --namespace cert-manager \
+#      --create-namespace \
+#      --set crds.enabled=true
+#
+# 2. Configure DNS provider credentials for DNS-01 challenges (for wildcard certs)
+# 3. Ensure Gateway controller is installed and running
+
+gatewayClass:
+  enabled: true
+  name: nginx
+  controllerName: gateway.nginx.org/nginx-gateway-controller
+  description: "Production NGINX Gateway Fabric"
+
+# Main production Gateway
+gateway:
+  enabled: true
+  name: production-gateway
+  gatewayClassName: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  labels:
+    environment: production
+    managed-by: drunk-k8s-gateway
+
+  listeners:
+    # HTTP listener - redirect to HTTPS
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: "*"
+      allowedRoutes:
+        namespaces:
+          from: All
+
+    # HTTPS listener with wildcard certificate
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: "*"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: wildcard-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+
+# Domain-specific Gateways for better isolation
+domains:
+  # API domain
+  - name: api
+    enabled: true
+    gatewayClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    labels:
+      environment: production
+      service-type: api
+    listeners:
+      - name: https
+        protocol: HTTPS
+        port: 443
+        hostname: "*.api.drunk.dev"
+        tls:
+          mode: Terminate
+          certificateRefs:
+            - kind: Secret
+              name: api-drunk-dev-tls
+        allowedRoutes:
+          namespaces:
+            from: Selector
+            selector:
+              matchLabels:
+                gateway: api
+
+  # Web applications domain
+  - name: web
+    enabled: true
+    gatewayClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    labels:
+      environment: production
+      service-type: web
+    listeners:
+      - name: http
+        protocol: HTTP
+        port: 80
+        hostname: "*.web.drunk.dev"
+        allowedRoutes:
+          namespaces:
+            from: Selector
+            selector:
+              matchLabels:
+                gateway: web
+      - name: https
+        protocol: HTTPS
+        port: 443
+        hostname: "*.web.drunk.dev"
+        tls:
+          mode: Terminate
+          certificateRefs:
+            - kind: Secret
+              name: web-drunk-dev-tls
+        allowedRoutes:
+          namespaces:
+            from: Selector
+            selector:
+              matchLabels:
+                gateway: web
+
+# cert-manager configuration for production
+certManager:
+  enabled: true
+  clusterIssuers:
+    # Production Let's Encrypt
+    - name: letsencrypt-prod
+      email: ops@drunk.dev
+      server: https://acme-v02.api.letsencrypt.org/directory
+      privateKeySecretRef:
+        name: letsencrypt-prod-key
+      solvers:
+        # HTTP-01 for most certificates
+        - http01:
+            gatewayHTTPRoute:
+              parentRefs:
+                - kind: Gateway
+                  name: production-gateway
+                  namespace: default
+        # DNS-01 for wildcard certificates (uncomment and configure)
+        # - dns01:
+        #     cloudflare:
+        #       apiTokenSecretRef:
+        #         name: cloudflare-api-token
+        #         key: api-token
+        #   selector:
+        #     dnsZones:
+        #       - "drunk.dev"
+
+    # Staging issuer for testing
+    - name: letsencrypt-staging
+      email: ops@drunk.dev
+      server: https://acme-staging-v02.api.letsencrypt.org/directory
+      privateKeySecretRef:
+        name: letsencrypt-staging-key
+      solvers:
+        - http01:
+            gatewayHTTPRoute:
+              parentRefs:
+                - kind: Gateway
+                  name: production-gateway
+                  namespace: default

@@ -1,0 +1,107 @@
+# Sample application values for testing drunk-k8s-gateway
+# This deploys a Microsoft .NET sample app as a test application
+#
+# Usage:
+#   cd drunk-sample
+#   ./deploy.sh
+#
+# Access the app:
+#   # Add to /etc/hosts
+#   echo "127.0.0.1 dotnet-sample.dev.local" | sudo tee -a /etc/hosts
+#
+#   # Visit in browser
+#   http://dotnet-sample.dev.local
+#   https://dotnet-sample.dev.local (if TLS configured)
+
+nameOverride: dotnet-sample
+
+global:
+  image: mcr.microsoft.com/dotnet/samples
+  tag: aspnetapp
+  imagePullPolicy: IfNotPresent
+
+# Environment variables
+env:
+  ASPNETCORE_URLS: "http://+:8080"
+
+# Service configuration
+service:
+  enabled: true
+  type: ClusterIP
+
+# Deployment configuration
+deployment:
+  enabled: true
+  replicaCount: 1
+  ports:
+    http: 8080
+
+  podAnnotations: {}
+
+  strategy:
+    type: RollingUpdate
+    maxSurge: 1
+    maxUnavailable: 1
+
+podSecurityContext: {}
+securityContext: {}
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Volume configuration
+volumes:
+  tmp:
+    mountPath: "/tmp"
+    readOnly: false
+    emptyDir: true
+
+# HTTPRoute configuration for Gateway API
+httpRoute:
+  enabled: true
+  name: dotnet-sample
+
+  # Parent Gateway reference (in drunk-gateway namespace)
+  parentRefs:
+    - name: drunk-dev-gateway
+      namespace: drunk-gateway
+      sectionName: http # Use the http listener
+
+  # Hostname routing
+  hostnames:
+    - "sample.dev.local"
+
+  # Route rules
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: dotnet-sample
+          port: 80
+          weight: 100
+
+# Disable features not needed for this sample
+ingress:
+  enabled: false
+
+statefulset:
+  enabled: false
+
+jobs: []
+cronJobs: []
+
+autoscaling:
+  enabled: false
+
+configMap: {}
+secrets: {}
+
+serviceAccount:
+  enabled: false

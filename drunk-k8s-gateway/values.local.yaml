@@ -1,0 +1,116 @@
+# Local development override values for drunk-k8s-gateway
+# Purpose: Quickly install Gateway API CRDs + a GatewayClass + a domain-specific Gateway
+# on a local Kubernetes cluster (kind / minikube / k3d).
+#
+# Usage:
+#   helm upgrade --install gateway ./drunk-k8s-gateway -f values.local.yaml
+#
+# After install (kind/minikube):
+#   kubectl get gatewayclasses
+#   kubectl get gateways -A
+#   kubectl describe gateway drunk-dev-gateway -n default
+#
+# Notes:
+# - This file ENABLES the vendored nginx-gateway-fabric Helm subchart (controller + data plane)
+#   so you do NOT need to install the controller separately.
+# - If you switch controllers, disable nginxGatewayFabric.enabled and re-enable gatewayClass.enabled.
+# - For local clusters without a LoadBalancer, we configure NodePort for the data plane service.
+# - cert-manager remains disabled by default (local TLS usually uses manual/self-signed secrets).
+
+# Ensure CRDs are installed
+gatewayAPI:
+  enabled: true
+  version: "v1.2.0"
+  channel: "standard"
+
+# Install / declare the GatewayClass used locally
+# Disable parent chart GatewayClass (provided by subchart instead)
+gatewayClass:
+  enabled: false
+  name: "nginx" # retained for reference (unused when disabled)
+  controllerName: "gateway.nginx.org/nginx-gateway-controller"
+  description: "NGINX Gateway Fabric - Local Dev"
+  annotations: {}
+  labels: {}
+
+# Enable vendored NGINX Gateway Fabric subchart
+nginxGatewayFabric:
+  enabled: true
+
+# Upstream subchart configuration overrides (must live under chart name key)
+nginx-gateway-fabric:
+  nginxGateway:
+    gatewayClassName: nginx
+    replicas: 1
+    gwAPIExperimentalFeatures:
+      enable: false
+  nginx:
+    replicas: 1
+    service:
+      type: LoadBalancer # NodePort for Docker Desktop; LoadBalancer needs external provisioner
+      # Map listener port 80 to NodePort 31437 (access via localhost:31437)
+      # nodePorts:
+      #   - port: 31437
+      #     listenerPort: 80
+
+# Disable the shared generic gateway for local; we use a domain-specific one below.
+gateway:
+  enabled: false
+
+# Provide a single domain-specific Gateway for local testing.
+# You can map dev.local or *.dev.local in /etc/hosts to the cluster ingress IP
+# (e.g. minikube ip / kind ingress controller service).
+# For TLS testing locally, create a secret manually or configure an ACME staging issuer.
+domains:
+  - name: "drunk-dev"
+    enabled: true
+    gatewayClassName: "nginx"
+    # addresses:
+    #   - type: IPAddress
+    #     value: "10.96.86.116" # Gateway LoadBalancer IP (update /etc/hosts: 10.96.86.116 sample.dev.local)
+    annotations: {}
+    listeners:
+      - name: http
+        protocol: HTTP
+        port: 80
+        hostname: "*.dev.local"
+        # allowedRoutes will be auto-generated from routeAccess below
+      - name: https
+        protocol: HTTPS
+        port: 443
+        hostname: "*.dev.local"
+        # tls:
+        #   mode: Terminate
+        #   # certificateRefs must be specified when mode is Terminate
+        #   # Create a TLS secret first, then add it here:
+        #   certificateRefs:
+        #     - kind: Secret
+        #       name: drunk-dev-tls # Create this secret before deploying
+        # allowedRoutes will be auto-generated from routeAccess below
+
+# Allow routes from specific namespaces (List mode) in addition to the Gateway's own namespace
+# Note: These namespaces must already exist and be labeled with the labelKey:labelValue
+routeAccess:
+  mode: "List"
+  namespaces:
+    - drunk-dev-apps
+  labelKey: "gateway.drunk.charts/access"
+  labelValue: "drunk-dev-gateway"
+
+# Install cert-manager (dependency) but do not create ACME ClusterIssuers for local.
+certManager:
+  enabled: false # install cert-manager dependency
+  installCRDs: true # include cert-manager CRDs
+  clusterIssuersEnabled: false # do not create ClusterIssuers locally
+  clusterIssuers: []
+
+# Leave RBAC/serviceAccount disabled (no pods created by this chart itself).
+serviceAccount:
+  enabled: false
+rbac:
+  enabled: false
+
+# Resource & security contexts are not applicable (CRDs / cluster-scope only here).
+resources: {}
+securityContext: {}
+podSecurityContext: {}

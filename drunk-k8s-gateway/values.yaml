@@ -1,0 +1,214 @@
+# Default values for drunk-k8s-gateway
+# This chart deploys Kubernetes Gateway API CRDs and cluster-level Gateway resources
+
+# Global settings inherited by all resources
+global:
+  # Not using container images for this chart (CRD-only deployment)
+  image: ""
+  tag: ""
+
+# Target namespace for Gateway resources (Gateways). If empty, uses release namespace.
+namespace: ""
+# Auto-create the target namespace when installing (creates a Namespace manifest)
+createNamespace: false
+
+# Gateway API CRD installation settings
+gatewayAPI:
+  # Gateway API version to embed into chart (used at build time)
+  version: "v1.2.0"
+  # Installation channel: standard, experimental
+  channel: "standard"
+  # Custom URL override (normally derived from version/channel)
+  # url: "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml"
+
+# GatewayClass configuration (cluster-scoped)
+# Defines which Gateway controller implementation to use
+gatewayClass:
+  enabled: true
+  # Name of the GatewayClass
+  name: "nginx"
+  # Controller name (must match your Gateway controller)
+  controllerName: "gateway.nginx.org/nginx-gateway-controller"
+  # Optional description
+  description: "NGINX Gateway Fabric GatewayClass"
+  # Additional annotations
+  annotations: {}
+  # Additional labels
+  labels: {}
+  # Optional parameters reference for controller-specific config
+  parametersRef: {}
+    # group: gateway.nginx.org
+    # kind: NginxProxy
+    # name: nginx-proxy-config
+
+# Default Gateway configuration (namespace-scoped)
+# Creates a shared Gateway that applications can use
+gateway:
+  enabled: false
+  # Gateway name
+  name: "shared-gateway"
+  # GatewayClass to use
+  gatewayClassName: "nginx"
+  # Annotations for the Gateway
+  annotations:
+    # Example: cert-manager integration
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  # Labels for the Gateway
+  labels: {}
+
+  # Gateway listeners configuration
+  listeners:
+    # HTTP listener (port 80)
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: "*"
+      allowedRoutes:
+        namespaces:
+          from: All # Allow HTTPRoutes from all namespaces
+
+    # HTTPS listener (port 443)
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: "*"
+      tls:
+        mode: Terminate
+        # certificateRefs must be specified when mode is Terminate
+        # Certificate references (secrets must exist in same namespace as Gateway)
+        certificateRefs:
+          - kind: Secret
+            name: tls-secret # Replace with your actual TLS secret name
+      allowedRoutes:
+        namespaces:
+          from: All # Allow HTTPRoutes from all namespaces
+
+# Example: Domain-specific Gateway for drunk.dev
+# Uncomment and customize for your domain
+domains: []
+  # - name: "drunk-dev"
+  #   enabled: true
+  #   gatewayClassName: "nginx"
+  #   annotations:
+  #     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  #   listeners:
+  #     - name: http
+  #       protocol: HTTP
+  #       port: 80
+  #       hostname: "*.drunk.dev"
+  #       allowedRoutes:
+  #         namespaces:
+  #           from: Same
+  #     - name: https
+  #       protocol: HTTPS
+  #       port: 443
+  #       hostname: "*.drunk.dev"
+  #       tls:
+  #         mode: Terminate
+  #         certificateRefs:
+  #           - kind: Secret
+  #             name: drunk-dev-tls
+  #       allowedRoutes:
+  #         namespaces:
+  #           from: Same
+
+# cert-manager ClusterIssuer for automatic TLS certificate management
+certManager:
+  # Install cert-manager as a dependency (optional)
+  enabled: false
+  # Install cert-manager CRDs
+  installCRDs: true
+  # Create ClusterIssuers defined below (separate from installing dependency)
+  clusterIssuersEnabled: false
+  # ClusterIssuer configuration list (used only if clusterIssuersEnabled=true)
+  clusterIssuers: []
+    # - name: "letsencrypt-prod"
+    #   email: "admin@drunk.dev"
+    #   server: "https://acme-v02.api.letsencrypt.org/directory"
+    #   privateKeySecretRef:
+    #     name: "letsencrypt-prod-key"
+    #   solvers:
+    #     - http01:
+    #         gatewayHTTPRoute:
+    #           parentRefs:
+    #             - kind: Gateway
+    #               name: shared-gateway
+    #               namespace: default
+    #     # For wildcard certificates, use DNS-01
+    #     # - dns01:
+    #     #     cloudflare:
+    #     #       apiTokenSecretRef:
+    #     #         name: cloudflare-api-token
+    #     #         key: api-token
+    #     #   selector:
+    #     #     dnsZones:
+    #     #       - "drunk.dev"
+
+# Service account for Gateway resources (if needed)
+serviceAccount:
+  enabled: false
+  name: ""
+  annotations: {}
+
+# RBAC configuration
+rbac:
+  enabled: false
+  # Additional cluster roles if needed
+  rules: []
+
+# Pod security context (not used in this chart but kept for consistency)
+podSecurityContext: {}
+securityContext: {}
+
+# Resource limits (not used in this chart but kept for consistency)
+resources: {}
+
+# Route access configuration for automatically generated allowedRoutes when
+# listener.allowedRoutes is omitted in values. Modes:
+#  - All  : Allow routes from all namespaces
+#  - Same : Allow routes only from same namespace as the Gateway
+#  - List : Allow routes from a labeled set of namespaces (namespaces must already exist)
+routeAccess:
+  mode: "Same"
+  # List of namespaces granted access when mode=List
+  # These namespaces must already exist and be labeled with labelKey:labelValue
+  namespaces: []
+  # Label key applied to namespaces when mode=List
+  labelKey: "gateway.drunk.charts/access"
+  # Label value for selector (default falls back to Gateway name if empty)
+  labelValue: ""
+
+# Optional deployment of NGINX Gateway Fabric controller and data plane via vendored subchart.
+# When enabled, installs the nginx-gateway-fabric chart (version 2.2.1) from charts/ directory.
+# NOTE: Gateway API CRDs must already be installed (this chart does not install them automatically).
+nginxGatewayFabric:
+  enabled: false
+  # Namespace for the controller (if empty, uses release namespace). For best isolation consider "nginx-gateway".
+  namespace: ""
+  # Override the GatewayClass name created by nginx-gateway-fabric (should match gatewayClass.name above if both enabled).
+  gatewayClassName: "nginx"
+  # Service type for data plane (LoadBalancer, NodePort, ClusterIP). For local clusters (kind/minikube) you may set NodePort.
+  serviceType: "LoadBalancer"
+  # Number of controller replicas.
+  controllerReplicas: 1
+  # Number of NGINX data plane replicas.
+  nginxReplicas: 1
+  # Image tag override (edge, or a released tag). Leave empty to use chart default.
+  imageTag: ""
+  # Enable experimental Gateway API features (requires experimental channel CRDs installed separately).
+  gwAPIExperimental: false
+
+# IMPORTANT: Configuration for the vendored nginx-gateway-fabric subchart must be supplied
+# under the key matching the dependency chart name: `nginx-gateway-fabric:`. The helper
+# block above (`nginxGatewayFabric`) only controls enabling. Below we provide a default
+# mapping; adjust as needed or override via -f yourfile.yaml.
+nginx-gateway-fabric:
+  nginxGateway:
+    gatewayClassName: "nginx"
+    replicas: 1
+    gwAPIExperimentalFeatures:
+      enable: false
+  nginx:
+    replicas: 1
+    service:
+      type: LoadBalancer

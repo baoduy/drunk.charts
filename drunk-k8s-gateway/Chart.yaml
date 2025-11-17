@@ -1,0 +1,31 @@
+apiVersion: v2
+name: drunk-k8s-gateway
+icon: https://drunkcoding.net/assets/logo.png
+description: Kubernetes Gateway API CRDs and cluster-level Gateway resources for drunk.charts
+type: application
+version: 1.0.0
+appVersion: "v1.2.0"
+keywords:
+  - gateway-api
+  - ingress
+  - kubernetes
+  - networking
+home: https://github.com/baoduy/drunk.charts
+sources:
+  - https://github.com/baoduy/drunk.charts
+  - https://github.com/kubernetes-sigs/gateway-api
+maintainers:
+  - name: baoduy
+    email: drunkcoding@outlook.com
+
+dependencies:
+  - name: cert-manager
+    version: v1.16.2
+    repository: "https://charts.jetstack.io"
+    condition: certManager.enabled
+  - name: nginx-gateway-fabric
+    version: 2.2.1
+    # Use local directory; will be vendored into charts/ on helm dependency update.
+    # Upstream OCI alternative: oci://ghcr.io/nginx/charts/nginx-gateway-fabric
+    repository: "oci://ghcr.io/nginx/charts/nginx-gateway-fabric"
+    condition: nginxGatewayFabric.enabled

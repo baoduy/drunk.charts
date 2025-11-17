@@ -1,0 +1,53 @@
+{{- if .Values.gateway.enabled }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ .Values.gateway.name }}
+  namespace: {{ include "gateway.ns" . }}
+  {{- with .Values.gateway.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "gateway.labels" . | nindent 4 }}
+    {{- with .Values.gateway.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  gatewayClassName: {{ .Values.gateway.gatewayClassName }}
+  listeners:
+  {{- range .Values.gateway.listeners }}
+    - name: {{ .name }}
+      protocol: {{ .protocol }}
+      port: {{ .port }}
+      {{- if .hostname }}
+      hostname: {{ .hostname | quote }}
+      {{- end }}
+      {{- with .tls }}
+      tls:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .allowedRoutes }}
+      allowedRoutes:
+        {{- toYaml .allowedRoutes | nindent 8 }}
+      {{- else }}
+        {{- with $.Values.routeAccess }}
+      allowedRoutes:
+        namespaces:
+          {{- if eq .mode "All" }}
+          from: All
+          {{- else if eq .mode "Same" }}
+          from: Same
+          {{- else if eq .mode "List" }}
+          from: Selector
+          selector:
+            matchLabels:
+              {{ .labelKey }}: {{ default .labelValue $.Values.gateway.name | quote }}
+          {{- else }}
+          from: Same
+          {{- end }}
+        {{- end }}
+      {{- end }}
+  {{- end }}
+{{- end }}
