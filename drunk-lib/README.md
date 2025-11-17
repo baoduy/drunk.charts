@@ -16,6 +16,96 @@ Welcome to the **Drunk-lib** Helm chart library. This project serves as a collec
 
 The **Drunk-lib** Helm chart library is designed to provide a set of standardized, optimized, and reusable templates that can be utilized across multiple projects and environments. Whether you're deploying a microservice or a complex application stack, Drunk-lib offers flexibility and efficiency.
 
+### Gateway API Support
+
+Drunk-lib provides modern Kubernetes Gateway API templates as an alternative to traditional Ingress resources. The Gateway API offers more advanced traffic management capabilities and better role separation between platform and application teams.
+
+#### Gateway Resource
+
+Creates a Gateway resource that defines network entry points for your cluster.
+
+- Template: `templates/_gateway.tpl` (named template `drunk-lib.gateway`)
+- Values key: `gateway`
+
+Minimal values example (disabled by default):
+
+```yaml
+gateway:
+  enabled: true
+  gatewayClassName: nginx
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: "*.example.com"
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: "*.example.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: example-tls
+```
+
+#### HTTPRoute Resource
+
+Creates an HTTPRoute resource that defines how HTTP/HTTPS traffic is routed to services.
+
+- Template: `templates/_httproute.tpl` (named template `drunk-lib.httpRoute`)
+- Values key: `httpRoute`
+
+Minimal values example (disabled by default):
+
+```yaml
+httpRoute:
+  enabled: true
+  hostnames:
+    - "myapp.example.com"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: myapp-service
+          port: 80
+```
+
+Advanced example with filters:
+
+```yaml
+httpRoute:
+  enabled: true
+  hostnames:
+    - "myapp.example.com"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Custom-Header
+                value: custom-value
+      backendRefs:
+        - name: api-service
+          port: 8080
+          weight: 80
+        - name: api-service-canary
+          port: 8080
+          weight: 20
+```
+
+Include in a consuming chart template with:
+
+```
+{{ include "drunk-lib.gateway" . }}
+{{ include "drunk-lib.httpRoute" . }}
+```
+
 ### SecretProvider (Azure Key Vault)
 
 Drunk-lib provides a reusable template to render a `secretProviderClass` for the Secrets Store CSI Driver with Azure Key Vault provider.
@@ -52,7 +142,8 @@ Include in a consuming chart template with:
 
 ## Reference
 
-- https://azure.github.io/secrets-store-csi-driver-provider-azure/docs/getting-started/usage/
+- Gateway API: https://gateway-api.sigs.k8s.io/
+- Azure Key Vault Secrets Store CSI Driver: https://azure.github.io/secrets-store-csi-driver-provider-azure/docs/getting-started/usage/
 
 ## Contributing
 
