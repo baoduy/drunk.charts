@@ -1,0 +1,466 @@
+suites: HTTPRoute Template Test Suite
+templates:
+  - httproute.yaml
+tests:
+  - it: should not create an HTTPRoute when httpRoute is disabled
+    set:
+      httpRoute:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create an HTTPRoute with basic configuration
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        rules:
+          - backendRefs:
+              - name: test-service
+                port: 8080
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: HTTPRoute
+      - isAPIVersion:
+          of: gateway.networking.k8s.io/v1
+      - equal:
+          path: metadata.name
+          value: "RELEASE-NAME-drunk-app"
+
+  - it: should use default gateway reference when parentRefs not specified
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        rules:
+          - backendRefs:
+              - name: test-service
+                port: 8080
+    asserts:
+      - equal:
+          path: spec.parentRefs[0].name
+          value: "RELEASE-NAME-drunk-app"
+
+  - it: should use custom parentRefs when specified
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        parentRefs:
+          - name: custom-gateway
+            namespace: gateway-ns
+        rules:
+          - backendRefs:
+              - name: test-service
+                port: 8080
+    asserts:
+      - equal:
+          path: spec.parentRefs[0].name
+          value: custom-gateway
+      - equal:
+          path: spec.parentRefs[0].namespace
+          value: gateway-ns
+
+  - it: should configure hostnames when provided
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        hostnames:
+          - "example.com"
+          - "www.example.com"
+        rules:
+          - backendRefs:
+              - name: test-service
+                port: 8080
+    asserts:
+      - equal:
+          path: spec.hostnames[0]
+          value: "example.com"
+      - equal:
+          path: spec.hostnames[1]
+          value: "www.example.com"
+
+  - it: should create route with path matching
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        rules:
+          - matches:
+              - path:
+                  type: PathPrefix
+                  value: /api
+            backendRefs:
+              - name: api-service
+                port: 8080
+    asserts:
+      - equal:
+          path: spec.rules[0].matches[0].path.type
+          value: PathPrefix
+      - equal:
+          path: spec.rules[0].matches[0].path.value
+          value: /api
+      - equal:
+          path: spec.rules[0].backendRefs[0].name
+          value: api-service
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 8080
+
+  - it: should use default path when matches not specified
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        rules:
+          - backendRefs:
+              - name: test-service
+                port: 8080
+    asserts:
+      - equal:
+          path: spec.rules[0].matches[0].path.type
+          value: PathPrefix
+      - equal:
+          path: spec.rules[0].matches[0].path.value
+          value: /
+
+  - it: should support multiple matches in a rule
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        rules:
+          - matches:
+              - path:
+                  type: PathPrefix
+                  value: /api/v1
+              - path:
+                  type: PathPrefix
+                  value: /api/v2
+            backendRefs:
+              - name: api-service
+                port: 8080
+    asserts:
+      - equal:
+          path: spec.rules[0].matches[0].path.value
+          value: /api/v1
+      - equal:
+          path: spec.rules[0].matches[1].path.value
+          value: /api/v2
+
+  - it: should support multiple backend references with weights
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        rules:
+          - backendRefs:
+              - name: service-v1
+                port: 8080
+                weight: 80
+              - name: service-v2
+                port: 8080
+                weight: 20
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].name
+          value: service-v1
+      - equal:
+          path: spec.rules[0].backendRefs[0].weight
+          value: 80
+      - equal:
+          path: spec.rules[0].backendRefs[1].name
+          value: service-v2
+      - equal:
+          path: spec.rules[0].backendRefs[1].weight
+          value: 20
+
+  - it: should support request redirect filter
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        rules:
+          - matches:
+              - path:
+                  type: PathPrefix
+                  value: /old
+            filters:
+              - type: RequestRedirect
+                requestRedirect:
+                  scheme: https
+                  hostname: new.example.com
+                  statusCode: 301
+            backendRefs:
+              - name: redirect-service
+                port: 8080
+    asserts:
+      - equal:
+          path: spec.rules[0].filters[0].type
+          value: RequestRedirect
+      - equal:
+          path: spec.rules[0].filters[0].requestRedirect.scheme
+          value: https
+      - equal:
+          path: spec.rules[0].filters[0].requestRedirect.hostname
+          value: new.example.com
+      - equal:
+          path: spec.rules[0].filters[0].requestRedirect.statusCode
+          value: 301
+
+  - it: should support request header modifier filter
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        rules:
+          - filters:
+              - type: RequestHeaderModifier
+                requestHeaderModifier:
+                  set:
+                    - name: X-Custom-Header
+                      value: custom-value
+                  add:
+                    - name: X-Added-Header
+                      value: added-value
+                  remove:
+                    - X-Remove-Header
+            backendRefs:
+              - name: test-service
+                port: 8080
+    asserts:
+      - equal:
+          path: spec.rules[0].filters[0].type
+          value: RequestHeaderModifier
+      - equal:
+          path: spec.rules[0].filters[0].requestHeaderModifier.set[0].name
+          value: X-Custom-Header
+      - equal:
+          path: spec.rules[0].filters[0].requestHeaderModifier.add[0].name
+          value: X-Added-Header
+      - equal:
+          path: spec.rules[0].filters[0].requestHeaderModifier.remove[0]
+          value: X-Remove-Header
+
+  - it: should support URL rewrite filter
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        rules:
+          - filters:
+              - type: URLRewrite
+                urlRewrite:
+                  hostname: api.example.com
+                  path:
+                    type: ReplacePrefixMatch
+                    replacePrefixMatch: /v2
+            backendRefs:
+              - name: test-service
+                port: 8080
+    asserts:
+      - equal:
+          path: spec.rules[0].filters[0].type
+          value: URLRewrite
+      - equal:
+          path: spec.rules[0].filters[0].urlRewrite.hostname
+          value: api.example.com
+      - equal:
+          path: spec.rules[0].filters[0].urlRewrite.path.type
+          value: ReplacePrefixMatch
+
+  - it: should apply route annotations when provided
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        annotations:
+          custom.annotation/key: "route-value"
+        rules:
+          - backendRefs:
+              - name: test-service
+                port: 8080
+    asserts:
+      - equal:
+          path: metadata.annotations['custom.annotation/key']
+          value: "route-value"
+
+  - it: should apply app labels to httpRoute
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        rules:
+          - backendRefs:
+              - name: test-service
+                port: 8080
+    asserts:
+      - isSubset:
+          path: metadata.labels
+          content:
+            helm.sh/chart: drunk-app-1.2.9
+            app.kubernetes.io/name: drunk-app
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/version: latest
+            app.kubernetes.io/managed-by: Helm
+
+  - it: should support HTTP method matching
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        rules:
+          - matches:
+              - path:
+                  type: PathPrefix
+                  value: /api
+                method: POST
+            backendRefs:
+              - name: api-service
+                port: 8080
+    asserts:
+      - equal:
+          path: spec.rules[0].matches[0].method
+          value: POST
+
+  - it: should support header matching
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        rules:
+          - matches:
+              - path:
+                  type: PathPrefix
+                  value: /
+                headers:
+                  - type: Exact
+                    name: X-Custom-Header
+                    value: custom-value
+            backendRefs:
+              - name: test-service
+                port: 8080
+    asserts:
+      - equal:
+          path: spec.rules[0].matches[0].headers[0].type
+          value: Exact
+      - equal:
+          path: spec.rules[0].matches[0].headers[0].name
+          value: X-Custom-Header
+      - equal:
+          path: spec.rules[0].matches[0].headers[0].value
+          value: custom-value
+
+  - it: should support query parameter matching
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        rules:
+          - matches:
+              - path:
+                  type: PathPrefix
+                  value: /search
+                queryParams:
+                  - type: Exact
+                    name: version
+                    value: v1
+            backendRefs:
+              - name: search-service
+                port: 8080
+    asserts:
+      - equal:
+          path: spec.rules[0].matches[0].queryParams[0].type
+          value: Exact
+      - equal:
+          path: spec.rules[0].matches[0].queryParams[0].name
+          value: version
+      - equal:
+          path: spec.rules[0].matches[0].queryParams[0].value
+          value: v1
+
+  - it: should use default backend when backendRefs not specified
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        rules:
+          - matches:
+              - path:
+                  type: PathPrefix
+                  value: /
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].name
+          value: "RELEASE-NAME-drunk-app"
+
+  - it: should support multiple rules
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        rules:
+          - matches:
+              - path:
+                  type: PathPrefix
+                  value: /api
+            backendRefs:
+              - name: api-service
+                port: 8080
+          - matches:
+              - path:
+                  type: PathPrefix
+                  value: /admin
+            backendRefs:
+              - name: admin-service
+                port: 9090
+    asserts:
+      - equal:
+          path: spec.rules[0].matches[0].path.value
+          value: /api
+      - equal:
+          path: spec.rules[0].backendRefs[0].name
+          value: api-service
+      - equal:
+          path: spec.rules[1].matches[0].path.value
+          value: /admin
+      - equal:
+          path: spec.rules[1].backendRefs[0].name
+          value: admin-service
+
+  - it: should support parentRef with sectionName
+    set:
+      service: {}
+      httpRoute:
+        enabled: true
+        parentRefs:
+          - name: my-gateway
+            sectionName: https
+        rules:
+          - backendRefs:
+              - name: test-service
+                port: 8080
+    asserts:
+      - equal:
+          path: spec.parentRefs[0].sectionName
+          value: https
+
+  - it: should use auto-detected port when port not specified in backendRef
+    set:
+      service: {}
+      deployment:
+        ports:
+          http: 8080
+      httpRoute:
+        enabled: true
+        rules:
+          - backendRefs:
+              - name: test-service
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 80
