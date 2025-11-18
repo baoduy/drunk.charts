@@ -110,68 +110,64 @@ referencegrants.gateway.networking.k8s.io
 
 #### 3. Install Gateway Controller
 
-Choose and install a Gateway controller implementation. You now have two options for **NGINX Gateway Fabric**:
+Choose and install a Gateway controller implementation. This chart vendors the official **Traefik** Helm chart for lightweight, K3s-friendly Gateway API support.
 
-### Option A: Use Vendored Subchart (Helm Dependency)
+### Option A: Use Vendored Traefik Subchart (Recommended for K3s/Local)
 
-This chart vendors the official [`nginx-gateway-fabric` Helm chart](https://github.com/nginx/nginx-gateway-fabric) (version `2.2.1`). Enable it via values to install the controller and data plane alongside your Gateway resources.
+This chart vendors the official [`traefik` Helm chart](https://github.com/traefik/traefik-helm-chart) (version `33.2.0`) with Kubernetes Gateway API support enabled. This is the lightest-weight option and perfect for K3s, kind, or minikube.
 
-Minimal values enabling the subchart (disables duplicate parent `GatewayClass`):
+Minimal values enabling Traefik (disables duplicate parent `GatewayClass`):
 
 ```yaml
 gatewayClass:
-  enabled: false # Let the subchart create the GatewayClass
+  enabled: false # Let Traefik create the GatewayClass
 
-nginxGatewayFabric:
-  enabled: true # Condition that pulls in the dependency
-
-nginx-gateway-fabric: # Configuration for the child chart
-  nginxGateway:
-    gatewayClassName: nginx
-  nginx:
-    service:
-      type: NodePort # For kind/minikube; use LoadBalancer in cloud
+traefik:
+  enabled: true
+  experimental:
+    kubernetesGateway:
+      enabled: true
+  providers:
+    kubernetesGateway:
+      enabled: true
+  service:
+    type: NodePort # For kind/minikube/k3s; use LoadBalancer in cloud
+  ports:
+    web:
+      nodePort: 31437
+    websecure:
+      nodePort: 31438
 ```
 
-Install with the above saved as `values-ngf.yaml`:
+Install with the above saved as `values-traefik.yaml`:
 
 ```bash
 helm upgrade --install gateway ./drunk-k8s-gateway \
   -n drunk-gateway --create-namespace \
-  -f values-ngf.yaml
+  -f values-traefik.yaml
 ```
 
-You can override any upstream chart setting under the `nginx-gateway-fabric:` key. For example to set replicas:
+You can override any upstream chart setting under the `traefik:` key. For example to set resources:
 
 ```bash
 helm upgrade --install gateway ./drunk-k8s-gateway \
   -n drunk-gateway --create-namespace \
   --set gatewayClass.enabled=false \
-  --set nginxGatewayFabric.enabled=true \
-  --set nginx-gateway-fabric.nginxGateway.replicas=2 \
-  --set nginx-gateway-fabric.nginx.replicas=2
+  --set traefik.enabled=true \
+  --set traefik.resources.requests.memory=100Mi
 ```
 
-Experimental Gateway API support (requires installing experimental CRDs beforehand):
+### Option B: Install Traefik Separately
+
+If you prefer independent lifecycle management:
 
 ```bash
---set nginx-gateway-fabric.nginxGateway.gwAPIExperimentalFeatures.enable=true
-```
-
-### Option B: Install NGINX Gateway Fabric Separately
-
-If you prefer independent lifecycle management, install the controller directly from the upstream OCI registry:
-
-```bash
-helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric \
-  --version 2.2.1 \
-  --create-namespace -n nginx-gateway
-```
-
-Or (legacy manifest method):
-
-```bash
-kubectl apply -f https://github.com/nginxinc/nginx-gateway-fabric/releases/latest/download/nginx-gateway.yaml
+helm repo add traefik https://traefik.github.io/charts
+helm repo update
+helm install traefik traefik/traefik \
+  --namespace traefik --create-namespace \
+  --set experimental.kubernetesGateway.enabled=true \
+  --set providers.kubernetesGateway.enabled=true
 ```
 
 ### Other Controllers
@@ -736,7 +732,8 @@ helm install myapp drunk-charts/drunk-app \
 ## Resources
 
 - [Gateway API Documentation](https://gateway-api.sigs.k8s.io/)
-- [NGINX Gateway Fabric](https://docs.nginx.com/nginx-gateway-fabric/)
+- [Traefik Gateway API Documentation](https://doc.traefik.io/traefik/providers/kubernetes-gateway/)
+- [Traefik Helm Chart](https://github.com/traefik/traefik-helm-chart)
 - [cert-manager Gateway API Support](https://cert-manager.io/docs/usage/gateway/)
 - [drunk-lib Documentation](../drunk-lib.md)
 - [Migration from Ingress Guide](../docs/nginx-to-gateway-migration.md)

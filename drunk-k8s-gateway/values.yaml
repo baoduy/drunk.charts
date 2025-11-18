@@ -1,16 +1,8 @@
 # Default values for drunk-k8s-gateway
 # This chart deploys Kubernetes Gateway API CRDs and cluster-level Gateway resources
 
-# Global settings inherited by all resources
-global:
-  # Not using container images for this chart (CRD-only deployment)
-  image: ""
-  tag: ""
-
 # Target namespace for Gateway resources (Gateways). If empty, uses release namespace.
 namespace: ""
-# Auto-create the target namespace when installing (creates a Namespace manifest)
-createNamespace: false
 
 # Gateway API CRD installation settings
 gatewayAPI:
@@ -26,11 +18,11 @@ gatewayAPI:
 gatewayClass:
   enabled: true
   # Name of the GatewayClass
-  name: "nginx"
+  name: "traefik"
   # Controller name (must match your Gateway controller)
-  controllerName: "gateway.nginx.org/nginx-gateway-controller"
+  controllerName: "traefik.io/gateway-controller"
   # Optional description
-  description: "NGINX Gateway Fabric GatewayClass"
+  description: "Traefik Gateway Controller"
   # Additional annotations
   annotations: {}
   # Additional labels
@@ -48,7 +40,7 @@ gateway:
   # Gateway name
   name: "shared-gateway"
   # GatewayClass to use
-  gatewayClassName: "nginx"
+  gatewayClassName: "traefik"
   # Annotations for the Gateway
   annotations:
     # Example: cert-manager integration
@@ -144,25 +136,6 @@ certManager:
     #     #     dnsZones:
     #     #       - "drunk.dev"
 
-# Service account for Gateway resources (if needed)
-serviceAccount:
-  enabled: false
-  name: ""
-  annotations: {}
-
-# RBAC configuration
-rbac:
-  enabled: false
-  # Additional cluster roles if needed
-  rules: []
-
-# Pod security context (not used in this chart but kept for consistency)
-podSecurityContext: {}
-securityContext: {}
-
-# Resource limits (not used in this chart but kept for consistency)
-resources: {}
-
 # Route access configuration for automatically generated allowedRoutes when
 # listener.allowedRoutes is omitted in values. Modes:
 #  - All  : Allow routes from all namespaces
@@ -178,37 +151,32 @@ routeAccess:
   # Label value for selector (default falls back to Gateway name if empty)
   labelValue: ""
 
-# Optional deployment of NGINX Gateway Fabric controller and data plane via vendored subchart.
-# When enabled, installs the nginx-gateway-fabric chart (version 2.2.1) from charts/ directory.
-# NOTE: Gateway API CRDs must already be installed (this chart does not install them automatically).
-nginxGatewayFabric:
+# Traefik deployment configuration via vendored subchart.
+# When enabled, installs the traefik chart (version 33.2.0) with Kubernetes Gateway API support.
+# NOTE: Gateway API CRDs must already be installed (this chart installs them automatically via gatewayAPI.enabled).
+traefik:
   enabled: false
-  # Namespace for the controller (if empty, uses release namespace). For best isolation consider "nginx-gateway".
-  namespace: ""
-  # Override the GatewayClass name created by nginx-gateway-fabric (should match gatewayClass.name above if both enabled).
-  gatewayClassName: "nginx"
-  # Service type for data plane (LoadBalancer, NodePort, ClusterIP). For local clusters (kind/minikube) you may set NodePort.
-  serviceType: "LoadBalancer"
-  # Number of controller replicas.
-  controllerReplicas: 1
-  # Number of NGINX data plane replicas.
-  nginxReplicas: 1
-  # Image tag override (edge, or a released tag). Leave empty to use chart default.
-  imageTag: ""
-  # Enable experimental Gateway API features (requires experimental channel CRDs installed separately).
-  gwAPIExperimental: false
-
-# IMPORTANT: Configuration for the vendored nginx-gateway-fabric subchart must be supplied
-# under the key matching the dependency chart name: `nginx-gateway-fabric:`. The helper
-# block above (`nginxGatewayFabric`) only controls enabling. Below we provide a default
-# mapping; adjust as needed or override via -f yourfile.yaml.
-nginx-gateway-fabric:
-  nginxGateway:
-    gatewayClassName: "nginx"
-    replicas: 1
-    gwAPIExperimentalFeatures:
-      enable: false
-  nginx:
-    replicas: 1
-    service:
-      type: LoadBalancer
+  # Disable default Gateway creation by Traefik (we manage our own)
+  gateway:
+    enabled: false
+  # Enable Kubernetes Gateway provider
+  providers:
+    kubernetesGateway:
+      enabled: true
+  # Service configuration
+  service:
+    type: LoadBalancer
+  # Ports configuration
+  ports:
+    web:
+      port: 80
+    websecure:
+      port: 443
+  # Resource limits
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "50Mi"
+    limits:
+      cpu: "300m"
+      memory: "150Mi"

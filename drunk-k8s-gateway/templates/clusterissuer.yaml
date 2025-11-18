@@ -1,5 +1,5 @@
 # ClusterIssuer resources (conditional)
-{{- if .Values.certManager.enabled }}
+{{- if .Values.certManager.clusterIssuersEnabled }}
 {{- range .Values.certManager.clusterIssuers }}
 ---
 apiVersion: cert-manager.io/v1

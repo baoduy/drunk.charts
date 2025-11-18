@@ -29,7 +29,7 @@ set -euo pipefail
 RELEASE_NAME="${RELEASE_NAME:-gateway}"
 NAMESPACE="${NAMESPACE:-drunk-gateway}"
 VALUES_FILE="${VALUES_FILE:-values.local.yaml}"
-GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.2.0}"
+GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.4.0}"
 GATEWAY_API_CHANNEL="${GATEWAY_API_CHANNEL:-standard}"
 SKIP_CRDS="${SKIP_CRDS:-false}"
 FORCE_REINSTALL_CRDS="${FORCE_REINSTALL_CRDS:-false}"
@@ -37,6 +37,7 @@ BUILD_CHART="${BUILD_CHART:-false}"
 
 CHART_DIR="$(cd "$(dirname "$0")" && pwd)"
 GATEWAY_API_URL="https://github.com/kubernetes-sigs/gateway-api/releases/download/${GATEWAY_API_VERSION}/${GATEWAY_API_CHANNEL}-install.yaml"
+TRAEFIK_RBAC_URL="https://raw.githubusercontent.com/traefik/traefik/v3.6/docs/content/reference/dynamic-configuration/kubernetes-gateway-rbac.yml"
 
 CRDS=(
   gatewayclasses.gateway.networking.k8s.io
@@ -132,6 +133,18 @@ else
   fi
 fi
 
+# Install Traefik Gateway API RBAC (if Traefik is enabled)
+TRAEFIK_ENABLED=$(grep -E '^traefik:' -A3 "$CHART_DIR/$VALUES_FILE" | grep -E 'enabled:[[:space:]]*true' || true)
+if [[ -n "$TRAEFIK_ENABLED" ]]; then
+  echo ""
+  info "Traefik enabled: Installing Traefik Gateway API RBAC"
+  if curl -fsSL "$TRAEFIK_RBAC_URL" | kubectl apply -f - 2>&1 | grep -v "unrecognized format"; then
+    success "Traefik Gateway API RBAC installed successfully"
+  else
+    warn "Failed to install Traefik Gateway API RBAC (may already exist or not required)"
+  fi
+fi
+
 echo ""
 info "Phase 2: Installing Helm chart (GatewayClass, Gateway, HTTPRoute)"
 
@@ -141,11 +154,11 @@ if [[ "$BUILD_CHART" == "true" ]]; then
 fi
 
 info "Installing Helm release: $RELEASE_NAME"
-SUBCHART_ENABLED=$(grep -E '^nginxGatewayFabric:' -A3 "$CHART_DIR/$VALUES_FILE" | grep -E 'enabled:[[:space:]]*true' || true)
+SUBCHART_ENABLED=$(grep -E '^(traefik|nginxGatewayFabric):' -A3 "$CHART_DIR/$VALUES_FILE" | grep -E 'enabled:[[:space:]]*true' || true)
 
 HELM_SKIP_CRDS_FLAG="--skip-crds"
 if [[ -n "$SUBCHART_ENABLED" ]]; then
-  info "nginx-gateway-fabric subchart enabled -> allowing its CRDs to install (omitting --skip-crds)"
+  info "Subchart (traefik or nginx-gateway-fabric) enabled -> allowing its CRDs to install (omitting --skip-crds)"
   HELM_SKIP_CRDS_FLAG=""
 elif [[ "$SKIP_CRDS" == "true" ]]; then
   info "--skip-crds will be used (no chart CRDs applied)"

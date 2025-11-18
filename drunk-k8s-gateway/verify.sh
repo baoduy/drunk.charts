@@ -72,10 +72,16 @@ echo ""
 
 # Test 3: Check dependencies
 print_info "Checking chart dependencies..."
-if helm dependency list "$CHART_DIR" | grep -q "drunk-lib"; then
-    print_success "drunk-lib dependency found"
+if helm dependency list "$CHART_DIR" | grep -q "traefik"; then
+    print_success "traefik dependency found"
 else
-    print_error "drunk-lib dependency missing"
+    print_error "traefik dependency missing"
+    ERRORS=$((ERRORS + 1))
+fi
+if helm dependency list "$CHART_DIR" | grep -q "cert-manager"; then
+    print_success "cert-manager dependency found"
+else
+    print_error "cert-manager dependency missing"
     ERRORS=$((ERRORS + 1))
 fi
 echo ""
@@ -85,8 +91,6 @@ print_info "Verifying templates..."
 REQUIRED_TEMPLATES=(
     "templates/_helpers.tpl"
     "templates/NOTES.txt"
-    "templates/gatewayclass.yaml"
-    "templates/gateway.yaml"
     "templates/domain-gateways.yaml"
     "templates/clusterissuer.yaml"
 )
@@ -131,23 +135,29 @@ echo ""
 
 # Test 6: Verify scripts
 print_info "Verifying scripts..."
-if [[ -f "$CHART_DIR/scripts/install-crds.sh" ]]; then
-    print_success "install-crds.sh exists"
-    if [[ -x "$CHART_DIR/scripts/install-crds.sh" ]]; then
-        print_success "install-crds.sh is executable"
+if [[ -f "$CHART_DIR/install.sh" ]]; then
+    print_success "install.sh exists"
+    if [[ -x "$CHART_DIR/install.sh" ]]; then
+        print_success "install.sh is executable"
     else
-        print_error "install-crds.sh is not executable"
+        print_error "install.sh is not executable"
         ERRORS=$((ERRORS + 1))
     fi
 else
-    print_error "install-crds.sh is missing"
+    print_error "install.sh is missing"
     ERRORS=$((ERRORS + 1))
 fi
 
-if [[ -f "$CHART_DIR/scripts/uninstall-crds.sh" ]]; then
-    print_success "uninstall-crds.sh exists"
+if [[ -f "$CHART_DIR/uninstall.sh" ]]; then
+    print_success "uninstall.sh exists"
+    if [[ -x "$CHART_DIR/uninstall.sh" ]]; then
+        print_success "uninstall.sh is executable"
+    else
+        print_error "uninstall.sh is not executable"
+        ERRORS=$((ERRORS + 1))
+    fi
 else
-    print_error "uninstall-crds.sh is missing"
+    print_error "uninstall.sh is missing"
     ERRORS=$((ERRORS + 1))
 fi
 echo ""
@@ -178,11 +188,12 @@ print_info "Testing specific scenarios..."
 
 # Scenario 1: cert-manager integration
 RENDERED=$(helm template test "$CHART_DIR" \
-    --set certManager.enabled=true \
+    --set certManager.clusterIssuersEnabled=true \
     --set 'certManager.clusterIssuers[0].name=test-issuer' \
     --set 'certManager.clusterIssuers[0].email=test@example.com' \
     --set 'certManager.clusterIssuers[0].server=https://acme.example.com' \
-    --set 'certManager.clusterIssuers[0].privateKeySecretRef.name=test-key' 2>&1)
+    --set 'certManager.clusterIssuers[0].privateKeySecretRef.name=test-key' \
+    --set 'certManager.clusterIssuers[0].solvers[0].http01.gatewayHTTPRoute.parentRefs[0].name=test-gateway' 2>&1)
 
 if echo "$RENDERED" | grep -q "kind: ClusterIssuer"; then
     print_success "cert-manager ClusterIssuer renders correctly"

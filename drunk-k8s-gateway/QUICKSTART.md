@@ -41,13 +41,28 @@ kubectl get crd | grep gateway
 
 ## Step 2: Install Gateway Controller
 
-### Option A: NGINX Gateway Fabric (Recommended)
+### Option A: Traefik via Vendored Chart (Recommended for K3s/Local)
+
+Install everything in one command using values.local.yaml:
 
 ```bash
-kubectl apply -f https://github.com/nginxinc/nginx-gateway-fabric/releases/latest/download/nginx-gateway.yaml
+helm upgrade --install gateway ./drunk-k8s-gateway \
+  -n drunk-gateway --create-namespace \
+  -f values.local.yaml
 ```
 
-### Option B: Istio
+### Option B: Traefik Separately
+
+```bash
+helm repo add traefik https://traefik.github.io/charts
+helm repo update
+helm install traefik traefik/traefik \
+  --namespace traefik --create-namespace \
+  --set experimental.kubernetesGateway.enabled=true \
+  --set providers.kubernetesGateway.enabled=true
+```
+
+### Option C: Istio
 
 ```bash
 istioctl install --set profile=default
