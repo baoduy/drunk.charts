@@ -20,10 +20,11 @@ maintainers:
 
 dependencies:
   - name: cert-manager
-    version: v1.16.2
-    repository: "https://charts.jetstack.io"
-    condition: certManager.enabled
+    version: v1.x.x
+    repository: oci://quay.io/jetstack/charts
+    alias: cert-manager
+    condition: cert-manager.enabled
   - name: traefik
-    version: 33.2.0
+    version: 33.x.x
     repository: "https://traefik.github.io/charts"
     condition: traefik.enabled

@@ -167,6 +167,23 @@ securityContext:
   allowPrivilegeEscalation: false
   runAsNonRoot: true
 
+# HTTPRoute configuration for Gateway API
+httpRoute:
+  enabled: true
+
+  # Parent Gateway reference (in drunk-gateway namespace)
+  parentRefs:
+    # - name: drunk-dev-gateway
+    #   namespace: default
+    #   sectionName: http # Use the http listener
+    - name: drunk-dev-gateway
+      namespace: drunk-gateway
+      sectionName: https # Use the https listener for TLS
+
+  # Hostname routing
+  hostnames:
+    - "sample.dev.local"
+
 ingress:
   enabled: true
   className: nginx
@@ -209,4 +226,3 @@ networkPolicies:
       - to:
           - ipBlock:
               cidr: 192.168.253.253/32
-

@@ -1,18 +1,3 @@
-# Sample application values for testing drunk-k8s-gateway
-# This deploys a Microsoft .NET sample app as a test application
-#
-# Usage:
-#   cd drunk-sample
-#   ./deploy.sh
-#
-# Access the app:
-#   # Add to /etc/hosts
-#   echo "127.0.0.1 dotnet-sample.dev.local" | sudo tee -a /etc/hosts
-#
-#   # Visit in browser
-#   http://dotnet-sample.dev.local
-#   https://dotnet-sample.dev.local (if TLS configured)
-
 nameOverride: dotnet-sample
 
 global:
@@ -64,28 +49,19 @@ volumes:
 # HTTPRoute configuration for Gateway API
 httpRoute:
   enabled: true
-  name: dotnet-sample
 
   # Parent Gateway reference (in drunk-gateway namespace)
   parentRefs:
+    # - name: drunk-dev-gateway
+    #   namespace: default
+    #   sectionName: http # Use the http listener
     - name: drunk-dev-gateway
       namespace: drunk-gateway
-      sectionName: http # Use the http listener
+      sectionName: https # Use the https listener for TLS
 
   # Hostname routing
   hostnames:
     - "sample.dev.local"
-
-  # Route rules
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
-        - name: dotnet-sample
-          port: 80
-          weight: 100
 
 # Disable features not needed for this sample
 ingress:

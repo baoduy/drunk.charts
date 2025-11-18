@@ -57,6 +57,7 @@ spec:
   {{- end }}
   # Routing rules
   rules:
+    {{- if .Values.httpRoute.rules }}
     {{- range .Values.httpRoute.rules }}
     {{- if .matches }}
     - matches:
@@ -172,6 +173,16 @@ spec:
         - name: {{ $fullName }}
           port: {{ include "drunk.utils.ingressPort" $ }}
         {{- end }}
+    {{- end }}
+    {{- else }}
+    # Default rule with PathPrefix match
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ $fullName }}
+          port: {{ include "drunk.utils.ingressPort" $ }}
     {{- end }}
 {{- end }}
 {{- end }}

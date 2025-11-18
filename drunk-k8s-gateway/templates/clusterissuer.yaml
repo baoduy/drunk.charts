@@ -1,6 +1,6 @@
 # ClusterIssuer resources (conditional)
-{{- if .Values.certManager.clusterIssuersEnabled }}
-{{- range .Values.certManager.clusterIssuers }}
+{{- if .Values.clusterIssuers.enabled }}
+{{- range .Values.clusterIssuers.issuers }}
 ---
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -9,12 +9,6 @@ metadata:
   labels:
     {{- include "gateway.labels" $ | nindent 4 }}
 spec:
-  acme:
-    server: {{ .server }}
-    email: {{ .email }}
-    privateKeySecretRef:
-      name: {{ .privateKeySecretRef.name }}
-    solvers:
-    {{- toYaml .solvers | nindent 4 }}
+  {{- toYaml .spec | nindent 2 }}
 {{- end }}
 {{- end }}

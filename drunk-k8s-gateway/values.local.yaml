@@ -27,10 +27,10 @@ gatewayAPI:
 traefik:
   enabled: true
   # Use specific Traefik version
-  image:
-    registry: docker.io
-    repository: traefik
-    tag: "v3.6.1"
+  # image:
+  #   registry: docker.io
+  #   repository: traefik
+  #   tag: "v3.6.1"
   # Enable Kubernetes Gateway provider
   providers:
     kubernetesGateway:
@@ -40,21 +40,17 @@ traefik:
     enabled: false
   # Service configuration - use LoadBalancer on K3s for automatic external IP
   service:
-    type: LoadBalancer
-  # Ports configuration - bind to host ports 80/443 directly
+    type: NodePort
+  # Ports configuration - use NodePort with standard ports
   ports:
     web:
       port: 80
-      # Bind directly to node port 80 (requires privileged or hostNetwork)
-      hostPort: 80
+      nodePort: 30080
     websecure:
       port: 443
-      # Bind directly to node port 443 (requires privileged or hostNetwork)
-      hostPort: 443
-  # Enable hostNetwork to allow binding to privileged ports 80/443
-  hostNetwork: true
-  # Use host network DNS policy
-  dnsPolicy: ClusterFirstWithHostNet
+      nodePort: 30443
+  # Disable hostNetwork to avoid port conflicts
+  hostNetwork: false
   # Lightweight resource configuration for local development
   resources:
     requests:
@@ -72,10 +68,9 @@ domains:
   - name: "drunk-dev"
     enabled: true
     gatewayClassName: "traefik"
-    # addresses:
-    #   - type: IPAddress
-    #     value: "10.96.86.116" # Gateway LoadBalancer IP (update /etc/hosts: 10.96.86.116 sample.dev.local)
-    annotations: {}
+    annotations:
+      # Request cert-manager to create certificate
+      cert-manager.io/cluster-issuer: "selfsigned-issuer"
     listeners:
       - name: http
         protocol: HTTP
@@ -86,13 +81,11 @@ domains:
         protocol: HTTPS
         port: 443
         hostname: "*.dev.local"
-        # tls:
-        #   mode: Terminate
-        #   # certificateRefs must be specified when mode is Terminate
-        #   # Create a TLS secret first, then add it here:
-        #   certificateRefs:
-        #     - kind: Secret
-        #       name: drunk-dev-tls # Create this secret before deploying
+        tls:
+          mode: Terminate
+          certificateRefs:
+            - kind: Secret
+              name: drunk-dev-tls
         # allowedRoutes will be auto-generated from routeAccess below
 
 # Allow routes from specific namespaces (List mode) in addition to the Gateway's own namespace
@@ -104,9 +97,20 @@ routeAccess:
   labelKey: "gateway.drunk.charts/access"
   labelValue: "drunk-dev-gateway"
 
-# Install cert-manager (dependency) but do not create ACME ClusterIssuers for local.
-certManager:
-  enabled: false
-  installCRDs: true
-  clusterIssuersEnabled: false
-  clusterIssuers: []
+# Install cert-manager with self-signed ClusterIssuer for local TLS testing
+cert-manager:
+  enabled: true
+  crds:
+    enabled: true
+  config:
+    apiVersion: controller.config.cert-manager.io/v1alpha1
+    kind: ControllerConfiguration
+    enableGatewayAPI: true
+
+# ClusterIssuer configuration
+clusterIssuers:
+  enabled: true
+  issuers:
+    - name: "selfsigned-issuer"
+      spec:
+        selfSigned: {}
