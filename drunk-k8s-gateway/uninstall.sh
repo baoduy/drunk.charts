@@ -23,10 +23,10 @@ set -euo pipefail
 
 RELEASE_NAME="${RELEASE_NAME:-gateway}"
 NAMESPACE="${NAMESPACE:-drunk-gateway}"
-DELETE_NAMESPACE="${DELETE_NAMESPACE:-false}"
-DELETE_CRDS="${DELETE_CRDS:-false}"
-DELETE_TRAEFIK_RBAC="${DELETE_TRAEFIK_RBAC:-false}"
-FORCE="${FORCE:-false}"
+DELETE_NAMESPACE="${DELETE_NAMESPACE:-true}"
+DELETE_CRDS="${DELETE_CRDS:-true}"
+DELETE_TRAEFIK_RBAC="${DELETE_TRAEFIK_RBAC:-true}"
+FORCE="${FORCE:-true}"
 
 CHART_DIR="$(cd "$(dirname "$0")" && pwd)"
 TRAEFIK_RBAC_URL="https://raw.githubusercontent.com/traefik/traefik/v3.6/docs/content/reference/dynamic-configuration/kubernetes-gateway-rbac.yml"
@@ -81,13 +81,28 @@ discover_related_crds() {
   info "Discovering related CRDs in the cluster..."
   
   # Find all Gateway API CRDs
-  mapfile -t DISCOVERED_GATEWAY_CRDS < <(kubectl get crd -o name 2>/dev/null | grep -E 'gateway\.networking\.k8s\.io$' | sed 's|customresourcedefinition.apiextensions.k8s.io/||')
+  DISCOVERED_GATEWAY_CRDS=()
+  while IFS= read -r crd; do
+    [[ -n "$crd" ]] && DISCOVERED_GATEWAY_CRDS+=("$crd")
+  done <<< "$(kubectl get crd -o name 2>/dev/null | grep -E 'gateway\.networking\.k8s\.io$' | sed 's|customresourcedefinition.apiextensions.k8s.io/||')"
   
   # Find all Traefik CRDs
-  mapfile -t DISCOVERED_TRAEFIK_CRDS < <(kubectl get crd -o name 2>/dev/null | grep -E 'traefik\.(io|containo\.us)$' | sed 's|customresourcedefinition.apiextensions.k8s.io/||')
+  DISCOVERED_TRAEFIK_CRDS=()
+  while IFS= read -r crd; do
+    [[ -n "$crd" ]] && DISCOVERED_TRAEFIK_CRDS+=("$crd")
+  done <<< "$(kubectl get crd -o name 2>/dev/null | grep -E 'traefik\.(io|containo\.us)$' | sed 's|customresourcedefinition.apiextensions.k8s.io/||')"
   
   # Find all Traefik Hub CRDs
-  mapfile -t TRAEFIK_HUB_CRDS < <(kubectl get crd -o name 2>/dev/null | grep -E 'hub\.traefik\.io$' | sed 's|customresourcedefinition.apiextensions.k8s.io/||')
+  TRAEFIK_HUB_CRDS=()
+  while IFS= read -r crd; do
+    [[ -n "$crd" ]] && TRAEFIK_HUB_CRDS+=("$crd")
+  done <<< "$(kubectl get crd -o name 2>/dev/null | grep -E 'hub\.traefik\.io$' | sed 's|customresourcedefinition.apiextensions.k8s.io/||')"
+  
+  # Find all cert-manager CRDs
+  CERT_MANAGER_CRDS=()
+  while IFS= read -r crd; do
+    [[ -n "$crd" ]] && CERT_MANAGER_CRDS+=("$crd")
+  done <<< "$(kubectl get crd -o name 2>/dev/null | grep -E 'cert-manager\.io$' | sed 's|customresourcedefinition.apiextensions.k8s.io/||')"
   
   if (( ${#DISCOVERED_GATEWAY_CRDS[@]} > 0 )); then
     info "Found Gateway API CRDs: ${DISCOVERED_GATEWAY_CRDS[*]}"
@@ -99,6 +114,10 @@ discover_related_crds() {
   
   if (( ${#TRAEFIK_HUB_CRDS[@]} > 0 )); then
     info "Found Traefik Hub CRDs: ${TRAEFIK_HUB_CRDS[*]}"
+  fi
+  
+  if (( ${#CERT_MANAGER_CRDS[@]} > 0 )); then
+    info "Found cert-manager CRDs: ${CERT_MANAGER_CRDS[*]}"
   fi
 }
 
@@ -167,7 +186,7 @@ if [[ "$DELETE_CRDS" == "true" ]]; then
     info "Deleting Traefik Custom CRDs..."
     
     # Use discovered CRDs instead of hardcoded list
-    existing_traefik_crds=("${DISCOVERED_TRAEFIK_CRDS[@]}")
+    existing_traefik_crds=(${DISCOVERED_TRAEFIK_CRDS[@]+"${DISCOVERED_TRAEFIK_CRDS[@]}"})
     
     if (( ${#existing_traefik_crds[@]} > 0 )); then
       info "Found Traefik CRDs to delete: ${existing_traefik_crds[*]}"
@@ -182,12 +201,13 @@ if [[ "$DELETE_CRDS" == "true" ]]; then
       info "No Traefik Custom CRDs found"
   
       # Delete Traefik Hub CRDs
-      if (( ${#TRAEFIK_HUB_CRDS[@]} > 0 )); then
+      traefik_hub_crds=(${TRAEFIK_HUB_CRDS[@]+"${TRAEFIK_HUB_CRDS[@]}"})
+      if (( ${#traefik_hub_crds[@]} > 0 )); then
         echo ""
         if confirm "Delete Traefik Hub CRDs (hub.traefik.io)? WARNING: This will delete ALL Traefik Hub resources cluster-wide!"; then
           info "Deleting Traefik Hub CRDs..."
-          info "Found Traefik Hub CRDs to delete: ${TRAEFIK_HUB_CRDS[*]}"
-          if kubectl delete crd "${TRAEFIK_HUB_CRDS[@]}" 2>&1 | grep -v "NotFound"; then
+          info "Found Traefik Hub CRDs to delete: ${traefik_hub_crds[*]}"
+          if kubectl delete crd "${traefik_hub_crds[@]}" 2>&1 | grep -v "NotFound"; then
             success "Traefik Hub CRDs deleted successfully"
             info "Waiting for CRD deletion to complete..."
             sleep 3
@@ -200,6 +220,30 @@ if [[ "$DELETE_CRDS" == "true" ]]; then
   fi
 fi
 
+# Delete cert-manager CRDs
+if [[ "$DELETE_CRDS" == "true" ]]; then
+  echo ""
+  if confirm "Delete cert-manager CRDs? WARNING: This will delete ALL Certificate resources cluster-wide!"; then
+    info "Deleting cert-manager CRDs..."
+    
+    # Use discovered CRDs
+    existing_cert_manager_crds=(${CERT_MANAGER_CRDS[@]+"${CERT_MANAGER_CRDS[@]}"})
+    
+    if (( ${#existing_cert_manager_crds[@]} > 0 )); then
+      info "Found cert-manager CRDs to delete: ${existing_cert_manager_crds[*]}"
+      if kubectl delete crd "${existing_cert_manager_crds[@]}" 2>&1 | grep -v "NotFound"; then
+        success "cert-manager CRDs deleted successfully"
+        info "Waiting for CRD deletion to complete..."
+        sleep 3
+      else
+        warn "Some cert-manager CRDs may not have been deleted"
+      fi
+    else
+      info "No cert-manager CRDs found"
+    fi
+  fi
+fi
+
 # Delete Gateway API CRDs
 if [[ "$DELETE_CRDS" == "true" ]]; then
   echo ""
@@ -207,7 +251,7 @@ if [[ "$DELETE_CRDS" == "true" ]]; then
     info "Deleting Gateway API CRDs..."
     
     # Use discovered CRDs instead of hardcoded list
-    existing_crds=("${DISCOVERED_GATEWAY_CRDS[@]}")
+    existing_crds=(${DISCOVERED_GATEWAY_CRDS[@]+"${DISCOVERED_GATEWAY_CRDS[@]}"})
     
     if (( ${#existing_crds[@]} > 0 )); then
       info "Found CRDs to delete: ${existing_crds[*]}"
