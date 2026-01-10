@@ -34,6 +34,7 @@ spec:
     {{- if .Values.httpRoute.parentRefs }}
     {{- range .Values.httpRoute.parentRefs }}
     - name: {{ .name | default $fullName }}
+      kind: Gateway
       {{- if .namespace }}
       namespace: {{ .namespace }}
       {{- end }}
