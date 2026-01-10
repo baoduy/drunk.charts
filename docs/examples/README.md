@@ -7,6 +7,7 @@ This directory contains real-world configuration examples for the drunk-app Helm
 ### Basic Deployments
 - **[Simple Web App](./simple-web-app.yaml)** - Basic web application deployment
 - **[API Service](./api-service.yaml)** - RESTful API service with database
+- **[Gateway API](./gateway-api.yaml)** - Modern routing with Kubernetes Gateway API (see [Migration Guide](../nginx-to-gateway-migration.md))
 - **[Static Website](./static-website.yaml)** - Static website with CDN
 
 ### Advanced Configurations
@@ -18,6 +19,7 @@ This directory contains real-world configuration examples for the drunk-app Helm
 - **[High Availability](./high-availability.yaml)** - HA setup with auto-scaling
 - **[Multi-Environment](./multi-environment/)** - Dev/staging/production configs
 - **[Security Hardened](./security-hardened.yaml)** - Security-focused deployment
+- **[Network Policy](./network-policy.yaml)** - Network segmentation and security policies
 
 ### Integration Examples
 - **[Azure Key Vault](./azure-key-vault.yaml)** - Azure Key Vault secrets integration

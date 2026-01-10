@@ -1,0 +1,31 @@
+# Helm packaging artifacts
+*.tgz
+index.yaml
+
+# Chart dependencies
+charts/
+Chart.lock
+
+# Generated files
+*.tgz
+drunk-k8s-gateway/
+
+# Gateway API CRDs (downloaded at install time)
+crds/*.yaml
+!crds/.gitkeep
+
+# Temporary files
+*.tmp
+*.bak
+.*.swp
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# macOS
+.DS_Store
+
+# Test outputs
+test-output/

@@ -1,0 +1,174 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Chart Version: {{ .Chart.Version }}
+App Version: {{ .Chart.AppVersion }}
+Release Name: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+
+================================================================================
+  GATEWAY API INSTALLATION
+================================================================================
+
+{{- if .Values.gatewayAPI.enabled }}
+
+✅ Gateway API CRDs are configured to be installed.
+
+Gateway API Version: {{ .Values.gatewayAPI.version }}
+Installation Channel: {{ .Values.gatewayAPI.channel }}
+CRD URL: {{ include "gateway.crdURL" . }}
+
+To manually install/update the Gateway API CRDs, run:
+
+  kubectl apply -f {{ include "gateway.crdURL" . }}
+
+To verify the CRDs are installed:
+
+  kubectl get crd | grep gateway
+
+You should see:
+  - gatewayclasses.gateway.networking.k8s.io
+  - gateways.gateway.networking.k8s.io
+  - httproutes.gateway.networking.k8s.io
+  - referencegrants.gateway.networking.k8s.io
+
+{{- else }}
+
+⚠️  Gateway API CRD installation is DISABLED.
+   Please ensure Gateway API CRDs are installed manually.
+
+{{- end }}
+
+================================================================================
+  GATEWAYCLASS
+================================================================================
+
+{{- if .Values.gatewayClass.enabled }}
+
+✅ GatewayClass "{{ .Values.gatewayClass.name }}" has been created.
+
+Controller: {{ .Values.gatewayClass.controllerName }}
+
+To check the GatewayClass status:
+
+  kubectl get gatewayclass {{ .Values.gatewayClass.name }}
+  kubectl describe gatewayclass {{ .Values.gatewayClass.name }}
+
+{{- else }}
+
+⚠️  GatewayClass creation is DISABLED.
+   You need to create a GatewayClass manually or enable it in values.yaml.
+
+{{- end }}
+
+================================================================================
+  GATEWAY RESOURCES
+================================================================================
+
+{{- if .Values.gateway.enabled }}
+
+✅ Gateway "{{ .Values.gateway.name }}" has been created in namespace {{ .Release.Namespace }}.
+
+GatewayClass: {{ .Values.gateway.gatewayClassName }}
+Listeners:
+{{- range .Values.gateway.listeners }}
+  - {{ .name }}: {{ .protocol }} on port {{ .port }} ({{ .hostname }})
+{{- end }}
+
+To check the Gateway status:
+
+  kubectl get gateway -n {{ .Release.Namespace }}
+  kubectl describe gateway {{ .Values.gateway.name }} -n {{ .Release.Namespace }}
+
+To get the Gateway address (once ready):
+
+  kubectl get gateway {{ .Values.gateway.name }} -n {{ .Release.Namespace }} -o jsonpath='{.status.addresses[0].value}'
+
+{{- else }}
+
+ℹ️  No default Gateway has been created.
+   You can enable it in values.yaml or create Gateways per application.
+
+{{- end }}
+
+{{- if .Values.domains }}
+{{- $namespace := .Release.Namespace }}
+
+Domain-specific Gateways:
+{{- range .Values.domains }}
+{{- if .enabled }}
+  ✅ Gateway "{{ .name }}-gateway" created for {{ range .listeners }}{{ .hostname }}{{ end }}
+{{- end }}
+{{- end }}
+
+To view all Gateways:
+
+  kubectl get gateway -n {{ .Release.Namespace }}
+
+{{- end }}
+
+================================================================================
+  CERT-MANAGER INTEGRATION
+================================================================================
+
+{{- if .Values.certManager.enabled }}
+
+✅ cert-manager ClusterIssuers have been created.
+
+{{- range .Values.certManager.clusterIssuers }}
+  - {{ .name }}: {{ .email }}
+{{- end }}
+
+To check ClusterIssuer status:
+
+  kubectl get clusterissuer
+  kubectl describe clusterissuer <issuer-name>
+
+{{- else }}
+
+ℹ️  cert-manager integration is disabled.
+   To enable automatic TLS certificate management, set certManager.enabled=true
+
+{{- end }}
+
+================================================================================
+  NEXT STEPS
+================================================================================
+
+1. Verify Gateway API CRDs are installed:
+   kubectl get crd | grep gateway
+
+2. Check GatewayClass is ready:
+   kubectl get gatewayclass
+
+3. Verify Gateway is programmed:
+   kubectl get gateway -A
+
+4. Create HTTPRoutes to route traffic to your applications:
+
+   apiVersion: gateway.networking.k8s.io/v1
+   kind: HTTPRoute
+   metadata:
+     name: my-app
+   spec:
+     parentRefs:
+       - name: {{ .Values.gateway.name | default "shared-gateway" }}
+         namespace: {{ .Release.Namespace }}
+     hostnames:
+       - "myapp.example.com"
+     rules:
+       - backendRefs:
+           - name: my-app-service
+             port: 80
+
+5. Use drunk-app chart to deploy applications with HTTPRoute:
+   
+   helm install my-app drunk-charts/drunk-app \
+     --set httpRoute.enabled=true \
+     --set httpRoute.parentRefs[0].name={{ .Values.gateway.name | default "shared-gateway" }}
+
+For more information:
+  - Documentation: https://github.com/baoduy/drunk.charts/tree/main/docs
+  - Gateway API: https://gateway-api.sigs.k8s.io/
+  - drunk-lib: https://github.com/baoduy/drunk.charts/tree/main/drunk-lib
+
+================================================================================

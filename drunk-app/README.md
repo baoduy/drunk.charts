@@ -166,9 +166,39 @@ Settings for managing external access to the application.
 | `ingress.hosts`     | Hosts for ingress routing | `[{"host": "hello.drunkcoding.net", "port": 8080}, {"host": "api.drunkcoding.net", "port": 9090}]` |
 | `ingress.tls`       | TLS configuration         | `chart-example-tls`                                                                                |
 
+### Network Policies
+
+Control network access to your application pods. Supports both single policy (legacy) and multiple policies configurations.
+
+**Note:** Requires a CNI plugin that supports NetworkPolicy (e.g., Calico, Cilium, Weave Net).
+
+#### Legacy Single Policy
+
+| Parameter                       | Description                    | Default |
+| ------------------------------- | ------------------------------ | ------- |
+| `networkPolicy.policyTypes`     | Policy types (Ingress/Egress)  | `[]`    |
+| `networkPolicy.podSelector`     | Pod selector                   | `{}`    |
+| `networkPolicy.ingress`         | Ingress rules                  | `[]`    |
+| `networkPolicy.egress`          | Egress rules                   | `[]`    |
+
+#### Multiple Policies (Recommended)
+
+| Parameter                           | Description                           | Default |
+| ----------------------------------- | ------------------------------------- | ------- |
+| `networkPolicies[].name`            | Policy name                           | Required |
+| `networkPolicies[].enabled`         | Enable/disable policy                 | `true`   |
+| `networkPolicies[].policyTypes`     | Policy types (Ingress/Egress)         | Required |
+| `networkPolicies[].podSelector`     | Custom pod selector                   | App labels |
+| `networkPolicies[].ingress`         | Ingress rules                         | `[]`    |
+| `networkPolicies[].egress`          | Egress rules                          | `[]`    |
+| `networkPolicies[].labels`          | Additional labels                     | `{}`    |
+| `networkPolicies[].nameSuffix`      | Custom name suffix                    | `-{name}` |
+
+See the [Network Policy example](../docs/examples/network-policy.yaml) for detailed configuration examples including CIDR-based restrictions, namespace restrictions, and pod selector rules.
+
 ### Usage
 
-Please refer the file [`values.test.yaml`](values.test.yaml) for details.
+Please refer the file [`values.example.yaml`](values.example.yaml) for details.
 
 ## Contributing
 

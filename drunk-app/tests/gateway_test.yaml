@@ -1,0 +1,234 @@
+suites: Gateway Template Test Suite
+templates:
+  - gateway.yaml
+tests:
+  - it: should not create a Gateway when gateway is disabled
+    set:
+      gateway:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should create a Gateway with basic HTTP listener
+    set:
+      gateway:
+        enabled: true
+        gatewayClassName: nginx
+        listeners:
+          - name: http
+            protocol: HTTP
+            port: 80
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Gateway
+      - isAPIVersion:
+          of: gateway.networking.k8s.io/v1
+      - equal:
+          path: metadata.name
+          value: "RELEASE-NAME-drunk-app"
+      - equal:
+          path: spec.gatewayClassName
+          value: nginx
+      - equal:
+          path: spec.listeners[0].name
+          value: http
+      - equal:
+          path: spec.listeners[0].protocol
+          value: HTTP
+      - equal:
+          path: spec.listeners[0].port
+          value: 80
+
+  - it: should create a Gateway with HTTPS listener and TLS
+    set:
+      gateway:
+        enabled: true
+        gatewayClassName: nginx
+        listeners:
+          - name: https
+            protocol: HTTPS
+            port: 443
+            hostname: "*.example.com"
+            tls:
+              mode: Terminate
+              certificateRefs:
+                - name: example-tls
+    asserts:
+      - equal:
+          path: spec.listeners[0].name
+          value: https
+      - equal:
+          path: spec.listeners[0].protocol
+          value: HTTPS
+      - equal:
+          path: spec.listeners[0].port
+          value: 443
+      - equal:
+          path: spec.listeners[0].hostname
+          value: "*.example.com"
+      - equal:
+          path: spec.listeners[0].tls.mode
+          value: Terminate
+      - equal:
+          path: spec.listeners[0].tls.certificateRefs[0].kind
+          value: Secret
+      - equal:
+          path: spec.listeners[0].tls.certificateRefs[0].name
+          value: example-tls
+
+  - it: should create a Gateway with multiple listeners
+    set:
+      gateway:
+        enabled: true
+        gatewayClassName: prod
+        listeners:
+          - name: http
+            protocol: HTTP
+            port: 80
+          - name: https
+            protocol: HTTPS
+            port: 443
+            tls:
+              certificateRefs:
+                - name: prod-tls
+    asserts:
+      - equal:
+          path: spec.listeners[0].name
+          value: http
+      - equal:
+          path: spec.listeners[1].name
+          value: https
+      - equal:
+          path: spec.listeners[1].tls.certificateRefs[0].name
+          value: prod-tls
+
+  - it: should apply gateway annotations when provided
+    set:
+      gateway:
+        enabled: true
+        gatewayClassName: nginx
+        annotations:
+          custom.annotation/key: "value"
+        listeners:
+          - name: http
+            protocol: HTTP
+            port: 80
+    asserts:
+      - equal:
+          path: metadata.annotations['custom.annotation/key']
+          value: "value"
+
+  - it: should apply app labels to gateway
+    set:
+      gateway:
+        enabled: true
+        gatewayClassName: nginx
+        listeners:
+          - name: http
+            protocol: HTTP
+            port: 80
+    asserts:
+      - isSubset:
+          path: metadata.labels
+          content:
+            helm.sh/chart: drunk-app-1.2.9
+            app.kubernetes.io/name: drunk-app
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/version: latest
+            app.kubernetes.io/managed-by: Helm
+
+  - it: should support listener with allowedRoutes configuration
+    set:
+      gateway:
+        enabled: true
+        gatewayClassName: nginx
+        listeners:
+          - name: http
+            protocol: HTTP
+            port: 80
+            allowedRoutes:
+              namespaces:
+                from: Same
+    asserts:
+      - equal:
+          path: spec.listeners[0].allowedRoutes.namespaces.from
+          value: Same
+
+  - it: should support multiple TLS certificates
+    set:
+      gateway:
+        enabled: true
+        gatewayClassName: nginx
+        listeners:
+          - name: https
+            protocol: HTTPS
+            port: 443
+            tls:
+              mode: Terminate
+              certificateRefs:
+                - name: cert-one
+                - name: cert-two
+                  namespace: cert-namespace
+    asserts:
+      - equal:
+          path: spec.listeners[0].tls.certificateRefs[0].name
+          value: cert-one
+      - equal:
+          path: spec.listeners[0].tls.certificateRefs[1].name
+          value: cert-two
+      - equal:
+          path: spec.listeners[0].tls.certificateRefs[1].namespace
+          value: cert-namespace
+
+  - it: should support gateway addresses
+    set:
+      gateway:
+        enabled: true
+        gatewayClassName: nginx
+        listeners:
+          - name: http
+            protocol: HTTP
+            port: 80
+        addresses:
+          - type: IPAddress
+            value: 192.168.1.1
+    asserts:
+      - equal:
+          path: spec.addresses[0].type
+          value: IPAddress
+      - equal:
+          path: spec.addresses[0].value
+          value: 192.168.1.1
+
+  - it: should default protocol to HTTP when not specified
+    set:
+      gateway:
+        enabled: true
+        gatewayClassName: nginx
+        listeners:
+          - name: default-http
+            port: 8080
+    asserts:
+      - equal:
+          path: spec.listeners[0].protocol
+          value: HTTP
+
+  - it: should default certificate kind to Secret when not specified
+    set:
+      gateway:
+        enabled: true
+        gatewayClassName: nginx
+        listeners:
+          - name: https
+            protocol: HTTPS
+            port: 443
+            tls:
+              certificateRefs:
+                - name: my-cert
+    asserts:
+      - equal:
+          path: spec.listeners[0].tls.certificateRefs[0].kind
+          value: Secret

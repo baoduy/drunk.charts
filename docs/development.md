@@ -147,7 +147,7 @@ drunk-app/
 │   └── ...                  # One file per resource type
 ├── tests/                   # Unit tests
 │   └── deployment_test.yaml
-└── values.test.yaml         # Test configuration
+└── values.example.yaml         # Test configuration
 ```
 
 ### Template Naming Conventions
@@ -304,7 +304,7 @@ helm uninstall test-release
 
 #### Test Values
 
-Create comprehensive test values in `values.test.yaml`:
+Create comprehensive test values in `values.example.yaml`:
 
 ```yaml
 global:

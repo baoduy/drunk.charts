@@ -1,0 +1,116 @@
+# Local development override values for drunk-k8s-gateway
+# Purpose: Quickly install Gateway API CRDs + a GatewayClass + a domain-specific Gateway
+# on a local Kubernetes cluster (kind / minikube / k3d / k3s).
+#
+# Usage:
+#   helm upgrade --install gateway ./drunk-k8s-gateway -f values.local.yaml
+#
+# After install (k3s/kind/minikube):
+#   kubectl get gatewayclasses
+#   kubectl get gateways -A
+#   kubectl describe gateway drunk-dev-gateway -n default
+#
+# Notes:
+# - This file ENABLES the vendored Traefik Helm subchart with Kubernetes Gateway API support
+#   so you do NOT need to install the controller separately.
+# - Traefik is lightweight and perfect for K3s local development.
+# - For local clusters without a LoadBalancer, we configure NodePort for the data plane service.
+# - cert-manager remains disabled by default (local TLS usually uses manual/self-signed secrets).
+
+# Ensure CRDs are installed
+gatewayAPI:
+  enabled: true
+  version: "v1.2.0"
+  channel: "experimental" # Required for BackendTLSPolicy and other experimental features
+
+# Enable vendored Traefik subchart with Gateway API support
+traefik:
+  enabled: true
+  # Use specific Traefik version
+  # image:
+  #   registry: docker.io
+  #   repository: traefik
+  #   tag: "v3.6.1"
+  # Enable Kubernetes Gateway provider
+  providers:
+    kubernetesGateway:
+      enabled: true
+  # Disable default Gateway creation by Traefik (we manage our own)
+  gateway:
+    enabled: false
+  # Service configuration - use LoadBalancer on K3s for automatic external IP
+  service:
+    type: NodePort
+  # Ports configuration - use NodePort with standard ports
+  ports:
+    web:
+      port: 80
+      nodePort: 30080
+    websecure:
+      port: 443
+      nodePort: 30443
+  # Disable hostNetwork to avoid port conflicts
+  hostNetwork: false
+  # Lightweight resource configuration for local development
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "50Mi"
+    limits:
+      cpu: "200m"
+      memory: "100Mi"
+
+# Provide a single domain-specific Gateway for local testing.
+# You can map dev.local or *.dev.local in /etc/hosts to the cluster ingress IP
+# (e.g. minikube ip / kind ingress controller service).
+# For TLS testing locally, create a secret manually or configure an ACME staging issuer.
+domains:
+  - name: "drunk-dev"
+    enabled: true
+    gatewayClassName: "traefik"
+    annotations:
+      # Request cert-manager to create certificate
+      cert-manager.io/cluster-issuer: "selfsigned-issuer"
+    listeners:
+      - name: http
+        protocol: HTTP
+        port: 80
+        hostname: "*.dev.local"
+        # allowedRoutes will be auto-generated from routeAccess below
+      - name: https
+        protocol: HTTPS
+        port: 443
+        hostname: "*.dev.local"
+        tls:
+          mode: Terminate
+          certificateRefs:
+            - kind: Secret
+              name: drunk-dev-tls
+        # allowedRoutes will be auto-generated from routeAccess below
+
+# Allow routes from specific namespaces (List mode) in addition to the Gateway's own namespace
+# Note: These namespaces must already exist and be labeled with the labelKey:labelValue
+routeAccess:
+  mode: "List"
+  namespaces:
+    - drunk-dev-apps
+  labelKey: "gateway.drunk.charts/access"
+  labelValue: "drunk-dev-gateway"
+
+# Install cert-manager with self-signed ClusterIssuer for local TLS testing
+cert-manager:
+  enabled: true
+  crds:
+    enabled: true
+  config:
+    apiVersion: controller.config.cert-manager.io/v1alpha1
+    kind: ControllerConfiguration
+    enableGatewayAPI: true
+
+# ClusterIssuer configuration
+clusterIssuers:
+  enabled: true
+  issuers:
+    - name: "selfsigned-issuer"
+      spec:
+        selfSigned: {}

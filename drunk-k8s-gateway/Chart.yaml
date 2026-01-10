@@ -1,0 +1,30 @@
+apiVersion: v2
+name: drunk-k8s-gateway
+icon: https://drunkcoding.net/assets/logo.png
+description: Kubernetes Gateway API CRDs and cluster-level Gateway resources for drunk.charts
+type: application
+version: 1.0.0
+appVersion: "v1.2.0"
+keywords:
+  - gateway-api
+  - ingress
+  - kubernetes
+  - networking
+home: https://github.com/baoduy/drunk.charts
+sources:
+  - https://github.com/baoduy/drunk.charts
+  - https://github.com/kubernetes-sigs/gateway-api
+maintainers:
+  - name: baoduy
+    email: drunkcoding@outlook.com
+
+dependencies:
+  - name: cert-manager
+    version: v1.x.x
+    repository: oci://quay.io/jetstack/charts
+    alias: cert-manager
+    condition: cert-manager.enabled
+  - name: traefik
+    version: 33.x.x
+    repository: "https://traefik.github.io/charts"
+    condition: traefik.enabled

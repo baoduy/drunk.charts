@@ -1,0 +1,182 @@
+# Default values for drunk-k8s-gateway
+# This chart deploys Kubernetes Gateway API CRDs and cluster-level Gateway resources
+
+# Target namespace for Gateway resources (Gateways). If empty, uses release namespace.
+namespace: ""
+
+# Gateway API CRD installation settings
+gatewayAPI:
+  # Gateway API version to embed into chart (used at build time)
+  version: "v1.2.0"
+  # Installation channel: standard, experimental
+  channel: "standard"
+  # Custom URL override (normally derived from version/channel)
+  # url: "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml"
+
+# GatewayClass configuration (cluster-scoped)
+# Defines which Gateway controller implementation to use
+gatewayClass:
+  enabled: true
+  # Name of the GatewayClass
+  name: "traefik"
+  # Controller name (must match your Gateway controller)
+  controllerName: "traefik.io/gateway-controller"
+  # Optional description
+  description: "Traefik Gateway Controller"
+  # Additional annotations
+  annotations: {}
+  # Additional labels
+  labels: {}
+  # Optional parameters reference for controller-specific config
+  parametersRef: {}
+    # group: gateway.nginx.org
+    # kind: NginxProxy
+    # name: nginx-proxy-config
+
+# Default Gateway configuration (namespace-scoped)
+# Creates a shared Gateway that applications can use
+gateway:
+  enabled: false
+  # Gateway name
+  name: "shared-gateway"
+  # GatewayClass to use
+  gatewayClassName: "traefik"
+  # Annotations for the Gateway
+  annotations:
+    # Example: cert-manager integration
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  # Labels for the Gateway
+  labels: {}
+
+  # Gateway listeners configuration
+  listeners:
+    # HTTP listener (port 80)
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: "*"
+      allowedRoutes:
+        namespaces:
+          from: All # Allow HTTPRoutes from all namespaces
+
+    # HTTPS listener (port 443)
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: "*"
+      tls:
+        mode: Terminate
+        # certificateRefs must be specified when mode is Terminate
+        # Certificate references (secrets must exist in same namespace as Gateway)
+        certificateRefs:
+          - kind: Secret
+            name: tls-secret # Replace with your actual TLS secret name
+      allowedRoutes:
+        namespaces:
+          from: All # Allow HTTPRoutes from all namespaces
+
+# Example: Domain-specific Gateway for drunk.dev
+# Uncomment and customize for your domain
+domains: []
+  # - name: "drunk-dev"
+  #   enabled: true
+  #   gatewayClassName: "nginx"
+  #   annotations:
+  #     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  #   listeners:
+  #     - name: http
+  #       protocol: HTTP
+  #       port: 80
+  #       hostname: "*.drunk.dev"
+  #       allowedRoutes:
+  #         namespaces:
+  #           from: Same
+  #     - name: https
+  #       protocol: HTTPS
+  #       port: 443
+  #       hostname: "*.drunk.dev"
+  #       tls:
+  #         mode: Terminate
+  #         certificateRefs:
+  #           - kind: Secret
+  #             name: drunk-dev-tls
+  #       allowedRoutes:
+  #         namespaces:
+  #           from: Same
+
+# cert-manager ClusterIssuer for automatic TLS certificate management
+certManager:
+  # Install cert-manager as a dependency (optional)
+  enabled: false
+  # Install cert-manager CRDs
+  installCRDs: true
+  # Create ClusterIssuers defined below (separate from installing dependency)
+  clusterIssuersEnabled: false
+  # ClusterIssuer configuration list (used only if clusterIssuersEnabled=true)
+  clusterIssuers: []
+    # - name: "letsencrypt-prod"
+    #   email: "admin@drunk.dev"
+    #   server: "https://acme-v02.api.letsencrypt.org/directory"
+    #   privateKeySecretRef:
+    #     name: "letsencrypt-prod-key"
+    #   solvers:
+    #     - http01:
+    #         gatewayHTTPRoute:
+    #           parentRefs:
+    #             - kind: Gateway
+    #               name: shared-gateway
+    #               namespace: default
+    #     # For wildcard certificates, use DNS-01
+    #     # - dns01:
+    #     #     cloudflare:
+    #     #       apiTokenSecretRef:
+    #     #         name: cloudflare-api-token
+    #     #         key: api-token
+    #     #   selector:
+    #     #     dnsZones:
+    #     #       - "drunk.dev"
+
+# Route access configuration for automatically generated allowedRoutes when
+# listener.allowedRoutes is omitted in values. Modes:
+#  - All  : Allow routes from all namespaces
+#  - Same : Allow routes only from same namespace as the Gateway
+#  - List : Allow routes from a labeled set of namespaces (namespaces must already exist)
+routeAccess:
+  mode: "Same"
+  # List of namespaces granted access when mode=List
+  # These namespaces must already exist and be labeled with labelKey:labelValue
+  namespaces: []
+  # Label key applied to namespaces when mode=List
+  labelKey: "gateway.drunk.charts/access"
+  # Label value for selector (default falls back to Gateway name if empty)
+  labelValue: ""
+
+# Traefik deployment configuration via vendored subchart.
+# When enabled, installs the traefik chart (version 33.2.0) with Kubernetes Gateway API support.
+# NOTE: Gateway API CRDs must already be installed (this chart installs them automatically via gatewayAPI.enabled).
+traefik:
+  enabled: false
+  # Disable default Gateway creation by Traefik (we manage our own)
+  gateway:
+    enabled: false
+  # Enable Kubernetes Gateway provider
+  providers:
+    kubernetesGateway:
+      enabled: true
+  # Service configuration
+  service:
+    type: LoadBalancer
+  # Ports configuration
+  ports:
+    web:
+      port: 80
+    websecure:
+      port: 443
+  # Resource limits
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "50Mi"
+    limits:
+      cpu: "300m"
+      memory: "150Mi"
