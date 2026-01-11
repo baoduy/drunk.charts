@@ -175,7 +175,8 @@ httpRoute:
       sectionName: https
   tlsValidation:
     caCertificateRefs:
-      - kind: ConfigMap
+      - group: ""
+        kind: ConfigMap
         name: cloudflare-origin-ca
   # Hostname routing
   hostnames:

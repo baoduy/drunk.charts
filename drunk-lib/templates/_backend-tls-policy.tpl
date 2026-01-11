@@ -14,9 +14,10 @@ spec:
     - group: ""
       kind: Service
       name: {{ include "app.fullname" . }}
+      sectionName: "https"
   validation:
     {{- if .Values.httpRoute.hostnames }}
-    hostName: {{ (index .Values.httpRoute.hostnames 0) }}
+    hostname: {{ (index .Values.httpRoute.hostnames 0) }}
     {{- end }}
     {{- toYaml .Values.httpRoute.tlsValidation | nindent 4 }}
 
