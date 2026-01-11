@@ -3,13 +3,13 @@ entries:
   drunk-app:
   - apiVersion: v2
     appVersion: latest
-    created: "2026-01-11T15:29:19.889203+08:00"
+    created: "2026-01-11T15:57:26.228108+08:00"
     dependencies:
     - name: drunk-lib
       repository: file://../drunk-lib
       version: 1.x.x
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: e43ec4b7c651cb8dba5449f0b217203615f42f4c4752dcdf285b841316734018
+    digest: 5f29bdd40cf94e0e07aab8e7fa0dfcdcd42ae2b8c3d90382429225a8122a42c6
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-app
     type: application
@@ -18,7 +18,7 @@ entries:
     version: 1.3.2
   - apiVersion: v2
     appVersion: latest
-    created: "2026-01-11T15:29:19.888482+08:00"
+    created: "2026-01-11T15:57:26.227386+08:00"
     dependencies:
     - name: drunk-lib
       repository: file://../drunk-lib
@@ -33,7 +33,7 @@ entries:
     version: 1.3.1
   - apiVersion: v2
     appVersion: latest
-    created: "2026-01-11T15:29:19.8874+08:00"
+    created: "2026-01-11T15:57:26.225979+08:00"
     dependencies:
     - name: drunk-lib
       repository: file://../drunk-lib
@@ -48,7 +48,7 @@ entries:
     version: 1.3.0
   - apiVersion: v2
     appVersion: latest
-    created: "2026-01-11T15:29:19.886374+08:00"
+    created: "2026-01-11T15:57:26.224885+08:00"
     dependencies:
     - name: drunk-lib
       repository: file://../drunk-lib
@@ -63,7 +63,7 @@ entries:
     version: 1.2.9
   - apiVersion: v2
     appVersion: latest
-    created: "2026-01-11T15:29:19.885432+08:00"
+    created: "2026-01-11T15:57:26.223353+08:00"
     dependencies:
     - name: drunk-lib
       repository: file://../drunk-lib
@@ -79,13 +79,13 @@ entries:
   drunk-lib:
   - apiVersion: v2
     appVersion: latest
-    created: "2026-01-11T15:29:19.889532+08:00"
+    created: "2026-01-11T15:57:26.22845+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 24d218fb5cc12d57086fcec257a0b09b9319a21acc3d96fa0464bbda2eea8c1c
+    digest: 0a7bd028ce01ddda2cf54c41250909c9366860d3754d31fbcd0ffca13f0ec11a
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-lib
     type: library
     urls:
     - charts/drunk-lib-1.2.2.tgz
     version: 1.2.2
-generated: "2026-01-11T15:29:19.884523+08:00"
+generated: "2026-01-11T15:57:26.222278+08:00"

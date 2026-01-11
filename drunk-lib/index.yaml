@@ -3,9 +3,9 @@ entries:
   drunk-lib:
   - apiVersion: v2
     appVersion: latest
-    created: "2026-01-11T15:29:17.238358+08:00"
+    created: "2026-01-11T15:57:23.114533+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 24d218fb5cc12d57086fcec257a0b09b9319a21acc3d96fa0464bbda2eea8c1c
+    digest: 0a7bd028ce01ddda2cf54c41250909c9366860d3754d31fbcd0ffca13f0ec11a
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-lib
     type: library
@@ -14,7 +14,7 @@ entries:
     version: 1.2.2
   - apiVersion: v2
     appVersion: latest
-    created: "2026-01-11T15:29:17.237844+08:00"
+    created: "2026-01-11T15:57:23.11399+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: a339f9ab670e584a1983745e1167a03f10a0cbc96fc72e666bff83527e501698
     icon: https://drunkcoding.net/assets/logo.png
@@ -25,7 +25,7 @@ entries:
     version: 1.2.1
   - apiVersion: v2
     appVersion: latest
-    created: "2026-01-11T15:29:17.237166+08:00"
+    created: "2026-01-11T15:57:23.113372+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: 8bfb87c1f90b38ea3410ddaf2f2d739b2b1ab2b35b0dafee9014bf29f75f47cb
     icon: https://drunkcoding.net/assets/logo.png
@@ -36,7 +36,7 @@ entries:
     version: 1.2.0
   - apiVersion: v2
     appVersion: latest
-    created: "2026-01-11T15:29:17.236463+08:00"
+    created: "2026-01-11T15:57:23.112778+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: 4a09a64b90f3d98be056b76ed45d83900f8c7e059cc09052c3991860ffb3063e
     icon: https://drunkcoding.net/assets/logo.png
@@ -47,7 +47,7 @@ entries:
     version: 1.1.0
   - apiVersion: v2
     appVersion: latest
-    created: "2026-01-11T15:29:17.235789+08:00"
+    created: "2026-01-11T15:57:23.11064+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
     digest: bafd9e17b67888d43e54f264f40fc0a3e5a43cf4a9b37aa9d53c37af509741d4
     icon: https://drunkcoding.net/assets/logo.png
@@ -56,4 +56,4 @@ entries:
     urls:
     - drunk-lib-1.0.9.tgz
     version: 1.0.9
-generated: "2026-01-11T15:29:17.234429+08:00"
+generated: "2026-01-11T15:57:23.109382+08:00"
