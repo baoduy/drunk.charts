@@ -31,7 +31,7 @@ data:
     {{- else if $v.crt }}
     {{ $v.crt | b64enc }}
     {{- else }}
-    {{- fail "tls.crt or tls.crtFile must be provided for tlsSecrets." }}
+    ""
     {{- end }}
   # TLS private key: from file or inline content
   tls.key: |
@@ -40,7 +40,7 @@ data:
     {{- else if $v.key }}
     {{ $v.key | b64enc }}
     {{- else }}
-    {{- fail "tls.key or tls.keyFile must be provided for tlsSecrets." }}
+    ""
     {{- end }}
   # Optional CA certificate: from file or inline content
   {{- if or $v.ca $v.caFile }}
