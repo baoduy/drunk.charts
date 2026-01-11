@@ -2,7 +2,7 @@
 {{- define "drunk-lib.backendTlsPolicy" -}}
 {{- if and (ne .Values.httpRoute nil) .Values.httpRoute.enabled .Values.httpRoute.tlsValidation -}}
 ---
-apiVersion: networking.k8s.io/v1
+apiVersion: gateway.networking.k8s.io/v1
 kind: BackendTLSPolicy
 metadata:
   name: {{ include "app.fullname" . }}-tls-policy
