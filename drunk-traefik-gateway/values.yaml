@@ -1,5 +1,15 @@
-# Default values for drunk-k8s-gateway
-# This chart deploys Kubernetes Gateway API CRDs and cluster-level Gateway resources
+# Default values for drunk-traefik-gateway
+# This chart deploys Kubernetes Gateway API CRDs and cluster-level Gateway resources.
+#
+# YAML anchors (DRY defaults):
+#   The `# variables` block below declares anchors used elsewhere in this file
+#   to keep the GatewayClass identity (name + controller) consistent. Anchors
+#   are resolved at YAML parse time, per file — they DRY the defaults but do
+#   NOT propagate through `--set` overrides.
+
+# variables
+gatewayClassName: &gatewayClassName "traefik"
+gatewayControllerName: &gatewayControllerName "traefik.io/gateway-controller"
 
 # Target namespace for Gateway resources (Gateways). If empty, uses release namespace.
 namespace: ""
@@ -18,9 +28,9 @@ gatewayAPI:
 gatewayClass:
   enabled: true
   # Name of the GatewayClass
-  name: "traefik"
+  name: *gatewayClassName
   # Controller name (must match your Gateway controller)
-  controllerName: "traefik.io/gateway-controller"
+  controllerName: *gatewayControllerName
   # Optional description
   description: "Traefik Gateway Controller"
   # Additional annotations
@@ -40,7 +50,7 @@ gateway:
   # Gateway name
   name: "shared-gateway"
   # GatewayClass to use
-  gatewayClassName: "traefik"
+  gatewayClassName: *gatewayClassName
   # Annotations for the Gateway
   annotations:
     # Example: cert-manager integration
@@ -135,6 +145,15 @@ certManager:
     #     #   selector:
     #     #     dnsZones:
     #     #       - "drunk.dev"
+
+# Top-level clusterIssuers block consumed by templates/clusterissuer.yaml.
+# (Previously missing — the template referenced .Values.clusterIssuers.enabled
+# which produced a nil-pointer error on default render. Added here with
+# enabled: false to match the nginx chart's convention; rendered output is
+# unchanged because the template gates on `.enabled`.)
+clusterIssuers:
+  enabled: false
+  issuers: []
 
 # Route access configuration for automatically generated allowedRoutes when
 # listener.allowedRoutes is omitted in values. Modes:
