@@ -1,0 +1,30 @@
+{{/*
+GatewayClass is rendered ONLY when the upstream nginx-gateway-fabric subchart is
+disabled. NGF always creates its own GatewayClass (no opt-out flag exists upstream),
+so we step out of the way to prevent duplicate-resource errors. When the subchart is
+enabled, keep `gatewayClass.name` in sync with `nginxGatewayFabric.nginxGateway.gatewayClassName`.
+*/}}
+{{- if and .Values.gatewayClass.enabled (not (default false .Values.nginxGatewayFabric.enabled)) }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: {{ .Values.gatewayClass.name }}
+  labels:
+    {{- include "gateway.labels" . | nindent 4 }}
+    {{- with .Values.gatewayClass.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.gatewayClass.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  controllerName: {{ .Values.gatewayClass.controllerName }}
+  {{- if .Values.gatewayClass.description }}
+  description: {{ .Values.gatewayClass.description | quote }}
+  {{- end }}
+  {{- with .Values.gatewayClass.parametersRef }}
+  parametersRef:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

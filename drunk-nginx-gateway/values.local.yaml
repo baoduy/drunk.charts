@@ -1,0 +1,94 @@
+# Local development override values for drunk-nginx-gateway
+# Purpose: Quickly install Gateway API CRDs + NGINX Gateway Fabric + a domain-specific
+# Gateway on a local Kubernetes cluster (kind / minikube / k3d / k3s).
+#
+# Usage:
+#   helm upgrade --install gateway ./drunk-nginx-gateway -f values.local.yaml
+#   ./install.sh                       (recommended; installs CRDs first)
+#
+# After install:
+#   kubectl get gatewayclasses
+#   kubectl get gateways -A
+#   kubectl describe gateway drunk-dev-gateway -n default
+#
+# Notes:
+# - Enables the vendored NGINX Gateway Fabric subchart; you do not need to install
+#   the controller separately.
+# - For local clusters without a LoadBalancer, NGF's data-plane Service is exposed via
+#   NodePort on standard dev ports (30080 / 30443).
+# - cert-manager is enabled with a self-signed ClusterIssuer for local TLS testing.
+
+gatewayAPI:
+  version: "v1.2.0"
+  channel: "experimental" # Required for BackendTLSPolicy and other experimental features
+
+# Wrapper-managed GatewayClass — suppressed automatically because the NGF subchart
+# is enabled below and creates the GatewayClass itself.
+gatewayClass:
+  enabled: true
+  name: "nginx"
+  controllerName: "gateway.nginx.org/nginx-gateway-controller"
+
+# Enable vendored NGINX Gateway Fabric subchart.
+nginxGatewayFabric:
+  enabled: true
+  nginxGateway:
+    gatewayClassName: "nginx"
+    gatewayControllerName: "gateway.nginx.org/nginx-gateway-controller"
+  nginx:
+    service:
+      type: NodePort
+      # NGF schema: list of {port (NodePort), listenerPort (Gateway listener port)}
+      nodePorts:
+        - port: 30080
+          listenerPort: 80
+        - port: 30443
+          listenerPort: 443
+
+# Provide a single domain-specific Gateway for local testing.
+# Map *.dev.local to the cluster ingress IP in /etc/hosts to test.
+domains:
+  - name: "drunk-dev"
+    enabled: true
+    gatewayClassName: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: "selfsigned-issuer"
+    listeners:
+      - name: http
+        protocol: HTTP
+        port: 80
+        hostname: "*.dev.local"
+      - name: https
+        protocol: HTTPS
+        port: 443
+        hostname: "*.dev.local"
+        tls:
+          mode: Terminate
+          certificateRefs:
+            - kind: Secret
+              name: drunk-dev-tls
+
+# Allow routes from a labeled namespace in addition to the Gateway's own namespace.
+routeAccess:
+  mode: "List"
+  namespaces:
+    - drunk-dev-apps
+  labelKey: "gateway.drunk.charts/access"
+  labelValue: "drunk-dev-gateway"
+
+# Install cert-manager with self-signed ClusterIssuer for local TLS testing.
+cert-manager:
+  enabled: true
+  crds:
+    enabled: true
+  config:
+    apiVersion: controller.config.cert-manager.io/v1alpha1
+    kind: ControllerConfiguration
+    enableGatewayAPI: true
+
+clusterIssuers:
+  enabled: true
+  issuers:
+    - name: "selfsigned-issuer"
+      spec:
+        selfSigned: {}
