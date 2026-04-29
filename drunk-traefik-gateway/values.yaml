@@ -37,11 +37,14 @@ gatewayClass:
   annotations: {}
   # Additional labels
   labels: {}
-  # Optional parameters reference for controller-specific config
+  # Optional parameters reference for controller-specific config.
+  # Traefik does not currently consume a parametersRef on GatewayClass; leave
+  # empty unless your Traefik version documents a specific parameters CRD.
   parametersRef: {}
-    # group: gateway.nginx.org
-    # kind: NginxProxy
-    # name: nginx-proxy-config
+    # group: traefik.io
+    # kind: <TraefikCRD>
+    # name: <traefik-config>
+
 
 # Default Gateway configuration (namespace-scoped)
 # Creates a shared Gateway that applications can use
@@ -90,7 +93,7 @@ gateway:
 domains: []
   # - name: "drunk-dev"
   #   enabled: true
-  #   gatewayClassName: "nginx"
+  #   gatewayClassName: "traefik"
   #   annotations:
   #     cert-manager.io/cluster-issuer: "letsencrypt-prod"
   #   listeners:
