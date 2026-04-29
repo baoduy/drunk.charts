@@ -37,6 +37,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `values.aks.yaml` for Azure AKS deployments with an internal Azure Load
+  Balancer (annotation `service.beta.kubernetes.io/azure-load-balancer-internal`
+  applied via NGF `nginx.service.patches[]` StrategicMerge so it survives
+  NginxProxy CRD admission, with `externalTrafficPolicy: Local` and a static
+  `loadBalancerIP`).
+- Top-of-file YAML anchors in `values.yaml`, `values.local.yaml`, and
+  `values.aks.yaml` to DRY the GatewayClass identity (`gatewayClassName`,
+  `gatewayControllerName`).
+
+### Fixed
+
 ### Planned
 
 - Gateway API v1.3.0 / v1.4.0 default

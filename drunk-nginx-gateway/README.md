@@ -180,6 +180,12 @@ SKIP_CRDS=true ./install.sh             # if Gateway API CRDs already installed
 FORCE_REINSTALL_CRDS=true ./install.sh
 ```
 
+#### Azure AKS (internal Load Balancer)
+
+- `values.aks.yaml` — ready-to-go values for Azure AKS deployments using an
+  internal Azure Load Balancer. Customize `loadBalancerIP` and (optionally)
+  the internal-LB subnet annotation before installing. See `QUICKSTART.md`.
+
 ### Verify
 
 ```bash

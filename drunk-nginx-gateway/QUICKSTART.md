@@ -52,6 +52,29 @@ helm upgrade --install nginx-gateway ./drunk-nginx-gateway \
 local TLS testing. For production, swap in a real ACME issuer (see
 `CERT-MANAGER-TESTING.md`).
 
+## Azure AKS install (internal Load Balancer)
+
+For deployments to Azure AKS that need an **internal** Azure Load Balancer
+(private IP, not exposed to the public internet), use `values.aks.yaml`:
+
+```bash
+helm dependency update ./drunk-nginx-gateway
+helm upgrade --install nginx-gateway ./drunk-nginx-gateway \
+  -n drunk-nginx-gateway --create-namespace \
+  -f ./drunk-nginx-gateway/values.aks.yaml
+```
+
+Before installing, edit `values.aks.yaml` and replace the `loadBalancerIP`
+placeholder (`192.168.130.250`) with a free IP in your AKS subnet. To pin
+the LB to a specific subnet, uncomment the
+`service.beta.kubernetes.io/azure-load-balancer-internal-subnet`
+annotation and set its value to your subnet name.
+
+> **Note:** NGF 2.5.1 requires the internal-LB annotation to be applied via
+> `nginx.service.patches` (StrategicMerge), not `nginx.service.annotations`,
+> because the NginxProxy CRD prunes unknown fields. `values.aks.yaml` already
+> uses the correct `patches` form — leave the structure as-is when customizing.
+
 ## Verify
 
 ```bash
