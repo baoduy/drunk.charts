@@ -102,7 +102,7 @@ spec:
             {{- with $.Values.secretProvider }}
             {{- if .enabled }}
             - secretRef:
-                name: {{ default (printf "%s-spc" (include "app.name" $root)) .name }}
+                name: {{ include "app.secretProviderName" $root }}
             {{- end }}
             {{- end }}
             # Resource limits and requests from .Values.resources
@@ -126,7 +126,7 @@ spec:
             {{- end }}
             {{- with $.Values.secretProvider }}
             {{- if .enabled }}
-            - name: {{ printf "%s-vol" (default (printf "%s-spc" (include "app.name" $root)) .name) }}
+            - name: {{ include "app.secretProviderVolumeName" $root }}
               mountPath: "/mnt/secrets-store"
               readOnly: true
             {{- end }}
@@ -149,12 +149,12 @@ spec:
           # SecretProvider volume for external secret management systems
           {{- with $.Values.secretProvider }}
           {{- if .enabled }}
-          - name: {{ printf "%s-vol" (default (printf "%s-spc" (include "app.name" $root)) .name) }}
+          - name: {{ include "app.secretProviderVolumeName" $root }}
             csi:
               driver: secrets-store.csi.k8s.io
               readOnly: true
               volumeAttributes:
-                secretProviderClass: {{ printf "%s-cls" (default (printf "%s-spc" (include "app.name" $root)) .name) }}
+                secretProviderClass: {{ include "app.secretProviderClassName" $root }}
           {{- end }}
           {{- end }}
 {{- end }}

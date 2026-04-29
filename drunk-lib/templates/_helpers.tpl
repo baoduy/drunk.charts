@@ -83,16 +83,32 @@ checksum/secrets: {{ toJson .Values.secrets | sha256sum }}
 {{- end }}
 
 # Create imagePullSecret
-{{- define "drunk.utils.imagePullSecretName" }}
+{{- define "drunk.utils.imagePullSecretName" -}}
 {{- if .Values.imageCredentials -}}
 {{- .Values.imageCredentials.name | default (printf "%s-dcr-secret" (include "app.name" .)) }}
-{{- end }}
-{{- end }}
-{{- define "drunk.utils.imagePullSecret" }}
+{{- end -}}
+{{- end -}}
+
+{{- define "drunk.utils.imagePullSecret" -}}
 {{- if .Values.imageCredentials -}}
 {{- printf "{\"auths\": {\"%s\": {\"auth\": \"%s\"}}}" .Values.imageCredentials.registry (printf "%s:%s" .Values.imageCredentials.username .Values.imageCredentials.password | b64enc) | b64enc }}
-{{- end }}
-{{- end }}
+{{- end -}}
+{{- end -}}
+
+# SecretProviderClass naming helpers — pass the root context (`.` or `$`).
+# The base name resolves to .Values.secretProvider.name when set, otherwise <app.name>-spc.
+{{- define "app.secretProviderName" -}}
+{{- $sp := .Values.secretProvider | default dict -}}
+{{- default (printf "%s-spc" (include "app.name" .)) $sp.name -}}
+{{- end -}}
+
+{{- define "app.secretProviderVolumeName" -}}
+{{- printf "%s-vol" (include "app.secretProviderName" .) -}}
+{{- end -}}
+
+{{- define "app.secretProviderClassName" -}}
+{{- printf "%s-cls" (include "app.secretProviderName" .) -}}
+{{- end -}}
 
 # Full drunk-lib.all
 {{- define "drunk-lib.all" -}}

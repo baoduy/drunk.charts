@@ -21,13 +21,12 @@
 {{- $provider := $sp.provider | default dict -}}
 # Provider type: azure, aws, gcp
 {{- $providerName := $provider.name | default "azure" -}}
-# SecretProviderClass name
-{{- $spName := default (printf "%s-spc" (include "app.name" .)) $sp.name -}}
+{{- $spName := include "app.secretProviderName" . -}}
 ---
 apiVersion: secrets-store.csi.x-k8s.io/v1
 kind: SecretProviderClass
 metadata:
-  name: {{ printf "%s-cls" $spName }}
+  name: {{ include "app.secretProviderClassName" . }}
   labels:
     {{- include "app.labels" . | nindent 4 }}
 spec:
