@@ -48,8 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `values.aks.yaml` to DRY the GatewayClass identity (`gatewayClassName`,
   `gatewayControllerName`).
 
-### Fixed
-
 ### Planned
 
 - Gateway API v1.3.0 / v1.4.0 default
