@@ -180,6 +180,14 @@ istioctl install --set profile=default
 
 **Other implementations:** See [Gateway API Implementations](https://gateway-api.sigs.k8s.io/implementations/)
 
+### Azure AKS (internal Load Balancer)
+
+For Azure AKS deployments, use `values.aks.yaml`:
+
+- `values.aks.yaml` — ready-to-go values for Azure AKS deployments using an
+  internal Azure Load Balancer. Customize `loadBalancerIP` and (optionally)
+  the internal-LB subnet annotation before installing. See `QUICKSTART.md`.
+
 #### 4. (Optional) Install cert-manager
 
 You have two options to install cert-manager:
