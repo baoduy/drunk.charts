@@ -1,0 +1,14 @@
+# ClusterIssuer resources (conditional)
+{{- if .Values.clusterIssuers.enabled }}
+{{- range .Values.clusterIssuers.issuers }}
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- include "gateway.labels" $ | nindent 4 }}
+spec:
+  {{- toYaml .spec | nindent 2 }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,29 @@
+# Certificate resources for TLS secrets
+{{- if and .Values.certManager.enabled .Values.clusterIssuers.enabled }}
+{{- range .Values.domains }}
+{{- range .listeners }}
+{{- if and .tls .tls.certificateRefs }}
+{{- $certRef := index .tls.certificateRefs 0 }}
+{{- $issuer := index $.Values.clusterIssuers.issuers 0 }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $certRef.name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "gateway.labels" $ | nindent 4 }}
+spec:
+  secretName: {{ $certRef.name }}
+  issuerRef:
+    name: {{ $issuer.name }}
+    kind: ClusterIssuer
+  dnsNames:
+  - "{{ .hostname }}"
+  {{- if hasSuffix "*" .hostname }}
+  - "{{ trimPrefix "*." .hostname }}"
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
