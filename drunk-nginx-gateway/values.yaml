@@ -1,6 +1,19 @@
 # Default values for drunk-nginx-gateway
 # This chart deploys Kubernetes Gateway API CRDs, a GatewayClass, and optionally
 # the NGINX Gateway Fabric controller (vendored as a subchart).
+#
+# YAML anchors (DRY defaults):
+#   The `# variables` block below declares anchors used elsewhere in this file
+#   to keep the GatewayClass identity (name + controller) consistent. Anchors
+#   are resolved at YAML parse time, per file — they DRY the defaults but do
+#   NOT propagate through `--set` overrides. To override the gateway class
+#   name, set each consumer path explicitly (e.g.
+#   `--set gatewayClass.name=foo --set gateway.gatewayClassName=foo
+#   --set nginxGatewayFabric.nginxGateway.gatewayClassName=foo`).
+
+# variables
+gatewayClassName: &gatewayClassName "nginx"
+gatewayControllerName: &gatewayControllerName "gateway.nginx.org/nginx-gateway-controller"
 
 # Target namespace for Gateway resources (Gateways). If empty, uses release namespace.
 namespace: ""
@@ -19,8 +32,8 @@ gatewayAPI:
 # `nginxGatewayFabric.nginxGateway.gatewayClassName` / `gatewayControllerName`.
 gatewayClass:
   enabled: true
-  name: "nginx"
-  controllerName: "gateway.nginx.org/nginx-gateway-controller"
+  name: *gatewayClassName
+  controllerName: *gatewayControllerName
   description: "NGINX Gateway Fabric Controller"
   annotations: {}
   labels: {}
@@ -35,7 +48,7 @@ gatewayClass:
 gateway:
   enabled: false
   name: "shared-gateway"
-  gatewayClassName: "nginx"
+  gatewayClassName: *gatewayClassName
   annotations:
     # cert-manager.io/cluster-issuer: "letsencrypt-prod"
   labels: {}
@@ -142,8 +155,8 @@ nginxGatewayFabric:
   enabled: false
   nginxGateway:
     # MUST match `gatewayClass.name` above when subchart-enabled.
-    gatewayClassName: "nginx"
-    gatewayControllerName: "gateway.nginx.org/nginx-gateway-controller"
+    gatewayClassName: *gatewayClassName
+    gatewayControllerName: *gatewayControllerName
   nginx:
     service:
       type: LoadBalancer
