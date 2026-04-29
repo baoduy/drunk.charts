@@ -43,13 +43,13 @@ traefik:
       service.beta.kubernetes.io/azure-load-balancer-internal: "true"
       # Optional: pin to a specific subnet
       # service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "<subnet-name>"
-    # Traefik 33.x service template renders .service.spec via toYaml directly into
+    # Traefik 33.2.1 service template renders .service.spec via toYaml directly into
     # the Service spec block. Fields not explicitly handled by the template
     # (loadBalancerIP, externalTrafficPolicy) must be nested here.
     spec:
       externalTrafficPolicy: "Local"
       loadBalancerIP: *loadBalancerIP
-  # Traefik 33.2.0 ports schema: overriding `port` alone replaces the entire
+  # Traefik 33.2.1 ports schema: overriding `port` alone replaces the entire
   # default port object (including `expose.default: true`), which would
   # silently prevent the Service from being rendered. Re-declare `expose`
   # explicitly to keep the Service visible.
