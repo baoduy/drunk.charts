@@ -8,15 +8,21 @@
 # Creates TLS Secrets for each entry in .Values.tlsSecrets where enabled is true (default)
 # Each TLS secret requires certificate and private key from either:
 # - Files: .crtFile and .keyFile (loaded from chart files)
-# - Inline: .crt and .key (base64 encoded values)
+# - Inline: .crt and .key (raw PEM, base64-encoded by this template)
 # Optional CA certificate can be provided via .caFile or .ca
 # Secret naming: "tls-<key>" where key is from .Values.tlsSecrets map
 {{- define "drunk-lib.tls" -}}
-{{- $root := . }}
-{{- $files := .Files }}
+{{- $files := .Files -}}
 {{- range $k, $v := .Values.tlsSecrets }}
-# Create TLS secret if enabled (default true)
 {{- if or (eq $v.enabled true) (eq $v.enabled nil) }}
+{{- $crt := "" -}}
+{{- if $v.crtFile -}}{{- $crt = $files.Get $v.crtFile -}}{{- else if $v.crt -}}{{- $crt = $v.crt -}}{{- end -}}
+{{- $key := "" -}}
+{{- if $v.keyFile -}}{{- $key = $files.Get $v.keyFile -}}{{- else if $v.key -}}{{- $key = $v.key -}}{{- end -}}
+{{- $ca := "" -}}
+{{- if $v.caFile -}}{{- $ca = $files.Get $v.caFile -}}{{- else if $v.ca -}}{{- $ca = $v.ca -}}{{- end -}}
+{{- if not $crt }}{{- fail (printf "tlsSecrets.%s requires crt or crtFile" $k) }}{{- end }}
+{{- if not $key }}{{- fail (printf "tlsSecrets.%s requires key or keyFile" $k) }}{{- end }}
 ---
 apiVersion: v1
 kind: Secret
@@ -24,32 +30,10 @@ metadata:
   name: tls-{{ $k }}
 type: kubernetes.io/tls
 data:
-  # TLS certificate: from file or inline content
-  tls.crt: |
-    {{- if $v.crtFile }}
-    {{ $files.Get $v.crtFile | b64enc }}
-    {{- else if $v.crt }}
-    {{ $v.crt | b64enc }}
-    {{- else }}
-    ""
-    {{- end }}
-  # TLS private key: from file or inline content
-  tls.key: |
-    {{- if $v.keyFile }}
-    {{ $files.Get $v.keyFile | b64enc }}
-    {{- else if $v.key }}
-    {{ $v.key | b64enc }}
-    {{- else }}
-    ""
-    {{- end }}
-  # Optional CA certificate: from file or inline content
-  {{- if or $v.ca $v.caFile }}
-  ca.crt: |
-    {{- if $v.caFile }}
-    {{ $files.Get $v.caFile | b64enc }}
-    {{- else if $v.ca }}
-    {{ $v.ca | b64enc }}
-    {{- end }}
+  tls.crt: {{ $crt | b64enc }}
+  tls.key: {{ $key | b64enc }}
+  {{- if $ca }}
+  ca.crt: {{ $ca | b64enc }}
   {{- end }}
 {{- end }}
 {{- end }}
