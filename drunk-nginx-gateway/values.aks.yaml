@@ -37,12 +37,21 @@ nginxGatewayFabric:
   nginx:
     service:
       type: LoadBalancer
-      annotations:
-        service.beta.kubernetes.io/azure-load-balancer-internal: "true"
-        # Optional: pin to a specific subnet
-        # service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "<subnet-name>"
       externalTrafficPolicy: "Local"
       loadBalancerIP: *loadBalancerIP
+      # NGF 2.5.1's NginxProxy CRD does not have an `annotations` field under
+      # `service` — Kubernetes structural schema pruning would silently strip
+      # any value placed there. Use NGF's documented `patches` escape hatch
+      # (StrategicMerge), which has x-kubernetes-preserve-unknown-fields=true
+      # and survives admission.
+      patches:
+        - type: StrategicMerge
+          value:
+            metadata:
+              annotations:
+                service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+                # Optional: pin to a specific subnet — uncomment and set the subnet name
+                # service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "<subnet-name>"
 
 # Example domain Gateway for AKS — uncomment and customize.
 domains: []
