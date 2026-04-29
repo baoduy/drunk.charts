@@ -152,12 +152,6 @@ helm install myapp drunk-charts/drunk-app \
   --set httpRoute.hostnames[0]=myapp.drunk.dev
 ```
 
-## Next Steps
-
-- See [README.md](README.md) for full documentation
-- Check [examples/](examples/) for more configurations
-- Read [nginx-to-gateway-migration.md](../docs/nginx-to-gateway-migration.md) for migration guide
-
 ## Azure AKS install (internal Load Balancer)
 
 For Azure AKS deployments needing an **internal** Azure Load Balancer
@@ -187,6 +181,12 @@ annotation.
 >    port object's `expose` field.
 >
 > Leave the structure as-is when customizing.
+
+## Next Steps
+
+- See [README.md](README.md) for full documentation
+- Check [examples/](examples/) for more configurations
+- Read [nginx-to-gateway-migration.md](../docs/nginx-to-gateway-migration.md) for migration guide
 
 ## Troubleshooting
 
