@@ -187,13 +187,12 @@ echo ""
 print_info "Testing specific scenarios..."
 
 # Scenario 1: cert-manager integration
+# Note: templates/clusterissuer.yaml reads .Values.clusterIssuers.{enabled,issuers[]}
+# (top-level), NOT .Values.certManager.clusterIssuers[]. Use the correct paths.
 RENDERED=$(helm template test "$CHART_DIR" \
-    --set certManager.clusterIssuersEnabled=true \
-    --set 'certManager.clusterIssuers[0].name=test-issuer' \
-    --set 'certManager.clusterIssuers[0].email=test@example.com' \
-    --set 'certManager.clusterIssuers[0].server=https://acme.example.com' \
-    --set 'certManager.clusterIssuers[0].privateKeySecretRef.name=test-key' \
-    --set 'certManager.clusterIssuers[0].solvers[0].http01.gatewayHTTPRoute.parentRefs[0].name=test-gateway' 2>&1)
+    --set clusterIssuers.enabled=true \
+    --set 'clusterIssuers.issuers[0].name=test-issuer' \
+    --set 'clusterIssuers.issuers[0].spec.selfSigned={}' 2>&1 || true)
 
 if echo "$RENDERED" | grep -q "kind: ClusterIssuer"; then
     print_success "cert-manager ClusterIssuer renders correctly"
