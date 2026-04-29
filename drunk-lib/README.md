@@ -1,33 +1,81 @@
-# Drunk-lib Helm Chart Library
+# drunk-lib — Helm Library Chart
 
-Welcome to the **Drunk-lib** Helm chart library. This project serves as a collection of reusable Helm chart templates to streamline the development and deployment of Kubernetes applications.
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/drunk-app)](https://artifacthub.io/packages/search?repo=drunk-app)
 
-## Table of Contents
+`drunk-lib` is a **library Helm chart** (`type: library`) — it ships only reusable named templates, not deployable resources. Application charts add it as a dependency and pull in the resources they need.
 
-- [Drunk-lib Helm Chart Library](#drunk-lib-helm-chart-library)
-  - [Table of Contents](#table-of-contents)
-  - [Introduction](#introduction)
-    - [SecretProvider (Azure Key Vault)](#secretprovider-azure-key-vault)
-  - [Reference](#reference)
-  - [Contributing](#contributing)
-  - [License](#license)
+The application chart [`drunk-app`](../drunk-app) is the canonical consumer; each `drunk-app/templates/<kind>.yaml` is a one-line wrapper that calls the matching `drunk-lib.<name>` include.
 
-## Introduction
+## Repository
 
-The **Drunk-lib** Helm chart library is designed to provide a set of standardized, optimized, and reusable templates that can be utilized across multiple projects and environments. Whether you're deploying a microservice or a complex application stack, Drunk-lib offers flexibility and efficiency.
+- Source: <https://github.com/baoduy/drunk.charts>
+- Hosted index: <https://baoduy.github.io/drunk.charts/drunk-lib>
 
-### Gateway API Support
+## Adding the dependency
 
-Drunk-lib provides modern Kubernetes Gateway API templates as an alternative to traditional Ingress resources. The Gateway API offers more advanced traffic management capabilities and better role separation between platform and application teams.
+```yaml
+# Chart.yaml of the consumer chart
+dependencies:
+  - name: drunk-lib
+    version: 1.x.x
+    repository: "https://baoduy.github.io/drunk.charts/drunk-lib"
+```
 
-#### Gateway Resource
+Then `helm dependency update` and reference any of the named templates below from `<consumer>/templates/*.yaml`.
 
-Creates a Gateway resource that defines network entry points for your cluster.
+## Available templates
 
-- Template: `templates/_gateway.tpl` (named template `drunk-lib.gateway`)
-- Values key: `gateway`
+| Template file | Include name | Values key | Generates |
+|---|---|---|---|
+| `_configMap.tpl` | `drunk-lib.configMap` | `configMap`, `configFrom` | `ConfigMap` |
+| `_cronjob.tpl` | `drunk-lib.cronJobs` | `cronJobs[]` | `CronJob` (one per entry) |
+| `_deployment.tpl` | `drunk-lib.deployment` | `deployment`, `global`, `env`, `volumes`, `secretProvider` | `Deployment` |
+| `_gateway.tpl` | `drunk-lib.gateway` | `gateway` | Gateway API `Gateway` |
+| `_hpa.tpl` | `drunk-lib.hpa` | `autoscaling` | `HorizontalPodAutoscaler` |
+| `_httproute.tpl` | `drunk-lib.httpRoute` | `httpRoute` | Gateway API `HTTPRoute` |
+| `_imagePull-secret.tpl` | `drunk-lib.imagePullSecret` | `imageCredentials` | dockerconfig `Secret` |
+| `_ingress.tpl` | `drunk-lib.ingress` | `ingress` | networking.k8s.io/v1 `Ingress` |
+| `_job.tpl` | `drunk-lib.jobs` | `jobs[]` | `Job` (one per entry) |
+| `_networkPolicy.tpl` | `drunk-lib.networkPolicies` | `networkPolicy`, `networkPolicies[]` | `NetworkPolicy` |
+| `_secretprovider.tpl` | `drunk-lib.secretProvider` | `secretProvider` | `SecretProviderClass` (CSI Secrets Store) |
+| `_secrets.tpl` | `drunk-lib.secrets` | `secrets`, `secretFrom` | `Secret` |
+| `_service.tpl` | `drunk-lib.service` | `service`, `deployment.ports` | `Service` |
+| `_serviceAccount.tpl` | `drunk-lib.serviceAccount` | `serviceAccount` | `ServiceAccount` |
+| `_statefulset.tpl` | `drunk-lib.statefulset` | `statefulset`, `global`, `volumes` | `StatefulSet` + `volumeClaimTemplates` |
+| `_tls-secrets.tpl` | `drunk-lib.tls` | `tlsSecrets{}` | `kubernetes.io/tls` `Secret` (one per key) |
+| `_volumes.tpl` | `drunk-lib.volumes` | `volumes` | `PersistentVolumeClaim` (one per non-emptyDir entry) |
+| `_backend-tls-policy.tpl` | `drunk-lib.backendTlsPolicy` | `backendTlsPolicy` | Gateway API `BackendTLSPolicy` |
 
-Minimal values example (disabled by default):
+## Aggregator
+
+For consumers that want everything in a single line, `_helpers.tpl` defines `drunk-lib.all` which expands to every template above:
+
+```yaml
+{{ include "drunk-lib.all" . }}
+```
+
+## Naming helpers
+
+`_helpers.tpl` exposes name templates that consumer charts can rely on:
+
+| Helper | Returns |
+|---|---|
+| `app.name` | Chart name (or `nameOverride`) truncated to 63 chars |
+| `app.fullname` | `<release>-<name>` (or `fullnameOverride`) |
+| `app.chart` | `<chart>-<version>` |
+| `app.labels` | Standard labels block (chart, name, instance, version, managed-by) |
+| `app.selectorLabels` | Selector subset of labels |
+| `app.serviceAccountName` | Resolved ServiceAccount name |
+| `app.checksums` | `checksum/configs` and `checksum/secrets` annotations for pod restart on change |
+| `app.secretProviderName` | `<spName>` — `secretProvider.name` or `<app.name>-spc` |
+| `app.secretProviderVolumeName` | `<spName>-vol` — Pod volume name for the CSI Secrets Store mount |
+| `app.secretProviderClassName` | `<spName>-cls` — `SecretProviderClass` resource name |
+
+The three `secretProvider*` helpers replace the previous inline `printf "%s-spc" ...` pattern duplicated across deployment/statefulset/job/cronjob templates.
+
+## Gateway API support
+
+Drunk-lib supports the Kubernetes Gateway API as an alternative to traditional `Ingress`. Both `Gateway` and `HTTPRoute` are off by default.
 
 ```yaml
 gateway:
@@ -46,18 +94,7 @@ gateway:
         mode: Terminate
         certificateRefs:
           - name: example-tls
-```
 
-#### HTTPRoute Resource
-
-Creates an HTTPRoute resource that defines how HTTP/HTTPS traffic is routed to services.
-
-- Template: `templates/_httproute.tpl` (named template `drunk-lib.httpRoute`)
-- Values key: `httpRoute`
-
-Minimal values example (disabled by default):
-
-```yaml
 httpRoute:
   enabled: true
   hostnames:
@@ -72,57 +109,17 @@ httpRoute:
           port: 80
 ```
 
-Advanced example with filters:
+## SecretProviderClass (Azure Key Vault, AWS Secrets Manager, GCP Secret Manager)
 
 ```yaml
-httpRoute:
-  enabled: true
-  hostnames:
-    - "myapp.example.com"
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /api
-      filters:
-        - type: RequestHeaderModifier
-          requestHeaderModifier:
-            add:
-              - name: X-Custom-Header
-                value: custom-value
-      backendRefs:
-        - name: api-service
-          port: 8080
-          weight: 80
-        - name: api-service-canary
-          port: 8080
-          weight: 20
-```
-
-Include in a consuming chart template with:
-
-```
-{{ include "drunk-lib.gateway" . }}
-{{ include "drunk-lib.httpRoute" . }}
-```
-
-### SecretProvider (Azure Key Vault)
-
-Drunk-lib provides a reusable template to render a `secretProviderClass` for the Secrets Store CSI Driver with Azure Key Vault provider.
-
-- Template: `templates/_secretprovider.tpl` (named template `drunk-lib.secretProvider`)
-- Values key: `secretProvider`
-
-Minimal values example (disabled by default):
-
-```
 secretProvider:
   enabled: true
   name: my-spc
-  tenantId: "<tenant-guid>"
-  vaultName: "my-keyvault"
-  usePodIdentity: false
-  useWorkloadIdentity: true
+  provider:
+    name: azure          # azure | aws | gcp
+    tenantId: "<tenant-guid>"
+    vaultName: "my-keyvault"
+    useWorkloadIdentity: true
   objects:
     - objectName: my-secret
       objectType: secret
@@ -134,21 +131,31 @@ secretProvider:
           objectName: my-secret
 ```
 
-Include in a consuming chart template with:
+When `secretObjects` is omitted, drunk-lib auto-generates a `secretObjects` mapping from `objects[]`.
 
+## TLS secrets
+
+```yaml
+tlsSecrets:
+  cloudflare:
+    enabled: true
+    crt: <base64-encoded PEM>   # OR crtFile: certs/cloudflare.crt
+    key: <base64-encoded PEM>   # OR keyFile: certs/cloudflare.key
+    ca:  <base64-encoded PEM>   # OR caFile:  certs/cloudflare-ca.crt   (optional)
 ```
-{{ include "drunk-lib.secretProvider" . }}
+
+Both `crt` and `key` are required by `kubernetes.io/tls`; the template fails fast at render time if either is missing. Use `enabled: false` to disable an entry without removing it from values.
+
+## Testing
+
+This repository uses [helm-unittest](https://github.com/helm-unittest/helm-unittest). Run:
+
+```bash
+./drunk-lib/verify.sh   # packages, indexes, and copies the latest .tgz to drunk-app/charts
 ```
 
-## Reference
-
-- Gateway API: https://gateway-api.sigs.k8s.io/
-- Azure Key Vault Secrets Store CSI Driver: https://azure.github.io/secrets-store-csi-driver-provider-azure/docs/getting-started/usage/
-
-## Contributing
-
-We welcome contributions to the **Drunk-lib** Helm chart library. If you'd like to contribute, please fork the repository and submit a pull request. Ensure your code adheres to the style and conventions used throughout the project.
+After any edit inside `drunk-lib/`, `verify.sh` rebuilds the package and refreshes `drunk-app/charts/drunk-lib-<version>.tgz` so consumer rendering picks up the change.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).

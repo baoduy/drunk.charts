@@ -1,19 +1,33 @@
 # Drunk App Helm Chart
 
-The Drunk App Helm Chart provides a robust and flexible framework for deploying the App on Kubernetes clusters. This chart allows users to easily manage, configure, and scale applications using the Helm package manager, streamlining the deployment process and facilitating the integration of essential application components such as container images, environment variables, secrets, and persistent storage.
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/drunk-app)](https://artifacthub.io/packages/search?repo=drunk-app)
+
+The Drunk App Helm Chart provides a robust and flexible framework for deploying applications on Kubernetes clusters. This chart allows users to easily manage, configure, and scale applications using the Helm package manager, streamlining the deployment process and facilitating the integration of essential application components such as container images, environment variables, secrets, and persistent storage.
+
+## Built on drunk-lib
+
+`drunk-app` is an **application chart** that is intentionally a thin wrapper over the [`drunk-lib`](../drunk-lib) library chart. Each file in [`templates/`](templates/) is a one-line include of a `drunk-lib.<name>` named template — drunk-lib owns the rendering logic, and drunk-app only declares which resources are emitted and what values they receive.
+
+```yaml
+# drunk-app/Chart.yaml (excerpt)
+dependencies:
+  - name: drunk-lib
+    version: 1.x.x
+    repository: "file://../drunk-lib"
+```
+
+Run `helm dependency update ./drunk-app` after pulling a new drunk-lib version so `drunk-app/charts/drunk-lib-<version>.tgz` is refreshed before rendering. `drunk-lib/verify.sh` does this automatically on every drunk-lib package step.
+
+If you need an unsupported resource, prefer adding the named template to drunk-lib (so other consumers benefit) rather than inlining it here.
 
 ## Key Features
 
 - **Simplified Deployment**: Quickly deploy complex applications with customizable configurations tailored to specific environments using Helm.
 - **Flexible Configuration**: Fine-tune application settings including image repositories, environment variables, secrets, and more through an organized set of parameters.
-
 - **Automatic Scaling**: Enable horizontal pod autoscaling to dynamically adjust the number of running pods based on resource utilization.
-
-- **Integrated Security**: Leverage Kubernetes secrets and TLS configurations to securely manage sensitive information and encrypted communications.
-
+- **Integrated Security**: Leverage Kubernetes Secrets, TLS, and the CSI Secrets Store driver (Azure Key Vault, AWS Secrets Manager, GCP Secret Manager) to securely manage sensitive information.
 - **Job Scheduling**: Streamline recurring tasks with CronJobs and batch processing workflows with Jobs, integrated directly into your Kubernetes environment.
-
-- **Comprehensive Ingress Management**: Configure external access to your application using Kubernetes ingress resources, complete with TLS support and multiple host routing options.
+- **Ingress and Gateway API**: Configure external access via classic `Ingress` resources or the modern Kubernetes Gateway API (`Gateway` + `HTTPRoute`), with TLS support and multi-host routing.
 
 Perfectly suited for both development and production environments, this Helm chart ensures that deploying the Drunk Test App is seamless, repeatable, and efficient while maintaining a high degree of customization. Whether you're setting up a simple app or managing a complex microservices architecture.
 
@@ -165,6 +179,37 @@ Settings for managing external access to the application.
 | `ingress.className` | Class name for ingress    | `nginx`                                                                                            |
 | `ingress.hosts`     | Hosts for ingress routing | `[{"host": "hello.drunkcoding.net", "port": 8080}, {"host": "api.drunkcoding.net", "port": 9090}]` |
 | `ingress.tls`       | TLS configuration         | `chart-example-tls`                                                                                |
+
+### Gateway API (Gateway + HTTPRoute)
+
+Modern alternative to `Ingress`. Both resources are off by default; enable independently. Requires a Gateway API controller installed in the cluster (e.g. `gateway-api-nginx`, `Cilium`, `Istio`).
+
+| Parameter                          | Description                                                  | Default        |
+| ---------------------------------- | ------------------------------------------------------------ | -------------- |
+| `gateway.enabled`                  | Render the `Gateway` resource                                | `false`        |
+| `gateway.gatewayClassName`         | Required when enabled — the `GatewayClass` to bind to        | —              |
+| `gateway.listeners[]`              | Listener specs (`name`, `protocol`, `port`, `hostname`, `tls`) | `[]`         |
+| `httpRoute.enabled`                | Render the `HTTPRoute` resource                              | `false`        |
+| `httpRoute.parentRefs[]`           | Gateways to attach to (defaults to one named after the app)  | `[]`           |
+| `httpRoute.hostnames[]`            | Host matches                                                 | `[]`           |
+| `httpRoute.rules[]`                | Match/filter/backendRef triples                              | `[]`           |
+
+See [`values.example.yaml`](values.example.yaml) for a full example, or the [drunk-lib Gateway API docs](../drunk-lib/README.md#gateway-api-support).
+
+### SecretProviderClass (CSI Secrets Store)
+
+Wires up the CSI Secrets Store driver to fetch secrets from external vaults. Auto-generates a `secretObjects` mapping from `.objects[]` if not provided.
+
+| Parameter                              | Description                                          | Default   |
+| -------------------------------------- | ---------------------------------------------------- | --------- |
+| `secretProvider.enabled`               | Render the `SecretProviderClass`                     | `false`   |
+| `secretProvider.name`                  | Override `<app.name>-spc`                            | (derived) |
+| `secretProvider.provider.name`         | `azure` \| `aws` \| `gcp`                            | `azure`   |
+| `secretProvider.provider.vaultName`    | Vault / store name                                   | —         |
+| `secretProvider.provider.tenantId`     | Cloud tenant ID (Azure)                              | —         |
+| `secretProvider.provider.useWorkloadIdentity` | Use Workload Identity for vault access        | `false`   |
+| `secretProvider.objects[]`             | Secrets to fetch (string or `{objectName, objectType, ...}`) | `[]` |
+| `secretProvider.secretObjects[]`       | Optional Kubernetes Secret mapping                   | (auto)    |
 
 ### Network Policies
 
