@@ -1,0 +1,82 @@
+# Azure AKS deployment values for drunk-nginx-gateway
+# Purpose: Deploy NGINX Gateway Fabric on AKS with an INTERNAL Azure Load Balancer.
+#
+# Usage:
+#   helm dependency update ./drunk-nginx-gateway
+#   helm upgrade --install gateway ./drunk-nginx-gateway \
+#     -n drunk-nginx-gateway --create-namespace \
+#     -f drunk-nginx-gateway/values.aks.yaml
+#
+# Customize the loadBalancerIP and any domain hostnames for your environment.
+# The IP must be free and routable inside your AKS subnet.
+#
+# YAML anchors are local to this file; overriding the top-level
+# `loadBalancerIP` / `gatewayClassName` keys via `--set` does NOT propagate.
+# Override each consumer path explicitly if needed.
+
+# variables
+gatewayClassName: &gatewayClassName "nginx"
+gatewayControllerName: &gatewayControllerName "gateway.nginx.org/nginx-gateway-controller"
+loadBalancerIP: &loadBalancerIP "192.168.130.250"  # CHANGE ME — must be in your AKS subnet
+
+gatewayAPI:
+  version: "v1.2.0"
+  channel: "experimental"
+
+gatewayClass:
+  enabled: true
+  name: *gatewayClassName
+  controllerName: *gatewayControllerName
+
+# Enable vendored NGINX Gateway Fabric subchart with an internal Azure LB.
+nginxGatewayFabric:
+  enabled: true
+  nginxGateway:
+    gatewayClassName: *gatewayClassName
+    gatewayControllerName: *gatewayControllerName
+  nginx:
+    service:
+      type: LoadBalancer
+      annotations:
+        service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+        # Optional: pin to a specific subnet
+        # service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "<subnet-name>"
+      externalTrafficPolicy: "Local"
+      loadBalancerIP: *loadBalancerIP
+
+# Example domain Gateway for AKS — uncomment and customize.
+domains: []
+  # - name: "aks-internal"
+  #   enabled: true
+  #   gatewayClassName: *gatewayClassName
+  #   annotations:
+  #     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  #   listeners:
+  #     - name: http
+  #       protocol: HTTP
+  #       port: 80
+  #       hostname: "*.aks.example.com"
+  #     - name: https
+  #       protocol: HTTPS
+  #       port: 443
+  #       hostname: "*.aks.example.com"
+  #       tls:
+  #         mode: Terminate
+  #         certificateRefs:
+  #           - kind: Secret
+  #             name: aks-tls
+
+routeAccess:
+  mode: "Same"
+  namespaces: []
+  labelKey: "gateway.drunk.charts/access"
+  labelValue: ""
+
+# cert-manager left disabled by default. Enable and configure once your
+# DNS-01 solver / ACME credentials are in place.
+cert-manager:
+  enabled: false
+
+clusterIssuers:
+  enabled: false
+  issuers: []
