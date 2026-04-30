@@ -1,0 +1,11 @@
+{
+  "name": "drunk-app",
+  "version": "1.0.0",
+  "description": "AI assistant for configuring drunk-app Helm chart deployments — answers questions, generates values.yaml, validates configurations",
+  "author": {
+    "name": "Steven Hoang"
+  },
+  "repository": "https://github.com/baoduy/drunk.charts",
+  "license": "MIT",
+  "keywords": ["helm", "kubernetes", "drunk-app", "values", "configuration"]
+}

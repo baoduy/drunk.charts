@@ -1,3 +1,112 @@
+# drunk-app Docs & Plugin Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Rewrite `docs/drunk-app.md` as a values-first comprehensive reference, update `drunk-app/README.md` as a lean quickstart, and create an installable Claude Code plugin (`drunk-app`) that acts as an AI assistant for developers using the chart.
+
+**Architecture:** Five files are created or replaced. All content is derived from `values.example.yaml` (source of truth) and `values.yaml` (defaults). The plugin follows the `.claude-plugin/` manifest convention used by the official superpowers plugin: a `marketplace.json` at the repo root registers the marketplace, and a `plugin.json` inside each plugin's subdirectory provides metadata. Skills live at `plugins/<name>/skills/<name>/SKILL.md`.
+
+**Tech Stack:** Markdown, JSON (plugin manifests), Helm YAML (examples embedded in docs). No build step — all files are static.
+
+---
+
+## File Map
+
+| Action | Path | Purpose |
+|--------|------|---------|
+| Rewrite | `docs/drunk-app.md` | Full values-first reference (~500 lines) |
+| Rewrite | `drunk-app/README.md` | Lean quickstart (~60 lines) pointing to full docs |
+| Create | `.claude-plugin/marketplace.json` | Registers repo as plugin marketplace |
+| Create | `plugins/drunk-app/.claude-plugin/plugin.json` | Plugin metadata |
+| Create | `plugins/drunk-app/skills/drunk-app/SKILL.md` | Skill content (schema + generation + validation) |
+
+---
+
+## Task 1: Plugin Infrastructure Files
+
+**Files:**
+- Create: `.claude-plugin/marketplace.json`
+- Create: `plugins/drunk-app/.claude-plugin/plugin.json`
+
+- [ ] **Step 1: Create directory structure**
+
+```bash
+mkdir -p .claude-plugin
+mkdir -p plugins/drunk-app/.claude-plugin
+mkdir -p plugins/drunk-app/skills/drunk-app
+```
+
+- [ ] **Step 2: Write `.claude-plugin/marketplace.json`**
+
+Write this file exactly:
+
+```json
+{
+  "name": "drunk-charts",
+  "owner": {
+    "name": "Steven Hoang"
+  },
+  "metadata": {
+    "description": "Helm chart plugins for drunk.charts",
+    "homepage": "https://github.com/baoduy/drunk.charts"
+  },
+  "plugins": [
+    {
+      "name": "drunk-app",
+      "version": "1.0.0",
+      "source": "./plugins/drunk-app",
+      "description": "AI assistant for configuring drunk-app Helm chart deployments"
+    }
+  ]
+}
+```
+
+- [ ] **Step 3: Write `plugins/drunk-app/.claude-plugin/plugin.json`**
+
+Write this file exactly:
+
+```json
+{
+  "name": "drunk-app",
+  "version": "1.0.0",
+  "description": "AI assistant for configuring drunk-app Helm chart deployments — answers questions, generates values.yaml, validates configurations",
+  "author": {
+    "name": "Steven Hoang"
+  },
+  "repository": "https://github.com/baoduy/drunk.charts",
+  "license": "MIT",
+  "keywords": ["helm", "kubernetes", "drunk-app", "values", "configuration"]
+}
+```
+
+- [ ] **Step 4: Validate JSON files**
+
+```bash
+cat .claude-plugin/marketplace.json | python3 -m json.tool > /dev/null && echo "marketplace.json OK"
+cat plugins/drunk-app/.claude-plugin/plugin.json | python3 -m json.tool > /dev/null && echo "plugin.json OK"
+```
+
+Expected: both print `OK` with no errors.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add .claude-plugin/marketplace.json plugins/drunk-app/.claude-plugin/plugin.json
+git commit -m "feat(plugin): add drunk-app Claude Code plugin infrastructure"
+```
+
+---
+
+## Task 2: Rewrite `docs/drunk-app.md`
+
+**Files:**
+- Rewrite: `docs/drunk-app.md`
+
+- [ ] **Step 1: Write `docs/drunk-app.md` with the full content below**
+
+Write this file exactly (replace all existing content):
+
+````markdown
 # Drunk App Helm Chart
 
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/drunk-app)](https://artifacthub.io/packages/search?repo=drunk-app)
@@ -810,12 +919,12 @@ networkPolicy:
     - Egress
   ingress:
     - from:
-        - podSelector:
-            matchLabels:
-              app: allowed-app
+      - podSelector:
+          matchLabels:
+            app: allowed-app
   egress:
     - to:
-        - namespaceSelector: {}
+      - namespaceSelector: {}
 ```
 
 ---
@@ -983,12 +1092,12 @@ networkPolicies:
       - Ingress
     ingress:
       - from:
-          - podSelector:
-              matchLabels:
-                app.kubernetes.io/name: payment-api
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: payment-api
         ports:
-          - protocol: TCP
-            port: 5432
+        - protocol: TCP
+          port: 5432
 ```
 
 ---
@@ -1056,3 +1165,791 @@ If you need an unsupported resource type, prefer adding a named template to `dru
 ## License
 
 MIT License — [Steven Hoang](https://drunkcoding.net)
+````
+
+- [ ] **Step 2: Verify the file was written**
+
+```bash
+wc -l docs/drunk-app.md
+```
+
+Expected: approximately 500–560 lines.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add docs/drunk-app.md
+git commit -m "docs(drunk-app): rewrite as values-first comprehensive reference"
+```
+
+---
+
+## Task 3: Rewrite `drunk-app/README.md`
+
+**Files:**
+- Rewrite: `drunk-app/README.md`
+
+- [ ] **Step 1: Write `drunk-app/README.md` with the full content below**
+
+Write this file exactly (replace all existing content):
+
+```markdown
+# Drunk App Helm Chart
+
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/drunk-app)](https://artifacthub.io/packages/search?repo=drunk-app)
+
+The **drunk-app** Helm chart is a production-ready framework for deploying applications on Kubernetes. Built as a thin wrapper over [`drunk-lib`](../drunk-lib), it handles Deployments, StatefulSets, CronJobs, Jobs, Ingress, Gateway API, TLS, Secrets, Volumes, and HPA from a single `values.yaml`.
+
+## Prerequisites
+
+- Kubernetes 1.19+
+- Helm 3.0+
+
+## Installation
+
+```bash
+helm repo add drunk-charts https://baoduy.github.io/drunk.charts/drunk-app
+helm repo update
+helm install my-app drunk-charts/drunk-app -f my-values.yaml
+```
+
+## Minimal Configuration
+
+```yaml
+global:
+  image: "myregistry/myapp"
+  tag: "v1.0.0"
+
+deployment:
+  ports:
+    http: 8080
+  liveness: "/healthz"
+
+volumes:
+  tmp:
+    mountPath: "/tmp"
+    emptyDir: true
+```
+
+## Key Features
+
+- **Deployment & StatefulSet** — choose the right workload type
+- **CronJobs & Jobs** — scheduled and one-time batch tasks
+- **Environment & Config** — env vars, ConfigMaps, external ConfigMap references
+- **Secrets** — inline secrets, external references, CSI Secrets Store (Azure/AWS/GCP)
+- **TLS** — inline base64, file-based, or CA-only certificate modes
+- **Ingress & Gateway API** — classic Ingress or HTTPRoute with parentRef
+- **HPA** — CPU and memory-based autoscaling
+- **Network Policies** — multiple named policies with fine-grained ingress/egress rules
+- **Storage** — PVC map and emptyDir volumes
+- **Security** — non-root, read-only root filesystem, capability drops by default
+
+## Built on drunk-lib
+
+Every template in [`templates/`](templates/) is a one-line include of a `drunk-lib.<name>` named template. All rendering logic lives in `drunk-lib`.
+
+```bash
+# Refresh drunk-lib after a version bump
+helm dependency update ./drunk-app
+```
+
+## Gateway API (Gateway + HTTPRoute)
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `gateway.enabled` | Render the `Gateway` resource | `false` |
+| `gateway.gatewayClassName` | GatewayClass to bind to | — |
+| `gateway.listeners[]` | Listener specifications | `[]` |
+| `httpRoute.enabled` | Render the `HTTPRoute` resource | `false` |
+| `httpRoute.parentRefs[]` | Gateways to attach to | `[]` |
+| `httpRoute.hostnames[]` | Hostname matches | `[]` |
+
+## Full Documentation
+
+See **[docs/drunk-app.md](../docs/drunk-app.md)** for the complete configuration reference — all parameters, types, defaults, and usage examples.
+
+## Claude Code Plugin
+
+Install the AI assistant for drunk-app to get help configuring `values.yaml`:
+
+```bash
+plugin marketplace add baoduy/drunk.charts
+plugin install drunk-app
+```
+
+Then use `/drunk-app` in any Claude Code session.
+
+## Contributing
+
+Contributions welcome. Open a [GitHub issue](https://github.com/baoduy/drunk.charts/issues) for questions or bugs.
+
+## License
+
+MIT — [Steven Hoang](https://drunkcoding.net)
+```
+
+- [ ] **Step 2: Verify line count**
+
+```bash
+wc -l drunk-app/README.md
+```
+
+Expected: approximately 70–80 lines.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add drunk-app/README.md
+git commit -m "docs(drunk-app): replace README with lean quickstart pointing to full docs"
+```
+
+---
+
+## Task 4: Write the Plugin Skill (`SKILL.md`)
+
+**Files:**
+- Create: `plugins/drunk-app/skills/drunk-app/SKILL.md`
+
+- [ ] **Step 1: Write `plugins/drunk-app/skills/drunk-app/SKILL.md` with the full content below**
+
+Write this file exactly:
+
+````markdown
+---
+name: drunk-app
+description: "Use when working with the drunk-app Helm chart — configuring values.yaml, understanding parameters, generating deployment configs, or validating settings. Activate with /drunk-app or when the user mentions drunk-app, drunk-charts, or asks for help writing a values.yaml for this chart."
+---
+
+# drunk-app Helm Assistant
+
+You are an expert in the **drunk-app** Helm chart from [drunk.charts](https://github.com/baoduy/drunk.charts). Help developers configure, generate, and validate `values.yaml` files.
+
+## What drunk-app Is
+
+`drunk-app` is an application Helm chart (v1.3.x) that wraps the `drunk-lib` library chart. Install it:
+
+```bash
+plugin marketplace add baoduy/drunk.charts
+helm repo add drunk-charts https://baoduy.github.io/drunk.charts/drunk-app
+helm repo update
+helm install my-app drunk-charts/drunk-app -f my-values.yaml
+```
+
+Supported resources: `Deployment`, `StatefulSet`, `CronJob`, `Job`, `ConfigMap`, `Secret`, `SecretProviderClass`, TLS Secrets, `Ingress`, `HTTPRoute`, `Gateway`, `HPA`, `NetworkPolicy`, `ServiceAccount`, `PVC`, emptyDir.
+
+## Your Three Modes
+
+### Mode 1 — Answer
+
+When the developer asks "how does X work?" or "what does Y do?", explain from the schema below with a YAML snippet.
+
+### Mode 2 — Generate
+
+When the developer says "give me a values.yaml for [use case]", produce a **complete, correct** values.yaml. Always include:
+- `global.image` and `global.tag`
+- At least one workload (`deployment`, `statefulset`, or jobs/cronJobs)
+- A `tmp` emptyDir volume (required because `readOnlyRootFilesystem: true` by default)
+
+Use the Generation Templates section below as your starting points.
+
+### Mode 3 — Validate
+
+When the developer pastes a values.yaml, run every item in the Validation Checklist and report all issues with specific fix instructions.
+
+---
+
+## Full Parameter Schema
+
+### nameOverride
+```yaml
+nameOverride: string   # optional — overrides chart name in resource labels
+                       # DO NOT use fullnameOverride
+```
+
+### imageCredentials
+```yaml
+imageCredentials:
+  name: string        # required — pull secret resource name
+  registry: string    # required — registry URL
+  username: string    # required
+  password: string    # required
+# Wire to pods: set global.imagePullSecret to the same value as imageCredentials.name
+```
+
+### global
+```yaml
+global:
+  image: string              # REQUIRED — no default
+  tag: string                # default: "latest"
+  imagePullPolicy: string    # default: "IfNotPresent" | "Always" | "Never"
+  storageClassName: string   # default storage class for PVCs
+  imagePullSecret: string    # pull secret name (must exist in namespace)
+  initContainer:             # runs before main container
+    image: string
+    command: string[]
+```
+
+### env
+```yaml
+env:
+  KEY: "value"   # plain env vars injected via ConfigMap
+```
+
+### configMap & configFrom
+```yaml
+configMap:
+  KEY: "value"   # creates a new ConfigMap
+
+configFrom:
+  - "existing-configmap-name"   # injects all keys from an existing ConfigMap
+```
+
+### secrets & secretFrom
+```yaml
+secrets:
+  KEY: "value"   # inline Secret (base64-encoded at rest)
+
+secretFrom:
+  - "existing-secret-name"   # injects all keys from an existing Secret
+```
+
+### secretProvider (CSI Secrets Store)
+```yaml
+secretProvider:
+  enabled: bool              # default: false
+  name: string               # optional override — default: <app>-spc
+  provider:
+    name: string             # REQUIRED when enabled: "azure" | "aws" | "gcp"
+    tenantId: string         # Azure only
+    vaultName: string        # REQUIRED when enabled
+    userAssignedIdentityID: string   # Azure only
+    usePodIdentity: bool     # default: false (Azure legacy)
+    useWorkloadIdentity: bool # default: false (recommended)
+  objects:
+    - objectName: string     # REQUIRED — secret name in vault
+      objectType: string     # REQUIRED — "secret" | "cert" | "key"
+      objectFormat: string   # optional — "pem" | "pfx"
+      objectEncoding: string # optional — "base64" | "utf-8"
+```
+
+### tlsSecrets — three modes
+```yaml
+# Mode 1: Inline base64
+tlsSecrets:
+  <name>:
+    enabled: bool
+    crt: string    # base64 certificate (required with key)
+    key: string    # base64 private key (required with crt)
+    ca: string     # optional base64 CA
+
+# Mode 2: File-based (files read at helm template/install time)
+tlsSecrets:
+  <name>:
+    enabled: bool
+    crtFile: string   # path to .crt file
+    keyFile: string   # path to .key file
+    caFile: string    # optional path to CA file
+
+# Mode 3: CA-only — DISABLED by default (not valid for kubernetes.io/tls)
+tlsSecrets:
+  <name>:
+    enabled: false   # must stay false unless crt+key are also provided
+    ca: string
+```
+
+### deployment
+```yaml
+deployment:
+  enabled: bool          # default: true — set false for cron-only apps
+  replicaCount: int      # default: 1
+  ports:
+    http: int            # default: 8080
+    tcp: int             # optional
+  liveness: string       # HTTP path e.g. "/healthz"
+  readiness: string      # HTTP path e.g. "/healthz/ready"
+  command: string[]      # override entrypoint
+  args: string[]
+  podAnnotations: {}
+  strategy:
+    type: string         # "RollingUpdate" (default) | "Recreate"
+    maxSurge: string     # default: "1" — ignored when type=Recreate
+    maxUnavailable: string # default: "1" — ignored when type=Recreate
+```
+
+### statefulset
+```yaml
+statefulset:
+  enabled: bool          # default: false
+  replicaCount: int      # default: 1
+  ports:
+    http: int
+    tcp: int
+  liveness: string
+  readiness: string
+  command: string[]
+  args: string[]
+  podAnnotations: {}
+# Do NOT enable both deployment and statefulset simultaneously
+```
+
+### cronJobs
+```yaml
+cronJobs:
+  - name: string          # REQUIRED, unique within chart
+    schedule: string      # REQUIRED, cron format e.g. "0 2 * * *"
+    command: string[]
+    args: string[]
+    restartPolicy: string # "OnFailure" (default) | "Never" | "Always"
+```
+
+### jobs
+```yaml
+jobs:
+  - name: string          # REQUIRED, unique within chart
+    command: string[]
+    args: string[]
+    restartPolicy: string # "OnFailure" (default) | "Never"
+```
+
+### volumes — MAP format (key = volume name)
+```yaml
+volumes:
+  <name>:                      # PVC volume
+    size: string               # REQUIRED e.g. "2Gi"
+    accessMode: string         # REQUIRED: "ReadWriteOnce" | "ReadWriteMany" | "ReadOnlyMany"
+    mountPath: string          # REQUIRED
+    storageClassName: string   # optional, falls back to global.storageClassName
+    subPath: string            # optional
+    readOnly: bool             # default: false
+  <name>:                      # emptyDir volume
+    mountPath: string          # REQUIRED
+    emptyDir: true             # REQUIRED: must be true
+    readOnly: bool             # default: false
+```
+
+### serviceAccount
+```yaml
+serviceAccount:
+  enabled: bool   # default: false
+  annotations: {} # e.g. IRSA, Workload Identity
+```
+
+### podSecurityContext & securityContext
+```yaml
+podSecurityContext:
+  fsGroup: int      # default: 10000
+  runAsUser: int    # default: 10000
+  runAsGroup: int   # default: 10000
+
+securityContext:
+  capabilities:
+    drop: ["ALL"]             # default
+  readOnlyRootFilesystem: bool      # default: true
+  allowPrivilegeEscalation: bool    # default: false
+  runAsNonRoot: bool                # default: true
+```
+
+### service
+```yaml
+service:
+  type: string   # default: "ClusterIP" | "NodePort" | "LoadBalancer"
+```
+
+### httpRoute (Gateway API)
+```yaml
+httpRoute:
+  enabled: bool
+  parentRefs:
+    - name: string        # REQUIRED — Gateway name
+      namespace: string   # REQUIRED — Gateway namespace
+      sectionName: string # optional — listener name
+  tlsValidation:
+    caCertificateRefs:
+      - group: string
+        kind: string
+        name: string
+  hostnames:
+    - string
+```
+
+### gateway
+```yaml
+gateway:
+  enabled: bool
+  gatewayClassName: string  # REQUIRED when enabled
+  listeners: []
+```
+
+### ingress
+```yaml
+ingress:
+  enabled: bool       # default: false
+  className: string   # e.g. "nginx"
+  hosts:
+    - host: string    # REQUIRED
+      port: int       # REQUIRED
+  tls: string         # TLS secret name
+```
+
+### resources
+```yaml
+resources:
+  limits:
+    cpu: string     # default: "100m"
+    memory: string  # default: "128Mi"
+  requests:
+    cpu: string     # default: "100m"
+    memory: string  # default: "128Mi"
+```
+
+### autoscaling
+```yaml
+autoscaling:
+  enabled: bool      # default: false
+  minReplicas: int   # default: 1
+  maxReplicas: int   # default: 100
+  targetCPUUtilizationPercentage: int    # optional
+  targetMemoryUtilizationPercentage: int # optional
+```
+
+### nodeSelector / tolerations / affinity
+```yaml
+nodeSelector: {}
+tolerations: []
+affinity: {}
+```
+
+### networkPolicies (recommended)
+```yaml
+networkPolicies:
+  - name: string              # REQUIRED
+    enabled: bool             # default: true
+    policyTypes: string[]     # REQUIRED: ["Ingress"] | ["Egress"] | ["Ingress","Egress"]
+    podSelector: {}           # optional, defaults to app labels
+    ingress: []
+    egress: []
+    labels: {}
+    nameSuffix: string
+```
+
+### networkPolicy (legacy single policy)
+```yaml
+networkPolicy:
+  policyTypes: string[]
+  podSelector: {}
+  ingress: []
+  egress: []
+```
+
+---
+
+## Generation Templates
+
+Fill in `<placeholders>` with real values.
+
+### Web Application
+```yaml
+nameOverride: "<app-name>"
+
+global:
+  image: "<registry/image>"
+  tag: "<tag>"
+
+deployment:
+  ports:
+    http: 8080
+  liveness: "/healthz"
+
+volumes:
+  tmp:
+    mountPath: "/tmp"
+    emptyDir: true
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: "<hostname>"
+      port: 8080
+
+resources:
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+```
+
+### Microservice with Private Registry + Secrets + Autoscaling
+```yaml
+nameOverride: "<app-name>"
+
+global:
+  image: "<registry/image>"
+  tag: "<tag>"
+  imagePullSecret: "<pull-secret-name>"
+
+imageCredentials:
+  name: "<pull-secret-name>"
+  registry: "<registry-url>"
+  username: "<username>"
+  password: "<password>"
+
+secrets:
+  DATABASE_URL: "<connection-string>"
+  API_KEY: "<key>"
+
+deployment:
+  ports:
+    http: 8080
+  liveness: "/health"
+  readiness: "/ready"
+  strategy:
+    type: "RollingUpdate"
+    maxSurge: "1"
+    maxUnavailable: "0"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetMemoryUtilizationPercentage: 80
+
+volumes:
+  tmp:
+    mountPath: "/tmp"
+    emptyDir: true
+
+resources:
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+```
+
+### Cron-Only App (no Deployment)
+```yaml
+nameOverride: "<app-name>"
+
+global:
+  image: "<registry/image>"
+  tag: "<tag>"
+
+deployment:
+  enabled: false
+
+cronJobs:
+  - name: "<job-name>"
+    schedule: "0 2 * * *"
+    command: ["<entrypoint>"]
+    restartPolicy: OnFailure
+
+volumes:
+  tmp:
+    mountPath: "/tmp"
+    emptyDir: true
+```
+
+### StatefulSet with Persistent Storage
+```yaml
+nameOverride: "<app-name>"
+
+global:
+  image: "<registry/image>"
+  tag: "<tag>"
+
+deployment:
+  enabled: false
+
+statefulset:
+  enabled: true
+  replicaCount: 1
+  ports:
+    tcp: <port>
+
+volumes:
+  data:
+    size: "10Gi"
+    accessMode: "ReadWriteOnce"
+    mountPath: "/data"
+  tmp:
+    mountPath: "/tmp"
+    emptyDir: true
+```
+
+### Azure Key Vault Secrets (CSI)
+```yaml
+secretProvider:
+  enabled: true
+  provider:
+    name: azure
+    tenantId: "<tenant-id>"
+    vaultName: "<vault-name>"
+    useWorkloadIdentity: true
+  objects:
+    - objectName: <secret-name>
+      objectType: secret
+
+serviceAccount:
+  enabled: true
+  annotations:
+    azure.workload.identity/client-id: "<client-id>"
+```
+
+---
+
+## Validation Checklist
+
+When reviewing a user's values.yaml, check ALL items and report every failure:
+
+1. **`global.image` is set** — no default. If missing, the chart will fail to render. Flag immediately.
+
+2. **At least one workload** — at least one of: `deployment.enabled: true` (or omitted, since default is true), `statefulset.enabled: true`, non-empty `cronJobs[]`, non-empty `jobs[]`.
+
+3. **Port matches app** — `deployment.ports.http` (or `statefulset.ports.http`) should match the port the container actually listens on.
+
+4. **`secretProvider` completeness** — if `secretProvider.enabled: true`, then `secretProvider.provider.name` AND `secretProvider.provider.vaultName` must be set.
+
+5. **`tlsSecrets` completeness** — if `tlsSecrets.<name>.enabled: true`, must have either (`crt` + `key`) or (`crtFile` + `keyFile`). A CA-only entry (`ca:` without `crt`+`key`) is invalid for `kubernetes.io/tls`.
+
+6. **HPA + replica floor** — if `autoscaling.enabled: true`, `deployment.replicaCount` should be ≥ `autoscaling.minReplicas`, otherwise the HPA will immediately scale up.
+
+7. **Egress + DNS** — if `networkPolicies` has any `Egress` policy, there must be a DNS rule (UDP port 53 to kube-system). Without it, DNS resolution breaks and the pod cannot reach anything by hostname.
+
+8. **PVC fields complete** — if a volume entry has `emptyDir` absent or `false`, then `size` and `accessMode` are required.
+
+9. **`readOnlyRootFilesystem` + tmp** — default `securityContext.readOnlyRootFilesystem: true` means the container cannot write to `/`. A `tmp` emptyDir volume is required for any app that writes temp files (most do).
+
+10. **imagePullSecret wired** — if `imageCredentials` is defined, `global.imagePullSecret` must match `imageCredentials.name`. If they don't match, the pod will fail to pull the image.
+
+---
+
+## Known Gotchas
+
+1. **`volumes` is a map, not an array.** Keys are volume names. Common mistake: writing `- name: tmp` (array syntax). Correct: `tmp:` (map key).
+
+2. **Do not enable `deployment` and `statefulset` together.** Use one or the other. StatefulSets are for workloads needing stable network identity or ordered pod startup.
+
+3. **`tlsSecrets` CA-only mode.** Setting `enabled: true` with only `ca:` will fail — Kubernetes requires both `tls.crt` and `tls.key`. Keep `enabled: false` for CA-only entries.
+
+4. **`secretProvider.provider.name` is the cloud type, not the resource name.** Values: `azure`, `aws`, `gcp`. The resource name override is `secretProvider.name`.
+
+5. **`configMap` vs `configFrom`.** `configMap` creates a new ConfigMap owned by this chart. `configFrom` references an existing external ConfigMap by name.
+
+6. **`deployment.strategy` with `Recreate`.** Fields `maxSurge` and `maxUnavailable` are silently ignored when `type: Recreate`.
+
+7. **`nameOverride` only.** Never set `fullnameOverride` — use `nameOverride` instead. The chart comment explicitly warns against this.
+
+8. **Egress network policies always need a DNS exception.** Port 53 UDP to `kube-system` is not automatic. Forget it and all hostname resolution silently fails.
+````
+
+- [ ] **Step 2: Verify the file was written**
+
+```bash
+head -5 plugins/drunk-app/skills/drunk-app/SKILL.md
+```
+
+Expected output starts with:
+```
+---
+name: drunk-app
+description: "Use when working with the drunk-app Helm chart
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add plugins/drunk-app/skills/drunk-app/SKILL.md
+git commit -m "feat(plugin): add drunk-app Claude Code skill with schema, templates, and validation"
+```
+
+---
+
+## Task 5: Verify and Final Commit
+
+**Files:** No new files — verification only.
+
+- [ ] **Step 1: Run verify.sh**
+
+```bash
+./drunk-lib/verify.sh
+```
+
+Expected: all tests pass, no errors. If verify.sh fails, investigate — this plan does not touch any chart templates, so a failure here indicates a pre-existing issue.
+
+- [ ] **Step 2: Verify plugin structure is complete**
+
+```bash
+find .claude-plugin plugins/drunk-app -type f | sort
+```
+
+Expected output:
+```
+.claude-plugin/marketplace.json
+plugins/drunk-app/.claude-plugin/plugin.json
+plugins/drunk-app/skills/drunk-app/SKILL.md
+```
+
+- [ ] **Step 3: Validate all JSON files**
+
+```bash
+for f in .claude-plugin/marketplace.json plugins/drunk-app/.claude-plugin/plugin.json; do
+  python3 -m json.tool "$f" > /dev/null && echo "$f OK"
+done
+```
+
+Expected: both print `OK`.
+
+- [ ] **Step 4: Verify docs line counts are reasonable**
+
+```bash
+wc -l docs/drunk-app.md drunk-app/README.md
+```
+
+Expected: `docs/drunk-app.md` ≥ 480 lines, `drunk-app/README.md` ≤ 85 lines.
+
+- [ ] **Step 5: Check SKILL.md frontmatter is valid**
+
+```bash
+head -4 plugins/drunk-app/skills/drunk-app/SKILL.md
+```
+
+Expected: starts with `---`, `name: drunk-app`, `description:` line, ends with `---`.
+
+- [ ] **Step 6: Final summary commit (if any unstaged files remain)**
+
+```bash
+git status
+```
+
+If all files were committed in previous tasks this will show a clean tree. If anything is untracked, add and commit:
+
+```bash
+git add -A
+git commit -m "docs(drunk-app): complete docs rewrite and Claude Code plugin"
+```
+
+---
+
+## Self-Review Notes
+
+**Spec coverage check:**
+- ✅ `docs/drunk-app.md` full rewrite — Task 2
+- ✅ `drunk-app/README.md` lean quickstart — Task 3
+- ✅ `.claude-plugin/marketplace.json` — Task 1
+- ✅ `plugins/drunk-app/.claude-plugin/plugin.json` — Task 1
+- ✅ `plugins/drunk-app/skills/drunk-app/SKILL.md` — Task 4
+- ✅ Verification + commit — Task 5
+- ✅ SKILL.md covers all three modes: answer, generate, validate
+- ✅ All 10 validation checklist items from spec are in SKILL.md
+- ✅ All 8 known gotchas from spec are in SKILL.md
+- ✅ All generation templates (web app, microservice, cron-only, statefulset) are in SKILL.md
+- ✅ `service.type` gap documented in docs
+- ✅ `gateway` section documented in docs
+
+**Placeholder scan:** No TBDs, no "implement later", no "similar to Task N". All file content is complete and literal.
+
+**Type consistency:** No code types involved — all markdown and JSON. File paths are consistent across all tasks.
