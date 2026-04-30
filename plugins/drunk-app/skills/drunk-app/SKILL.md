@@ -75,7 +75,7 @@ global:
 ### env
 ```yaml
 env:
-  KEY: "value"   # plain env vars injected via ConfigMap
+  KEY: "value"   # plain env vars injected directly as pod env (NOT via ConfigMap)
 ```
 
 ### configMap & configFrom
@@ -260,7 +260,13 @@ httpRoute:
 gateway:
   enabled: bool
   gatewayClassName: string  # REQUIRED when enabled
-  listeners: []
+  annotations: {}           # optional Gateway annotations
+  listeners:
+    - name: string          # REQUIRED — listener name e.g. "https"
+      protocol: string      # REQUIRED — "HTTP" | "HTTPS" | "TCP" | "TLS"
+      port: int             # REQUIRED — listener port e.g. 443
+      hostname: string      # optional — hostname filter
+      tls: {}               # optional — TLS config for HTTPS/TLS listeners
 ```
 
 ### ingress
@@ -498,7 +504,7 @@ When reviewing a user's values.yaml, check ALL items and report every failure:
 
 5. **`tlsSecrets` completeness** — if `tlsSecrets.<name>.enabled: true`, must have either (`crt` + `key`) or (`crtFile` + `keyFile`). A CA-only entry (`ca:` without `crt`+`key`) is invalid for `kubernetes.io/tls`.
 
-6. **HPA + replica floor** — if `autoscaling.enabled: true`, `deployment.replicaCount` should be ≥ `autoscaling.minReplicas`, otherwise the HPA will immediately scale up.
+6. **HPA + replica alignment** — if `autoscaling.enabled: true`, set `deployment.replicaCount` equal to `autoscaling.minReplicas`. If `replicaCount > minReplicas`, the HPA will scale down immediately on startup. If `replicaCount < minReplicas`, the HPA will scale up immediately.
 
 7. **Egress + DNS** — if `networkPolicies` has any `Egress` policy, there must be a DNS rule (UDP port 53 to kube-system). Without it, DNS resolution breaks and the pod cannot reach anything by hostname.
 
