@@ -810,12 +810,12 @@ networkPolicy:
     - Egress
   ingress:
     - from:
-      - podSelector:
-          matchLabels:
-            app: allowed-app
+        - podSelector:
+            matchLabels:
+              app: allowed-app
   egress:
     - to:
-      - namespaceSelector: {}
+        - namespaceSelector: {}
 ```
 
 ---
@@ -983,12 +983,12 @@ networkPolicies:
       - Ingress
     ingress:
       - from:
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: payment-api
+          - podSelector:
+              matchLabels:
+                app.kubernetes.io/name: payment-api
         ports:
-        - protocol: TCP
-          port: 5432
+          - protocol: TCP
+            port: 5432
 ```
 
 ---
