@@ -1,35 +1,75 @@
-# Drunk App Chart - Complete Guide
+# Drunk App Helm Chart
 
-The **drunk-app** Helm chart provides a robust and flexible framework for deploying applications on Kubernetes clusters. Built on top of the **drunk-lib** library chart, it offers a comprehensive set of features for production-ready deployments.
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/drunk-app)](https://artifacthub.io/packages/search?repo=drunk-app)
+
+The **drunk-app** Helm chart provides a production-ready framework for deploying applications on Kubernetes. It is a thin wrapper over the [`drunk-lib`](../drunk-lib) library chart — every template in [`templates/`](../drunk-app/templates/) is a single-line include of a `drunk-lib.<name>` named template.
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Installation](#installation)
 - [Configuration Reference](#configuration-reference)
+  - [nameOverride](#nameoverride)
+  - [imageCredentials](#imagecredentials)
+  - [global](#global)
+  - [env](#env)
+  - [configMap & configFrom](#configmap--configfrom)
+  - [secrets & secretFrom](#secrets--secretfrom)
+  - [secretProvider](#secretprovider)
+  - [tlsSecrets](#tlssecrets)
+  - [deployment](#deployment)
+  - [statefulset](#statefulset)
+  - [cronJobs](#cronjobs)
+  - [jobs](#jobs)
+  - [volumes](#volumes)
+  - [serviceAccount](#serviceaccount)
+  - [Pod Settings](#pod-settings)
+  - [service](#service)
+  - [httpRoute](#httproute)
+  - [gateway](#gateway)
+  - [ingress](#ingress)
+  - [resources](#resources)
+  - [autoscaling](#autoscaling)
+  - [Node Scheduling](#node-scheduling)
+  - [networkPolicies](#networkpolicies)
 - [Usage Examples](#usage-examples)
-- [Advanced Features](#advanced-features)
 - [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+
+---
 
 ## Overview
 
-### Key Features
-
-- 🚀 **Simplified Deployment**: Deploy complex applications with minimal configuration
-- ⚙️ **Flexible Configuration**: Fine-tune every aspect of your deployment
-- 📈 **Auto-scaling**: Built-in horizontal pod autoscaler support
-- 🔒 **Security**: Integrated secrets management and TLS configuration
-- ⏰ **Job Scheduling**: Support for CronJobs and one-time Jobs
-- 🌐 **Ingress Management**: Complete external access configuration
-- 💾 **Storage**: Flexible persistent and ephemeral storage options
-
 ### Architecture
 
-The drunk-app chart leverages the **drunk-lib** library chart for all its core templates, providing:
-- Consistent deployment patterns
-- Reusable components
-- Best practices built-in
-- Easy maintenance and updates
+`drunk-app` is an **application chart** — a thin wrapper over [`drunk-lib`](../drunk-lib). Each template in `templates/` delegates all rendering to a `drunk-lib.<name>` named template. This means all logic lives in `drunk-lib`, and upgrading `drunk-lib` automatically improves all dependent apps.
+
+```yaml
+# Chart.yaml (excerpt)
+dependencies:
+  - name: drunk-lib
+    version: 1.x.x
+    repository: "file://../drunk-lib"
+```
+
+After pulling a new `drunk-lib` version, run:
+
+```bash
+helm dependency update ./drunk-app
+```
+
+### Key Features
+
+- 🚀 **Deployment & StatefulSet** — choose the right workload type for your app
+- ⚙️ **CronJobs & Jobs** — scheduled and one-time batch tasks
+- 🔑 **Secrets Management** — inline secrets, external refs, CSI Secrets Store (Azure/AWS/GCP)
+- 🔒 **TLS** — inline base64, file-based, or CA-only certificate modes
+- 🌐 **Ingress & Gateway API** — classic Ingress or modern HTTPRoute
+- 📈 **HPA** — CPU and memory-based autoscaling
+- 🛡️ **Network Policies** — named, multiple policies with fine-grained rules
+- 💾 **Storage** — PVC map and emptyDir volumes
+
+---
 
 ## Installation
 
@@ -45,98 +85,132 @@ helm repo add drunk-charts https://baoduy.github.io/drunk.charts/drunk-app
 helm repo update
 ```
 
-### Basic Installation
+### Install
 
 ```bash
+# Basic install
 helm install my-app drunk-charts/drunk-app
-```
 
-### Installation with Custom Values
-
-```bash
+# Install with custom values
 helm install my-app drunk-charts/drunk-app -f my-values.yaml
+
+# Upgrade
+helm upgrade my-app drunk-charts/drunk-app -f my-values.yaml
+
+# Preview rendered manifests
+helm template my-app drunk-charts/drunk-app -f my-values.yaml
 ```
+
+---
 
 ## Configuration Reference
 
-### Global Settings
+All parameters are documented below in the same order they appear in [`values.example.yaml`](values.example.yaml), which is the canonical reference covering every feature.
 
-Global settings that affect all resources in the deployment.
+---
 
-| Parameter | Description | Default | Required |
-|-----------|-------------|---------|----------|
-| `global.image` | Docker image repository | `""` | ✅ |
-| `global.tag` | Docker image tag | `"latest"` | ❌ |
-| `global.imagePullPolicy` | Image pull policy | `"IfNotPresent"` | ❌ |
-| `global.imagePullSecret` | Image pull secret name | `""` | ❌ |
-| `global.storageClassName` | Default storage class | `""` | ❌ |
+### nameOverride
+
+Overrides the chart name used in resource labels and naming.
+
+> **Note:** Do not use `fullnameOverride` — update the chart name directly instead.
+
+| Parameter | Type | Default | Required |
+|-----------|------|---------|----------|
+| `nameOverride` | string | `""` | ❌ |
+
+```yaml
+nameOverride: "my-app"
+```
+
+---
+
+### imageCredentials
+
+Creates a `kubernetes.io/dockerconfigjson` pull secret for private container registries.
+
+| Parameter | Type | Default | Required | Description |
+|-----------|------|---------|----------|-------------|
+| `imageCredentials.name` | string | `""` | ✅ (if set) | Pull secret resource name |
+| `imageCredentials.registry` | string | `""` | ✅ (if set) | Registry URL |
+| `imageCredentials.username` | string | `""` | ✅ (if set) | Registry username |
+| `imageCredentials.password` | string | `""` | ✅ (if set) | Registry password |
+
+```yaml
+imageCredentials:
+  name: "my-registry-secret"
+  registry: "myregistry.example.com"
+  username: "ci-user"
+  password: "ci-token"
+```
+
+> Set `global.imagePullSecret` to the same value as `imageCredentials.name` to wire the secret to your pods.
+
+---
+
+### global
+
+Settings that apply to all containers in the deployment.
+
+| Parameter | Type | Default | Required | Description |
+|-----------|------|---------|----------|-------------|
+| `global.image` | string | `""` | ✅ | Container image repository |
+| `global.tag` | string | `"latest"` | ❌ | Image tag |
+| `global.imagePullPolicy` | string | `"IfNotPresent"` | ❌ | `Always`, `IfNotPresent`, or `Never` |
+| `global.storageClassName` | string | `""` | ❌ | Default storage class for PVCs |
+| `global.imagePullSecret` | string | `""` | ❌ | Pull secret name (must exist in namespace) |
 
 #### Init Container
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `global.initContainer.image` | Init container image | `""` |
-| `global.initContainer.command` | Init container command | `[]` |
+Runs before the main container starts. Useful for migrations, config generation, or dependency checks.
 
-### Application Configuration
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `global.initContainer.image` | string | `""` | Init container image |
+| `global.initContainer.command` | string[] | `[]` | Command to run |
 
-#### Basic Settings
+```yaml
+global:
+  image: "myregistry/myapp"
+  tag: "v1.2.3"
+  imagePullPolicy: "IfNotPresent"
+  storageClassName: "fast-ssd"
+  imagePullSecret: "my-registry-secret"
+  initContainer:
+    image: "myregistry/init-tool"
+    command: ["sh", "-c", "echo Init complete;"]
+```
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `nameOverride` | Override application name | `""` |
-| `fullnameOverride` | Override full resource names | `""` |
+---
 
-#### Deployment Configuration
+### env
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `deployment.enabled` | Enable main deployment | `true` |
-| `deployment.replicaCount` | Number of replicas | `1` |
-| `deployment.command` | Override container command | `[]` |
-| `deployment.args` | Container arguments | `[]` |
-| `deployment.podAnnotations` | Pod annotations | `{}` |
-
-#### Ports Configuration
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `deployment.ports.http` | HTTP port | `8080` |
-| `deployment.ports.https` | HTTPS port | `8443` |
-| `deployment.ports.tcp` | TCP port | `9090` |
-
-#### Health Checks
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `deployment.liveness` | Liveness probe path | `""` |
-| `deployment.readiness` | Readiness probe path | `""` |
-| `deployment.livenessProbe` | Custom liveness probe | `{}` |
-| `deployment.readinessProbe` | Custom readiness probe | `{}` |
-
-### Environment Configuration
-
-#### Environment Variables
+Plain environment variables injected directly into the container via a ConfigMap. Both keys and values are strings.
 
 ```yaml
 env:
   NODE_ENV: "production"
-  DATABASE_URL: "postgresql://..."
+  PORT: "8080"
   LOG_LEVEL: "info"
 ```
 
-#### ConfigMap
+---
+
+### configMap & configFrom
+
+#### configMap
+
+Key-value entries stored in a Kubernetes ConfigMap and injected as environment variables.
 
 ```yaml
 configMap:
-  app.properties: |
-    debug=false
-    timeout=30
-  config.json: |
-    {"feature": "enabled"}
+  APP_TIMEOUT: "30"
+  FEATURE_FLAG: "enabled"
 ```
 
-#### External ConfigMaps
+#### configFrom
+
+Reference existing ConfigMaps by name to inject all their keys as environment variables into the container.
 
 ```yaml
 configFrom:
@@ -144,18 +218,25 @@ configFrom:
   - "environment-config"
 ```
 
-### Secrets Management
+---
 
-#### Inline Secrets
+### secrets & secretFrom
+
+#### secrets
+
+Inline secrets stored in a Kubernetes Secret (base64-encoded at rest in etcd).
+
+> ⚠️ Do not commit plaintext secrets to source control. Use `secretProvider` for production workloads.
 
 ```yaml
 secrets:
-  DATABASE_PASSWORD: "secret-password"
-  API_KEY: "your-api-key"
-  JWT_SECRET: "jwt-signing-secret"
+  DATABASE_PASSWORD: "my-password"
+  API_KEY: "my-api-key"
 ```
 
-#### External Secrets
+#### secretFrom
+
+Reference existing Secrets by name to inject all their keys as environment variables.
 
 ```yaml
 secretFrom:
@@ -163,94 +244,475 @@ secretFrom:
   - "external-api-keys"
 ```
 
-#### Azure Key Vault Integration
+---
+
+### secretProvider
+
+Wires the [CSI Secrets Store](https://secrets-store-csi-driver.sigs.k8s.io/) driver to fetch secrets from an external vault. Renders a `SecretProviderClass` resource. Auto-generates `secretObjects` from `objects[]` if not provided.
+
+#### Top-level
+
+| Parameter | Type | Default | Required | Description |
+|-----------|------|---------|----------|-------------|
+| `secretProvider.enabled` | bool | `false` | ❌ | Render the `SecretProviderClass` |
+| `secretProvider.name` | string | `<app>-spc` | ❌ | Override the resource name |
+
+#### provider
+
+| Parameter | Type | Default | Required | Description |
+|-----------|------|---------|----------|-------------|
+| `secretProvider.provider.name` | string | `"azure"` | ✅ | Cloud provider: `azure`, `aws`, or `gcp` |
+| `secretProvider.provider.tenantId` | string | `""` | ❌ | Azure tenant ID |
+| `secretProvider.provider.vaultName` | string | `""` | ✅ | Vault or secrets store name |
+| `secretProvider.provider.userAssignedIdentityID` | string | `""` | ❌ | Azure user-assigned managed identity |
+| `secretProvider.provider.usePodIdentity` | bool | `false` | ❌ | Use AAD Pod Identity (Azure, legacy) |
+| `secretProvider.provider.useWorkloadIdentity` | bool | `false` | ❌ | Use Workload Identity (recommended) |
+
+#### objects[]
+
+Each entry maps to one secret or certificate in the vault.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `objectName` | string | ✅ | Secret name in the vault |
+| `objectType` | string | ✅ | `secret`, `cert`, or `key` |
+| `objectFormat` | string | ❌ | `pem` or `pfx` (for certs) |
+| `objectEncoding` | string | ❌ | `base64` or `utf-8` |
 
 ```yaml
 secretProvider:
   enabled: true
-  name: "my-key-vault"
-  tenantId: "your-tenant-id"
-  vaultName: "your-vault-name"
-  useWorkloadIdentity: true
+  name: "my-secret-class"
+  provider:
+    name: aws
+    vaultName: "my-secrets-store"
+    useWorkloadIdentity: true
   objects:
-    - objectName: "database-password"
-      objectType: "secret"
-  secretObjects:
-    - secretName: "app-secrets"
-      type: "Opaque"
-      data:
-        - key: "DATABASE_PASSWORD"
-          objectName: "database-password"
+    - objectName: db-password
+      objectType: secret
+    - objectName: tls-cert
+      objectType: cert
+      objectFormat: pfx
+      objectEncoding: base64
 ```
 
-### Storage Configuration
+---
 
-#### Persistent Volumes
+### tlsSecrets
+
+Creates `kubernetes.io/tls` Kubernetes Secrets for TLS termination. Supports three modes per named entry.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `tlsSecrets.<name>.enabled` | bool | `false` | Create this Secret |
+| `tlsSecrets.<name>.crt` | string | `""` | Base64-encoded certificate |
+| `tlsSecrets.<name>.key` | string | `""` | Base64-encoded private key |
+| `tlsSecrets.<name>.crtFile` | string | `""` | Path to cert file (read at render time) |
+| `tlsSecrets.<name>.keyFile` | string | `""` | Path to key file (read at render time) |
+| `tlsSecrets.<name>.caFile` | string | `""` | Path to CA file (optional, file mode) |
+| `tlsSecrets.<name>.ca` | string | `""` | Base64-encoded CA certificate (CA-only mode) |
+
+#### Mode 1: Inline base64
+
+```yaml
+tlsSecrets:
+  cloudflare:
+    enabled: true
+    crt: "<base64-encoded-certificate>"
+    key: "<base64-encoded-private-key>"
+```
+
+#### Mode 2: File-based (reads cert files from disk at `helm template`/`install` time)
+
+```yaml
+tlsSecrets:
+  my-cert:
+    enabled: true
+    crtFile: "certs/my.crt"
+    keyFile: "certs/my.key"
+    caFile: "certs/my-ca.crt"   # optional
+```
+
+#### Mode 3: CA-only (disabled by default)
+
+> ⚠️ CA-only entries are not valid for `kubernetes.io/tls`, which requires both `tls.crt` and `tls.key`. Set `enabled: false` unless you provide `crt`+`key` as well.
+
+```yaml
+tlsSecrets:
+  dev-ca:
+    enabled: false
+    ca: "<base64-encoded-ca-certificate>"
+```
+
+---
+
+### deployment
+
+Controls the main `Deployment` resource.
+
+| Parameter | Type | Default | Required | Description |
+|-----------|------|---------|----------|-------------|
+| `deployment.enabled` | bool | `true` | ❌ | Render the Deployment. Set `false` for cron-only apps |
+| `deployment.replicaCount` | int | `1` | ❌ | Desired number of replicas |
+| `deployment.ports.http` | int | `8080` | ❌ | HTTP container port |
+| `deployment.ports.tcp` | int | — | ❌ | Additional TCP container port |
+| `deployment.liveness` | string | `""` | ❌ | HTTP path for liveness probe (e.g. `/healthz`) |
+| `deployment.readiness` | string | `""` | ❌ | HTTP path for readiness probe |
+| `deployment.command` | string[] | `[]` | ❌ | Override container entrypoint |
+| `deployment.args` | string[] | `[]` | ❌ | Container arguments |
+| `deployment.podAnnotations` | object | `{}` | ❌ | Annotations added to each pod |
+
+#### Rolling Update Strategy
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `deployment.strategy.type` | string | `"RollingUpdate"` | `RollingUpdate` or `Recreate` |
+| `deployment.strategy.maxSurge` | string | `"1"` | Max pods above desired count during a rolling update |
+| `deployment.strategy.maxUnavailable` | string | `"1"` | Max pods unavailable during a rolling update |
+
+> `maxSurge` and `maxUnavailable` are ignored when `strategy.type: Recreate`.
+
+```yaml
+deployment:
+  enabled: true
+  replicaCount: 2
+  ports:
+    http: 8080
+    tcp: 9090
+  liveness: "/healthz"
+  readiness: "/healthz/ready"
+  args:
+    - "--config"
+    - "/app/config.yaml"
+  podAnnotations:
+    prometheus.io/scrape: "true"
+  strategy:
+    type: "RollingUpdate"
+    maxSurge: "1"
+    maxUnavailable: "0"
+```
+
+---
+
+### statefulset
+
+Controls a `StatefulSet` resource. Use for workloads requiring stable network identity or ordered pod management (databases, queues).
+
+> Enable either `deployment` or `statefulset`, not both simultaneously.
+
+| Parameter | Type | Default | Required | Description |
+|-----------|------|---------|----------|-------------|
+| `statefulset.enabled` | bool | `false` | ❌ | Render the StatefulSet |
+| `statefulset.replicaCount` | int | `1` | ❌ | Number of replicas |
+| `statefulset.ports.http` | int | `8080` | ❌ | HTTP container port |
+| `statefulset.ports.tcp` | int | — | ❌ | Additional TCP container port |
+| `statefulset.liveness` | string | `""` | ❌ | HTTP path for liveness probe |
+| `statefulset.readiness` | string | `""` | ❌ | HTTP path for readiness probe |
+| `statefulset.command` | string[] | `[]` | ❌ | Override container entrypoint |
+| `statefulset.args` | string[] | `[]` | ❌ | Container arguments |
+| `statefulset.podAnnotations` | object | `{}` | ❌ | Annotations added to each pod |
+
+```yaml
+statefulset:
+  enabled: true
+  replicaCount: 3
+  ports:
+    http: 8080
+  liveness: "/healthz"
+  podAnnotations:
+    app.kubernetes.io/component: "database"
+```
+
+---
+
+### cronJobs
+
+A list of `CronJob` resources. Each uses the global image unless overridden at the job level.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `cronJobs[].name` | string | ✅ | Job name — must be unique within the chart |
+| `cronJobs[].schedule` | string | ✅ | Cron schedule expression (e.g. `"0 2 * * *"`) |
+| `cronJobs[].command` | string[] | ❌ | Entrypoint command |
+| `cronJobs[].args` | string[] | ❌ | Command arguments |
+| `cronJobs[].restartPolicy` | string | `"OnFailure"` | `OnFailure`, `Never`, or `Always` |
+
+```yaml
+cronJobs:
+  - name: "daily-backup"
+    schedule: "0 2 * * *"
+    command: ["/app/backup.sh"]
+    restartPolicy: OnFailure
+  - name: "weekly-cleanup"
+    schedule: "0 4 * * 0"
+    args:
+      - "--purge"
+      - "--older-than=30d"
+    restartPolicy: OnFailure
+```
+
+---
+
+### jobs
+
+A list of one-time `Job` resources. Useful for database migrations or data seeding on deploy.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `jobs[].name` | string | ✅ | Job name — must be unique within the chart |
+| `jobs[].command` | string[] | ❌ | Entrypoint command |
+| `jobs[].args` | string[] | ❌ | Command arguments |
+| `jobs[].restartPolicy` | string | `"OnFailure"` | `OnFailure` or `Never` |
+
+```yaml
+jobs:
+  - name: "db-migrate"
+    command: ["/app/migrate.sh"]
+    restartPolicy: OnFailure
+  - name: "seed-data"
+    args: ["--seed", "--env=production"]
+```
+
+---
+
+### volumes
+
+A **map** of volumes to mount into the containers. The map key becomes the PVC name or emptyDir identifier.
+
+#### PVC Volume
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `<name>.size` | string | ✅ | PVC size (e.g. `"2Gi"`) |
+| `<name>.accessMode` | string | ✅ | `ReadWriteOnce`, `ReadWriteMany`, or `ReadOnlyMany` |
+| `<name>.mountPath` | string | ✅ | Absolute mount path inside the container |
+| `<name>.storageClassName` | string | ❌ | Overrides `global.storageClassName` |
+| `<name>.subPath` | string | ❌ | Mount only this sub-path within the volume |
+| `<name>.readOnly` | bool | `false` | Mount as read-only |
+
+#### EmptyDir Volume
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `<name>.mountPath` | string | ✅ | Absolute mount path inside the container |
+| `<name>.emptyDir` | bool | ✅ | Must be `true` |
+| `<name>.readOnly` | bool | `false` | Mount as read-only |
 
 ```yaml
 volumes:
-  data:
+  app-data:
     size: "10Gi"
-    storageClass: "fast-ssd"
+    storageClassName: "fast-ssd"
     accessMode: "ReadWriteOnce"
     mountPath: "/app/data"
-  logs:
-    size: "5Gi" 
-    mountPath: "/var/log/app"
+    subPath: "myapp"
     readOnly: false
-```
-
-#### Ephemeral Storage
-
-```yaml
-volumes:
+  logs:
+    size: "2Gi"
+    accessMode: "ReadWriteOnce"
+    mountPath: "/var/log/app"
   tmp:
     mountPath: "/tmp"
+    readOnly: false
     emptyDir: true
-  cache:
-    mountPath: "/app/cache"
-    emptyDir: true
-    size: "1Gi"  # Optional size limit
 ```
 
-### Networking Configuration
+> **Required when `readOnlyRootFilesystem: true`** (the default): always add a `tmp` emptyDir so the container can write temporary files.
 
-#### Service Configuration
+> **Common mistake:** `volumes` is a **map** (key → object), not an array. Do not write `- name: tmp`. Write `tmp:` as a key.
+
+---
+
+### serviceAccount
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `serviceAccount.enabled` | bool | `false` | Create a dedicated ServiceAccount |
+| `serviceAccount.annotations` | object | `{}` | Annotations (e.g. IRSA, Workload Identity bindings) |
+
+```yaml
+serviceAccount:
+  enabled: true
+  annotations:
+    iam.gke.io/gcp-service-account: "my-app@project.iam.gserviceaccount.com"
+```
+
+---
+
+### Pod Settings
+
+#### podAnnotations
+
+Annotations applied to all pods created by this chart.
+
+```yaml
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+```
+
+#### podSecurityContext
+
+Security context applied at the **pod** level.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `podSecurityContext.fsGroup` | int | `10000` | File system group for mounted volumes |
+| `podSecurityContext.runAsUser` | int | `10000` | UID to run the container as |
+| `podSecurityContext.runAsGroup` | int | `10000` | GID to run the container as |
+
+#### securityContext
+
+Security context applied at the **container** level.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `securityContext.capabilities.drop` | string[] | `["ALL"]` | Linux capabilities to drop |
+| `securityContext.readOnlyRootFilesystem` | bool | `true` | Mount the root filesystem read-only |
+| `securityContext.allowPrivilegeEscalation` | bool | `false` | Prevent privilege escalation |
+| `securityContext.runAsNonRoot` | bool | `true` | Refuse to run as UID 0 |
+
+```yaml
+podSecurityContext:
+  fsGroup: 10000
+  runAsUser: 10000
+  runAsGroup: 10000
+
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+```
+
+---
+
+### service
+
+A `ClusterIP` Service is always created automatically. Override the type if external access is needed without an Ingress.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `service.type` | string | `"ClusterIP"` | `ClusterIP`, `NodePort`, or `LoadBalancer` |
 
 ```yaml
 service:
-  type: "ClusterIP"  # ClusterIP, NodePort, LoadBalancer
-  ports:
-    - name: "http"
-      port: 80
-      targetPort: 8080
-    - name: "metrics"
-      port: 9090
-      targetPort: 9090
+  type: ClusterIP
 ```
 
-#### Ingress Configuration
+---
+
+### httpRoute
+
+Creates an [HTTPRoute](https://gateway-api.sigs.k8s.io/api-types/httproute/) resource for the Kubernetes Gateway API.
+
+> **Prerequisite:** A Gateway API controller must be installed (e.g. NGINX Gateway Fabric, Cilium, Istio).
+
+| Parameter | Type | Default | Required | Description |
+|-----------|------|---------|----------|-------------|
+| `httpRoute.enabled` | bool | `false` | ❌ | Render the HTTPRoute |
+| `httpRoute.parentRefs[]` | object[] | `[]` | ✅ (if enabled) | Gateways to attach to |
+| `httpRoute.parentRefs[].name` | string | — | ✅ | Gateway resource name |
+| `httpRoute.parentRefs[].namespace` | string | — | ✅ | Gateway namespace |
+| `httpRoute.parentRefs[].sectionName` | string | — | ❌ | Listener name on the Gateway |
+| `httpRoute.hostnames[]` | string[] | `[]` | ❌ | Hostname matches for routing |
+| `httpRoute.tlsValidation.caCertificateRefs[]` | object[] | `[]` | ❌ | CA refs for backend TLS validation |
+
+```yaml
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: my-gateway
+      namespace: gateway-system
+      sectionName: https
+  tlsValidation:
+    caCertificateRefs:
+      - group: ""
+        kind: ConfigMap
+        name: cloudflare-origin-ca
+  hostnames:
+    - "myapp.example.com"
+```
+
+---
+
+### gateway
+
+Creates a `Gateway` resource for the Kubernetes Gateway API. Typically managed at the infrastructure level — use `httpRoute` for application-level routing.
+
+| Parameter | Type | Default | Required | Description |
+|-----------|------|---------|----------|-------------|
+| `gateway.enabled` | bool | `false` | ❌ | Render the Gateway |
+| `gateway.gatewayClassName` | string | — | ✅ (if enabled) | GatewayClass to bind to |
+| `gateway.listeners[]` | object[] | `[]` | ✅ (if enabled) | Listener specifications |
+
+See [`drunk-app/README.md`](../drunk-app/README.md#gateway-api-gateway--httproute) for the `listeners[]` schema.
+
+---
+
+### ingress
+
+Classic `Ingress` resource for external HTTP/HTTPS routing.
+
+| Parameter | Type | Default | Required | Description |
+|-----------|------|---------|----------|-------------|
+| `ingress.enabled` | bool | `false` | ❌ | Render the Ingress |
+| `ingress.className` | string | `""` | ❌ | Ingress class (e.g. `nginx`) |
+| `ingress.hosts[]` | object[] | `[]` | ✅ (if enabled) | Host routing rules |
+| `ingress.hosts[].host` | string | — | ✅ | Hostname |
+| `ingress.hosts[].port` | int | — | ✅ | Backend service port |
+| `ingress.tls` | string | `""` | ❌ | TLS Secret name |
 
 ```yaml
 ingress:
   enabled: true
-  className: "nginx"
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: "/"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  className: nginx
   hosts:
-    - host: "myapp.example.com"
-      paths:
-        - path: "/"
-          pathType: "Prefix"
-          port: 8080
-  tls:
-    - secretName: "myapp-tls"
-      hosts:
-        - "myapp.example.com"
+    - host: myapp.example.com
+      port: 8080
+    - host: api.example.com
+      port: 9090
+  tls: myapp-tls
 ```
 
-### Auto-scaling Configuration
+---
+
+### resources
+
+CPU and memory requests and limits for the main container.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `resources.limits.cpu` | string | `"100m"` | CPU limit |
+| `resources.limits.memory` | string | `"128Mi"` | Memory limit |
+| `resources.requests.cpu` | string | `"100m"` | CPU request |
+| `resources.requests.memory` | string | `"128Mi"` | Memory request |
+
+```yaml
+resources:
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+```
+
+---
+
+### autoscaling
+
+Horizontal Pod Autoscaler (HPA). When enabled, `replicaCount` sets the initial replica count and HPA manages scaling within `minReplicas`/`maxReplicas`.
+
+| Parameter | Type | Default | Required | Description |
+|-----------|------|---------|----------|-------------|
+| `autoscaling.enabled` | bool | `false` | ❌ | Create an HPA resource |
+| `autoscaling.minReplicas` | int | `1` | ❌ | Minimum replica count |
+| `autoscaling.maxReplicas` | int | `100` | ❌ | Maximum replica count |
+| `autoscaling.targetCPUUtilizationPercentage` | int | — | ❌ | Target CPU utilisation (%) |
+| `autoscaling.targetMemoryUtilizationPercentage` | int | — | ❌ | Target memory utilisation (%) |
 
 ```yaml
 autoscaling:
@@ -259,237 +721,87 @@ autoscaling:
   maxReplicas: 10
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80
-  behavior:
-    scaleDown:
-      stabilizationWindowSeconds: 300
-    scaleUp:
-      stabilizationWindowSeconds: 60
 ```
 
-### Jobs and CronJobs
-
-#### CronJobs
-
-```yaml
-cronJobs:
-  - name: "backup"
-    schedule: "0 2 * * *"  # Daily at 2 AM
-    command: ["/app/backup.sh"]
-    restartPolicy: "OnFailure"
-    concurrencyPolicy: "Forbid"
-  - name: "cleanup"
-    schedule: "0 4 * * 0"  # Weekly on Sunday at 4 AM
-    command: ["/app/cleanup.sh"]
-```
-
-#### One-time Jobs
-
-```yaml
-jobs:
-  - name: "migration"
-    command: ["/app/migrate.sh"]
-    args: ["--force"]
-    restartPolicy: "Never"
-  - name: "init-data"
-    command: ["/app/seed.sh"]
-```
-
-### Security Configuration
-
-#### Pod Security Context
-
-```yaml
-podSecurityContext:
-  runAsNonRoot: true
-  runAsUser: 1000
-  runAsGroup: 1000
-  fsGroup: 1000
-
-securityContext:
-  allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: true
-  capabilities:
-    drop:
-      - ALL
-```
-
-#### Service Account
-
-```yaml
-serviceAccount:
-  create: true
-  name: "my-app-sa"
-  annotations:
-    iam.gke.io/gcp-service-account: "my-app@project.iam.gserviceaccount.com"
-```
-
-### Resource Management
-
-```yaml
-resources:
-  requests:
-    cpu: "100m"
-    memory: "128Mi"
-  limits:
-    cpu: "500m"
-    memory: "512Mi"
-```
+---
 
 ### Node Scheduling
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `nodeSelector` | object | `{}` | Node label selector |
+| `tolerations` | object[] | `[]` | Pod tolerations |
+| `affinity` | object | `{}` | Pod/node affinity rules |
 
 ```yaml
 nodeSelector:
   kubernetes.io/arch: "amd64"
-  node-pool: "application"
 
 tolerations:
-  - key: "node-pool"
+  - key: "dedicated"
     operator: "Equal"
-    value: "application"
+    value: "app"
     effect: "NoSchedule"
 
 affinity:
-  nodeAffinity:
+  podAntiAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:
       - weight: 100
-        preference:
-          matchExpressions:
-            - key: "node-type"
-              operator: "In"
-              values: ["high-memory"]
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - my-app
+          topologyKey: kubernetes.io/hostname
 ```
 
-## Usage Examples
+---
 
-### Simple Web Application
+### networkPolicies
 
-```yaml
-global:
-  image: "nginx"
-  tag: "1.21"
+Controls pod-level network access. Requires a CNI plugin that supports NetworkPolicy (Calico, Cilium, Weave Net).
 
-deployment:
-  ports:
-    http: 80
+#### Multiple Policies — Recommended
 
-ingress:
-  enabled: true
-  hosts:
-    - host: "www.example.com"
-      paths:
-        - path: "/"
-          pathType: "Prefix"
-```
-
-### Microservice with Database
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `networkPolicies[].name` | string | ✅ | Policy name (used in resource naming) |
+| `networkPolicies[].enabled` | bool | `true` | Enable/disable this individual policy |
+| `networkPolicies[].policyTypes` | string[] | ✅ | `["Ingress"]`, `["Egress"]`, or `["Ingress","Egress"]` |
+| `networkPolicies[].podSelector` | object | App labels | Custom pod selector |
+| `networkPolicies[].ingress` | object[] | `[]` | Ingress rules |
+| `networkPolicies[].egress` | object[] | `[]` | Egress rules |
+| `networkPolicies[].labels` | object | `{}` | Additional labels on the resource |
+| `networkPolicies[].nameSuffix` | string | `-<name>` | Custom name suffix |
 
 ```yaml
-global:
-  image: "myapp/api"
-  tag: "v1.2.3"
-
-env:
-  NODE_ENV: "production"
-  PORT: "8080"
-
-secrets:
-  DATABASE_PASSWORD: "secret123"
-
-deployment:
-  ports:
-    http: 8080
-  liveness: "/health"
-  readiness: "/ready"
-
-volumes:
-  data:
-    size: "20Gi"
-    mountPath: "/app/data"
-
-autoscaling:
-  enabled: true
-  minReplicas: 2
-  maxReplicas: 10
-```
-
-### Batch Processing Application
-
-```yaml
-global:
-  image: "myapp/processor"
-  tag: "latest"
-
-# Disable main deployment for cron-only app
-deployment:
-  enabled: false
-
-cronJobs:
-  - name: "daily-process"
-    schedule: "0 1 * * *"
-    command: ["/app/process.sh"]
-    restartPolicy: "OnFailure"
-
-volumes:
-  workspace:
-    size: "50Gi"
-    mountPath: "/workspace"
-```
-
-## Advanced Features
-
-### StatefulSet Deployment
-
-```yaml
-statefulset:
-  enabled: true
-  serviceName: "my-stateful-app"
-  volumeClaimTemplates:
-    - name: "data"
-      storage: "10Gi"
-      storageClassName: "fast-ssd"
-      accessModes: ["ReadWriteOnce"]
-```
-
-### Multiple Container Deployment
-
-```yaml
-# Use initContainer for setup
-global:
-  initContainer:
-    image: "myapp/init"
-    command: ["/setup.sh"]
-
-# Main container configuration
-global:
-  image: "myapp/main"
-
-# Additional containers via sidecar pattern
-# (handled through custom templates)
-```
-
-### TLS Certificate Management
-
-```yaml
-tlsSecrets:
-  myapp-tls:
+networkPolicies:
+  - name: allow-all-ingress-restrict-egress
     enabled: true
-    crt: |
-      -----BEGIN CERTIFICATE-----
-      ...
-      -----END CERTIFICATE-----
-    key: |
-      -----BEGIN PRIVATE KEY-----
-      ...
-      -----END PRIVATE KEY-----
+    policyTypes:
+      - Ingress
+      - Egress
+    ingress:
+      - {}   # Allow all ingress
+    egress:
+      - to:
+          - ipBlock:
+              cidr: 192.168.253.253/32
+      # Always include DNS when restricting egress
+      - to:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: kube-system
+        ports:
+          - protocol: UDP
+            port: 53
 ```
 
-### Network Policies
+#### Legacy Single Policy (backward-compatible)
 
-Control network access to your pods using Kubernetes NetworkPolicy resources. The drunk-app chart supports both single policy (legacy) and multiple policies configurations.
-
-**Note:** NetworkPolicy requires a CNI plugin that supports NetworkPolicy (e.g., Calico, Cilium, Weave Net).
-
-#### Legacy Single Policy Configuration
+Prefer `networkPolicies[]` for new deployments.
 
 ```yaml
 networkPolicy:
@@ -506,50 +818,166 @@ networkPolicy:
       - namespaceSelector: {}
 ```
 
-#### Multiple Policies Configuration (Recommended)
+---
 
-Define multiple NetworkPolicy resources for fine-grained control:
+## Usage Examples
 
-**Example 1: Allow Traffic Only from Private IP Ranges**
+### Simple Web Application
 
 ```yaml
-networkPolicies:
-  - name: allow-private-ips
-    enabled: true
-    policyTypes:
-      - Ingress
-    ingress:
-      - from:
-        # Private IP ranges (RFC 1918)
-        - ipBlock:
-            cidr: 10.0.0.0/8
-        - ipBlock:
-            cidr: 172.16.0.0/12
-        - ipBlock:
-            cidr: 192.168.0.0/16
-        ports:
-        - protocol: TCP
-          port: 8080
+nameOverride: "my-web-app"
+
+global:
+  image: "nginx"
+  tag: "1.25"
+
+deployment:
+  ports:
+    http: 80
+  liveness: "/"
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: "www.example.com"
+      port: 80
+
+volumes:
+  tmp:
+    mountPath: "/tmp"
+    emptyDir: true
+
+resources:
+  limits:
+    cpu: "200m"
+    memory: "256Mi"
+  requests:
+    cpu: "50m"
+    memory: "64Mi"
 ```
 
-**Example 2: Allow Traffic Only from Same Namespace**
+### Microservice with Secrets and Autoscaling
 
 ```yaml
-networkPolicies:
-  - name: allow-same-namespace
-    enabled: true
-    policyTypes:
-      - Ingress
-    ingress:
-      - from:
-        - podSelector: {}  # Empty selector = all pods in namespace
+nameOverride: "payment-api"
+
+global:
+  image: "myregistry/payment-api"
+  tag: "v2.1.0"
+  imagePullSecret: "my-registry-secret"
+
+imageCredentials:
+  name: "my-registry-secret"
+  registry: "myregistry.example.com"
+  username: "ci-user"
+  password: "ci-token"
+
+env:
+  NODE_ENV: "production"
+  PORT: "8080"
+
+secrets:
+  STRIPE_SECRET_KEY: "sk_live_..."
+  DATABASE_URL: "postgresql://..."
+
+deployment:
+  ports:
+    http: 8080
+  liveness: "/health"
+  readiness: "/ready"
+  strategy:
+    type: "RollingUpdate"
+    maxSurge: "1"
+    maxUnavailable: "0"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 20
+  targetMemoryUtilizationPercentage: 80
+
+volumes:
+  tmp:
+    mountPath: "/tmp"
+    emptyDir: true
+
+resources:
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
 ```
 
-**Example 3: Allow Traffic from Specific Pods**
+### Cron-Only / Batch Application
 
 ```yaml
+nameOverride: "data-processor"
+
+global:
+  image: "myregistry/processor"
+  tag: "latest"
+
+deployment:
+  enabled: false
+
+cronJobs:
+  - name: "daily-etl"
+    schedule: "0 1 * * *"
+    command: ["/app/etl.sh"]
+    restartPolicy: OnFailure
+  - name: "weekly-report"
+    schedule: "0 8 * * 1"
+    args: ["--report", "--email=team@example.com"]
+    restartPolicy: OnFailure
+
+volumes:
+  workspace:
+    size: "20Gi"
+    accessMode: "ReadWriteOnce"
+    mountPath: "/workspace"
+  tmp:
+    mountPath: "/tmp"
+    emptyDir: true
+```
+
+### StatefulSet with Persistent Storage
+
+```yaml
+nameOverride: "postgres"
+
+global:
+  image: "postgres"
+  tag: "15"
+
+deployment:
+  enabled: false
+
+statefulset:
+  enabled: true
+  replicaCount: 1
+  ports:
+    tcp: 5432
+
+secrets:
+  POSTGRES_PASSWORD: "mypassword"
+  POSTGRES_DB: "appdb"
+
+volumes:
+  pgdata:
+    size: "50Gi"
+    storageClassName: "fast-ssd"
+    accessMode: "ReadWriteOnce"
+    mountPath: "/var/lib/postgresql/data"
+    subPath: "pgdata"
+  tmp:
+    mountPath: "/tmp"
+    emptyDir: true
+
 networkPolicies:
-  - name: allow-from-frontend
+  - name: allow-app-only
     enabled: true
     policyTypes:
       - Ingress
@@ -557,153 +985,74 @@ networkPolicies:
       - from:
         - podSelector:
             matchLabels:
-              app: frontend
-              tier: web
-        ports:
-        - protocol: TCP
-          port: 8080
-```
-
-**Example 4: Restrict Egress to Specific Services**
-
-```yaml
-networkPolicies:
-  - name: allow-egress-to-database
-    enabled: true
-    policyTypes:
-      - Egress
-    egress:
-      # Allow access to database
-      - to:
-        - podSelector:
-            matchLabels:
-              app: postgres
+              app.kubernetes.io/name: payment-api
         ports:
         - protocol: TCP
           port: 5432
-      # Allow DNS
-      - to:
-        - namespaceSelector:
-            matchLabels:
-              name: kube-system
-        ports:
-        - protocol: UDP
-          port: 53
 ```
 
-**Example 5: Allow Traffic from Specific Namespace**
-
-```yaml
-networkPolicies:
-  - name: allow-from-monitoring
-    enabled: true
-    policyTypes:
-      - Ingress
-    ingress:
-      - from:
-        - namespaceSelector:
-            matchLabels:
-              name: monitoring
-        ports:
-        - protocol: TCP
-          port: 8080
-```
-
-**Example 6: Default Deny All Ingress**
-
-```yaml
-networkPolicies:
-  - name: deny-all-ingress
-    enabled: true
-    policyTypes:
-      - Ingress
-    # Empty ingress rules = deny all ingress traffic
-```
-
-#### NetworkPolicy Configuration Options
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `name` | Policy name (used in resource naming) | Required |
-| `enabled` | Enable/disable this policy | `true` |
-| `nameSuffix` | Custom suffix for the NetworkPolicy resource name | `-{name}` |
-| `podSelector` | Custom pod selector (defaults to app selector labels) | App labels |
-| `labels` | Additional labels for the NetworkPolicy resource | `{}` |
-| `policyTypes` | Array of policy types (`Ingress`, `Egress`) | Required |
-| `ingress` | Ingress rules (array) | `[]` |
-| `egress` | Egress rules (array) | `[]` |
-
-#### Best Practices
-
-1. **Start with Allow Lists**: Define what traffic should be allowed, rather than what should be denied
-2. **Test Thoroughly**: Test NetworkPolicies in a non-production environment first
-3. **Consider DNS**: Always allow DNS resolution if using egress policies
-4. **Monitor Impact**: Use monitoring to understand traffic patterns before implementing policies
-5. **Use Multiple Policies**: Break complex rules into multiple, focused policies for better maintainability
-6. **Document CIDR Ranges**: Comment IP ranges and their purpose for future reference
+---
 
 ## Troubleshooting
 
-### Common Issues
+### Pod Not Starting
 
-#### Pod Not Starting
+```bash
+kubectl describe pod <pod-name> -n <namespace>
+kubectl logs <pod-name> -n <namespace> --previous
+```
 
-1. Check image name and tag:
-   ```bash
-   kubectl describe pod <pod-name>
-   ```
+**Common causes:**
 
-2. Verify image pull secrets:
-   ```bash
-   kubectl get secret <imagePullSecret-name> -o yaml
-   ```
+- Wrong image name or tag → check `global.image` and `global.tag`
+- Image pull failure → verify `imageCredentials` and `global.imagePullSecret` match
+- Read-only root filesystem error → add a `tmp` emptyDir volume
+- Missing PVC → ensure `storageClassName` is valid and the StorageClass exists
 
-#### Configuration Issues
+### ConfigMap / Secret Not Injected
 
-1. Check ConfigMap creation:
-   ```bash
-   kubectl get configmap -l app.kubernetes.io/name=<app-name>
-   ```
+```bash
+kubectl get configmap -l app.kubernetes.io/name=<app-name>
+kubectl exec <pod-name> -- env | grep MY_VAR
+```
 
-2. Validate environment variables:
-   ```bash
-   kubectl exec <pod-name> -- env
-   ```
+### Ingress Not Routing
 
-#### Ingress Not Working
+```bash
+kubectl describe ingress -l app.kubernetes.io/name=<app-name>
+kubectl get events --sort-by=.metadata.creationTimestamp
+```
 
-1. Check ingress configuration:
-   ```bash
-   kubectl describe ingress <ingress-name>
-   ```
+### NetworkPolicy Blocking Traffic
 
-2. Verify ingress controller logs:
-   ```bash
-   kubectl logs -n ingress-nginx -l app.kubernetes.io/name=ingress-nginx
-   ```
+```bash
+# List active policies
+kubectl get networkpolicy -n <namespace>
+# Test DNS from pod (breaks first when egress is restricted)
+kubectl exec <pod-name> -- nslookup kubernetes.default
+```
 
 ### Debug Commands
 
 ```bash
-# Check all resources
+# All resources for this app
 kubectl get all -l app.kubernetes.io/name=<app-name>
 
-# View pod logs
-kubectl logs -f <pod-name>
+# Live pod logs
+kubectl logs -f deployment/<app-name>
 
-# Debug pod issues
-kubectl describe pod <pod-name>
-
-# Check events
-kubectl get events --sort-by=.metadata.creationTimestamp
+# Preview rendered manifests without installing
+helm template my-app drunk-charts/drunk-app -f my-values.yaml
 ```
-
-## Support
-
-- **Documentation**: [docs/README.md](./README.md)
-- **Issues**: [GitHub Issues](https://github.com/baoduy/drunk.charts/issues)
-- **Author**: [Steven Hoang](https://drunkcoding.net)
 
 ---
 
-*For more examples and advanced configurations, see the [examples directory](./examples/).*
+## Contributing
+
+Contributions are welcome! For questions or issues, open a [GitHub issue](https://github.com/baoduy/drunk.charts/issues).
+
+If you need an unsupported resource type, prefer adding a named template to `drunk-lib` (so all consumers benefit) rather than inlining it in `drunk-app`.
+
+## License
+
+MIT License — [Steven Hoang](https://drunkcoding.net)
