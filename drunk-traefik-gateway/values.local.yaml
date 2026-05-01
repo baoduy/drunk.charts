@@ -1,9 +1,9 @@
-# Local development override values for drunk-k8s-gateway
+# Local development override values for drunk-traefik-gateway
 # Purpose: Quickly install Gateway API CRDs + a GatewayClass + a domain-specific Gateway
 # on a local Kubernetes cluster (kind / minikube / k3d / k3s).
 #
 # Usage:
-#   helm upgrade --install gateway ./drunk-k8s-gateway -f values.local.yaml
+#   helm upgrade --install gateway ./drunk-traefik-gateway -f values.local.yaml
 #
 # After install (k3s/kind/minikube):
 #   kubectl get gatewayclasses
@@ -16,12 +16,24 @@
 # - Traefik is lightweight and perfect for K3s local development.
 # - For local clusters without a LoadBalancer, we configure NodePort for the data plane service.
 # - cert-manager remains disabled by default (local TLS usually uses manual/self-signed secrets).
+#
+# YAML anchors are local to this file; overriding the top-level
+# `gatewayClassName` key via `--set` does NOT propagate.
+
+# variables
+gatewayClassName: &gatewayClassName "traefik"
+gatewayControllerName: &gatewayControllerName "traefik.io/gateway-controller"
 
 # Ensure CRDs are installed
 gatewayAPI:
   enabled: true
   version: "v1.2.0"
   channel: "experimental" # Required for BackendTLSPolicy and other experimental features
+
+gatewayClass:
+  enabled: true
+  name: *gatewayClassName
+  controllerName: *gatewayControllerName
 
 # Enable vendored Traefik subchart with Gateway API support
 traefik:
@@ -67,7 +79,7 @@ traefik:
 domains:
   - name: "drunk-dev"
     enabled: true
-    gatewayClassName: "traefik"
+    gatewayClassName: *gatewayClassName
     annotations:
       # Request cert-manager to create certificate
       cert-manager.io/cluster-issuer: "selfsigned-issuer"

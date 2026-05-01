@@ -1,0 +1,8 @@
+# Gateway API CRDs are installed separately via kubectl in install.sh
+# This avoids Helm's 3MB annotation size limit (Gateway API CRDs > 3MB)
+# 
+# Installation happens in two phases:
+#   1. kubectl apply -f https://github.com/.../gateway-api/releases/.../standard-install.yaml
+#   2. helm upgrade --install --skip-crds ...
+#
+# This directory is preserved to maintain Helm chart structure.

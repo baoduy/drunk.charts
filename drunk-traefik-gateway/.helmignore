@@ -1,0 +1,28 @@
+# Helm packaging artifacts
+
+index.yaml
+
+# Chart dependencies
+
+drunk-k8s-gateway-\*.tgz
+Chart.lock
+
+# Temporary files
+
+_.tmp
+_.bak
+.\*.swp
+
+# IDE files
+
+.idea/
+.vscode/
+\*.iml
+
+# macOS
+
+.DS_Store
+
+# Test outputs
+
+test-output/

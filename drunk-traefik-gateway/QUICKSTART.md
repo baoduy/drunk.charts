@@ -152,6 +152,36 @@ helm install myapp drunk-charts/drunk-app \
   --set httpRoute.hostnames[0]=myapp.drunk.dev
 ```
 
+## Azure AKS install (internal Load Balancer)
+
+For Azure AKS deployments needing an **internal** Azure Load Balancer
+(private IP, not public), use `values.aks.yaml`:
+
+```bash
+helm dependency update ./drunk-traefik-gateway
+helm upgrade --install traefik-gateway ./drunk-traefik-gateway \
+  -n drunk-traefik-gateway --create-namespace \
+  -f ./drunk-traefik-gateway/values.aks.yaml
+```
+
+Before installing, edit `values.aks.yaml` and replace the `loadBalancerIP`
+placeholder (`192.168.130.250`) with a free IP in your AKS subnet. To pin
+the LB to a specific subnet, uncomment the
+`service.beta.kubernetes.io/azure-load-balancer-internal-subnet`
+annotation.
+
+> **Note:** Two Traefik 33.2.1 schema quirks are pre-handled in
+> `values.aks.yaml` and documented inline:
+> 1. `loadBalancerIP` and `externalTrafficPolicy` are nested under
+>    `traefik.service.spec` (not directly under `traefik.service`)
+>    because the chart's `_service.tpl` only first-classes a fixed set
+>    of keys at the top of `service`.
+> 2. Each port carries `expose.default: true` so the Service actually
+>    renders — overriding `ports.web.port` alone wipes out the default
+>    port object's `expose` field.
+>
+> Leave the structure as-is when customizing.
+
 ## Next Steps
 
 - See [README.md](README.md) for full documentation

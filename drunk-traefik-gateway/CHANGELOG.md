@@ -49,6 +49,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `values.aks.yaml` for Azure AKS deployments with an internal Azure Load
+  Balancer (`externalTrafficPolicy: Local`, static `loadBalancerIP`). The
+  `service.beta.kubernetes.io/azure-load-balancer-internal` annotation is
+  applied via `traefik.service.annotations`. Two Traefik 33.2.1 schema
+  quirks are pre-handled and documented inline in the values file:
+  `loadBalancerIP` / `externalTrafficPolicy` are nested under
+  `traefik.service.spec`, and each port carries `expose.default: true`
+  so the Service renders.
+- Top-of-file YAML anchors in `values.yaml`, `values.local.yaml`, and
+  `values.aks.yaml` to DRY the GatewayClass identity (`gatewayClassName`,
+  `gatewayControllerName`).
+
+### Fixed
+
+- `values.yaml` was missing a top-level `clusterIssuers` key, which caused
+  `helm template` (no `-f` flag) to fail with a nil-pointer error from
+  `templates/clusterissuer.yaml`. Added `clusterIssuers: { enabled: false,
+  issuers: [] }` so the default render succeeds. Behavior unchanged at
+  enabled=false (the template gates on `.enabled`).
+
 ### Planned Features
 
 - Support for Gateway API v1.3.0
