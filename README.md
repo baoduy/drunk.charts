@@ -31,12 +31,30 @@ helm install my-app drunk-charts/drunk-app -f my-values.yaml
 
 An AI assistant plugin is available to help configure `values.yaml` for drunk-app inside Claude Code.
 
-**Install:**
+**Install the plugin:**
 
 ```bash
 plugin marketplace add baoduy/drunk.charts
 plugin install drunk-app
 ```
+
+**Install the SKILL to your local project:**
+
+After installing the plugin, copy the `SKILL.md` file into your project so Claude Code can discover it locally:
+
+```bash
+mkdir -p .claude/skills
+cp "$(plugin path drunk-app)/skills/drunk-app/SKILL.md" .claude/skills/drunk-app.md
+```
+
+Alternatively, you can manually download the skill file:
+
+```bash
+mkdir -p .claude/skills
+curl -sL https://raw.githubusercontent.com/baoduy/drunk.charts/main/plugins/drunk-app/skills/drunk-app/SKILL.md -o .claude/skills/drunk-app.md
+```
+
+> **Note:** The `.claude/skills/` directory must exist in your project root for Claude Code to detect the skill. Commit this file to your repository so all team members benefit from the AI assistant.
 
 Then use `/drunk-app` in any Claude Code session to get contextual help with chart configuration.
 
