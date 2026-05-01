@@ -34,8 +34,8 @@ An AI assistant plugin is available to help configure `values.yaml` for drunk-ap
 **Install the plugin:**
 
 ```bash
-plugin marketplace add baoduy/drunk.charts --scope project
-plugin install drunk-app --scope project
+claude plugin marketplace add baoduy/drunk.charts --scope project
+claude plugin install drunk-app --scope project
 ```
 
 **Install the SKILL to your local project:**
