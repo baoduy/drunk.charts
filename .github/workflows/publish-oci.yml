@@ -4,12 +4,10 @@ on:
   push:
     branches:
       - main
-    tags:
-      - "v*"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -20,11 +18,32 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Set up Helm
         uses: azure/setup-helm@v4
         with:
           version: v3.17.3
+
+      # ── Auto-versioning ────────────────────────────────────────────────────
+      - name: Calculate version
+        id: version
+        uses: paulhatch/semantic-version@v6.0.2
+        with:
+          tag_prefix: "v"
+          major_pattern: "(MAJOR)"
+          minor_pattern: "(MINOR)"
+          version_format: "${major}.${minor}.${patch}"
+          bump_each_commit: false
+          search_commit_body: false
+
+      - name: Set NEXT_VERSION
+        run: echo "NEXT_VERSION=${{ steps.version.outputs.version }}" >> $GITHUB_ENV
+
+      - name: Print version
+        run: echo "Publishing version ${{ env.NEXT_VERSION }}"
 
       - name: Log in to GitHub Container Registry
         run: |
@@ -36,13 +55,11 @@ jobs:
       - name: Package drunk-lib
         working-directory: drunk-lib
         run: |
-          VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
-          echo "DRUNK_LIB_VERSION=${VERSION}" >> "$GITHUB_ENV"
-          helm package . --destination /tmp/charts
+          helm package . --version ${{ env.NEXT_VERSION }} --destination /tmp/charts
 
       - name: Push drunk-lib to GHCR
         run: |
-          helm push /tmp/charts/drunk-lib-${{ env.DRUNK_LIB_VERSION }}.tgz \
+          helm push /tmp/charts/drunk-lib-${{ env.NEXT_VERSION }}.tgz \
             oci://ghcr.io/${{ github.repository_owner }}
 
       # ── drunk-app ──────────────────────────────────────────────────────────
@@ -56,15 +73,26 @@ jobs:
       - name: Package drunk-app
         working-directory: drunk-app
         run: |
-          VERSION=$(grep '^version:' Chart.yaml | awk '{print $2}')
-          echo "DRUNK_APP_VERSION=${VERSION}" >> "$GITHUB_ENV"
-          helm package . --destination /tmp/charts
+          helm package . --version ${{ env.NEXT_VERSION }} --destination /tmp/charts
 
       - name: Push drunk-app to GHCR
         run: |
-          helm push /tmp/charts/drunk-app-${{ env.DRUNK_APP_VERSION }}.tgz \
+          helm push /tmp/charts/drunk-app-${{ env.NEXT_VERSION }}.tgz \
             oci://ghcr.io/${{ github.repository_owner }}
 
       - name: Log out from GHCR
         if: always()
         run: helm registry logout ghcr.io
+
+      # ── GitHub Release ─────────────────────────────────────────────────────
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2.6.1
+        with:
+          generate_release_notes: true
+          make_latest: true
+          tag_name: v${{ env.NEXT_VERSION }}
+          name: Release v${{ env.NEXT_VERSION }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
