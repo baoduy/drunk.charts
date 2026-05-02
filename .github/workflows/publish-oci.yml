@@ -1,0 +1,98 @@
+name: Publish Helm Charts as OCI
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  publish:
+    name: Build and Publish Helm Charts to GHCR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.17.3
+
+      # ── Auto-versioning ────────────────────────────────────────────────────
+      - name: Calculate version
+        id: version
+        uses: paulhatch/semantic-version@v6.0.2
+        with:
+          tag_prefix: "v"
+          major_pattern: "(MAJOR)"
+          minor_pattern: "(MINOR)"
+          version_format: "${major}.${minor}.${patch}"
+          bump_each_commit: false
+          search_commit_body: false
+
+      - name: Set NEXT_VERSION
+        run: echo "NEXT_VERSION=${{ steps.version.outputs.version }}" >> $GITHUB_ENV
+
+      - name: Print version
+        run: echo "Publishing version ${{ env.NEXT_VERSION }}"
+
+      - name: Log in to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
+            --username ${{ github.actor }} \
+            --password-stdin
+
+      # ── drunk-lib ──────────────────────────────────────────────────────────
+      - name: Package drunk-lib
+        working-directory: drunk-lib
+        run: |
+          helm package . --version ${{ env.NEXT_VERSION }} --destination /tmp/charts
+
+      - name: Push drunk-lib to GHCR
+        run: |
+          helm push /tmp/charts/drunk-lib-${{ env.NEXT_VERSION }}.tgz \
+            oci://ghcr.io/${{ github.repository_owner }}
+
+      # ── drunk-app ──────────────────────────────────────────────────────────
+      - name: Resolve drunk-app dependencies
+        working-directory: drunk-app
+        run: |
+          # Chart.yaml already uses repository: "file://../drunk-lib"
+          # helm dependency build resolves local file:// dependencies without network access
+          helm dependency build .
+
+      - name: Package drunk-app
+        working-directory: drunk-app
+        run: |
+          helm package . --version ${{ env.NEXT_VERSION }} --destination /tmp/charts
+
+      - name: Push drunk-app to GHCR
+        run: |
+          helm push /tmp/charts/drunk-app-${{ env.NEXT_VERSION }}.tgz \
+            oci://ghcr.io/${{ github.repository_owner }}
+
+      - name: Log out from GHCR
+        if: always()
+        run: helm registry logout ghcr.io
+
+      # ── GitHub Release ─────────────────────────────────────────────────────
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2.6.1
+        with:
+          generate_release_notes: true
+          make_latest: true
+          tag_name: v${{ env.NEXT_VERSION }}
+          name: Release v${{ env.NEXT_VERSION }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
