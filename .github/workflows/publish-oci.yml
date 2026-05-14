@@ -72,6 +72,9 @@ jobs:
             sed -i "s/^version:.*/version: ${NEXT_VERSION}/" "$f"
             echo "synced $f"
           done
+          # Keep the drunk-lib dependency version in drunk-app in sync so Chart.yaml is consistent
+          sed -i '/- name: drunk-lib/{n;s/^    version:.*/    version: '"${NEXT_VERSION}"'/;}' drunk-app/Chart.yaml
+          echo "synced drunk-app drunk-lib dependency version to ${NEXT_VERSION}"
 
       - name: Log in to GitHub Container Registry
         if: steps.flag.outputs.enable == 'true'
@@ -88,12 +91,24 @@ jobs:
           helm package . --version "${NEXT_VERSION}" --destination /tmp/charts
           helm push "/tmp/charts/drunk-lib-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
 
+      - name: Vendor drunk-lib into dependent charts
+        if: steps.flag.outputs.enable == 'true'
+        run: |
+          set -euo pipefail
+          LIB_CHART="/tmp/charts/drunk-lib-${NEXT_VERSION}.tgz"
+          for d in drunk-app; do
+            mkdir -p "$d/charts"
+            rm -f "$d/charts/drunk-lib-"*.tgz
+            cp "$LIB_CHART" "$d/charts/"
+            echo "vendored $LIB_CHART into $d/charts/"
+          done
+
       - name: Package + push drunk-app
         if: steps.flag.outputs.enable == 'true'
         working-directory: drunk-app
         run: |
           mkdir -p /tmp/charts
-          helm dependency update .
+          helm dependency build .
           helm package . --version "${NEXT_VERSION}" --destination /tmp/charts
           helm push "/tmp/charts/drunk-app-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
 
