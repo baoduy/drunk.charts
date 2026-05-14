@@ -25,7 +25,7 @@ stack_shape: be-only
 - [x] plan → docs/superpowers/plans/2026-05-14-drunk-lib-standalone-templates-plan.md (approved 2026-05-14T03:36:00Z, 9 impl:be-* tasks)
 - [x] pre_impl_review → arch + sec PASSED (round 2; arch reports `...-arch.md`, sec reports `...-sec.md` on feature branch)
 - [x] implementation (9/9 tasks complete; feature branch HEAD 7312b6c; verify.sh passes)
-- [ ] qa
+- [x] qa → QA_PASSED (report `...-qa.md` on feature branch)
 - [ ] review
 - [ ] finish
 
@@ -35,7 +35,7 @@ stack_shape: be-only
 - software-architect (agent-id: aa5dc3b3503984cc2) — idle, ARCH_PASSED (after 1 revision round)
 - security-engineer (agent-id: a6bb5dfe7be234ab2) — idle, SEC_PASSED
 - backend-developer (agent-id: ae67f48aa6dababa1) — idle, BE_ALL_DONE 9/9
-- qa-engineer — to spawn (phase 5)
+- qa-engineer (agent-id: ad24952287a7d3c27) — idle, QA_PASSED
 - reviewer — to spawn (phase 6)
 
 ## Open escalations
