@@ -8,7 +8,7 @@ kind: NetworkPolicy
 metadata:
   name: test-release-drunk-test-app-allow-all-ingress-restrict-egress
   labels:
-    helm.sh/chart: drunk-app-1.3.2
+    helm.sh/chart: drunk-app-1.3.5
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -34,7 +34,7 @@ kind: ServiceAccount
 metadata:
   name: drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-1.3.2
+    helm.sh/chart: drunk-app-1.3.5
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -94,7 +94,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: drunk-test-app-data-vol
   labels:
-    helm.sh/chart: drunk-app-1.3.2
+    helm.sh/chart: drunk-app-1.3.5
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -118,7 +118,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: drunk-test-app-other-vol
   labels:
-    helm.sh/chart: drunk-app-1.3.2
+    helm.sh/chart: drunk-app-1.3.5
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -137,26 +137,22 @@ spec:
 # Only create PVC for non-emptyDir volumes
 ---
 # Source: drunk-app/templates/service.yaml
-# Generate Service resource to expose deployment ports
-# Creates a Service only when .Values.deployment.ports is defined (requires deployment with ports)
-# Service type defaults to ClusterIP, can be overridden with .Values.service.type
-# For single port: exposes on port 80 targeting the named port
-# For multiple ports: creates port mapping for each defined port
+# Service — exposes the application's ports inside the cluster.
+# Port source resolution: service.ports → deployment.ports
+# Set service.enabled: false to suppress this resource.
 apiVersion: v1
 kind: Service
 metadata:
   name: test-release-drunk-test-app
   labels: 
-    helm.sh/chart: drunk-app-1.3.2
+    helm.sh/chart: drunk-app-1.3.5
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
     app.kubernetes.io/managed-by: Helm
 spec:
-  # Service type: ClusterIP (default), NodePort, LoadBalancer, or ExternalName
   type: ClusterIP
   ports:
-# For single port deployment, expose on standard port 80
     - port: 8080
       targetPort: http
       protocol: TCP
@@ -165,7 +161,6 @@ spec:
       targetPort: tcp
       protocol: TCP
       name: tcp
-  # Select pods using standard selector labels
   selector: 
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
@@ -185,7 +180,7 @@ kind: Deployment
 metadata:
   name: test-release-drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-1.3.2
+    helm.sh/chart: drunk-app-1.3.5
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -420,16 +415,18 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: test-release-drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-1.3.2
+    helm.sh/chart: drunk-app-1.3.5
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
     app.kubernetes.io/managed-by: Helm
 spec:
-  # Target the deployment for scaling
+  # Target workload for scaling.
+  # Set autoscaling.targetKind to "StatefulSet" or another workload kind when not scaling a Deployment.
+  # Set autoscaling.targetApiVersion if the workload uses a non-standard API group.
   scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
+    apiVersion: "apps/v1"
+    kind: "Deployment"
     name: test-release-drunk-test-app
   # Scaling boundaries from values
   minReplicas: 1
@@ -450,7 +447,7 @@ kind: StatefulSet
 metadata:
   name: test-release-drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-1.3.2
+    helm.sh/chart: drunk-app-1.3.5
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -687,9 +684,9 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   # Job name includes random suffix to avoid conflicts on reruns
-  name: drunk-test-app-drunk-job-1-ptcw4
+  name: drunk-test-app-drunk-job-1-vtd7r
   labels:
-    helm.sh/chart: drunk-app-1.3.2
+    helm.sh/chart: drunk-app-1.3.5
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -807,9 +804,9 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   # Job name includes random suffix to avoid conflicts on reruns
-  name: drunk-test-app-drunk-job-2-8mbfn
+  name: drunk-test-app-drunk-job-2-eaz63
   labels:
-    helm.sh/chart: drunk-app-1.3.2
+    helm.sh/chart: drunk-app-1.3.5
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -929,7 +926,7 @@ kind: CronJob
 metadata:
   name: drunk-test-app-drunk-cjob-1
   labels:
-    helm.sh/chart: drunk-app-1.3.2
+    helm.sh/chart: drunk-app-1.3.5
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -1053,7 +1050,7 @@ kind: CronJob
 metadata:
   name: drunk-test-app-drunk-cjob-2
   labels:
-    helm.sh/chart: drunk-app-1.3.2
+    helm.sh/chart: drunk-app-1.3.5
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -1178,7 +1175,7 @@ kind: Ingress
 metadata:
   name: test-release-drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-1.3.2
+    helm.sh/chart: drunk-app-1.3.5
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -1248,7 +1245,7 @@ kind: HTTPRoute
 metadata:
   name: test-release-drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-1.3.2
+    helm.sh/chart: drunk-app-1.3.5
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -1273,7 +1270,7 @@ spec:
             value: /
       backendRefs:
         - name: test-release-drunk-test-app
-          port: 9090
+          port: 8080
 ---
 # Source: drunk-app/templates/secretProviderClass.yaml
 # Provider type: azure, aws, gcp---
@@ -1282,7 +1279,7 @@ kind: SecretProviderClass
 metadata:
   name: my-secret-class-cls
   labels:
-    helm.sh/chart: drunk-app-1.3.2
+    helm.sh/chart: drunk-app-1.3.5
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"

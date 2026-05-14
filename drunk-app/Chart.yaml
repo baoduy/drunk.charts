@@ -9,5 +9,5 @@ appVersion: "latest"
 
 dependencies:
   - name: drunk-lib
-    version: 1.x.x
+    version: 0.0.0 # Placeholder; CI workflow updates this to match drunk-lib's published version
     repository: oci://ghcr.io/baoduy
