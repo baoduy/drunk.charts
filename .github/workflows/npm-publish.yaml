@@ -16,11 +16,13 @@ concurrency:
 
 jobs:
   publish:
+    if: |
+      github.event_name != 'push' ||
+      (github.actor != 'github-actions[bot]' &&
+      !startsWith(github.event.head_commit.message, 'chore(release): npm v'))
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write
-      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -78,6 +80,7 @@ jobs:
           done
 
       - name: Commit version bump
+        id: commit_bump
         if: steps.flag.outputs.enable == 'true'
         env:
           NEXT_VERSION: ${{ env.NEXT_VERSION }}
@@ -90,10 +93,12 @@ jobs:
 
           if git diff --cached --quiet; then
             echo "No version diff to commit"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           git commit -m "chore(release): npm v${NEXT_VERSION} [skip ci]"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
 
           # Tolerate concurrent push from publish-oci.yml on the same SHA.
           for i in 1 2 3; do
@@ -106,7 +111,7 @@ jobs:
           exit 1
 
       - name: Publish to npm
-        if: steps.flag.outputs.enable == 'true'
+        if: steps.flag.outputs.enable == 'true' && steps.commit_bump.outputs.changed == 'true'
         run: npm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

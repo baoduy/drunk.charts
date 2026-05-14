@@ -55,4 +55,4 @@ When the developer pastes a values.yaml section, check each of these and report 
 
 ## Last-reviewed-commit
 
-`<short SHA of `drunk-lib/templates/_<file>.tpl` at time of authoring>`
+`<short SHA of drunk-lib/templates/_<file>.tpl at time of authoring>`

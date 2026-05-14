@@ -44,17 +44,19 @@ AUTHOR="$(git config user.name || echo Unknown)"
 
 mkdir -p "$PLUGIN_DIR/.claude-plugin" "$PLUGIN_DIR/skills/$NAME"
 
-cat > "$PLUGIN_DIR/.claude-plugin/plugin.json" <<JSON
-{
-  "name": "$NAME",
-  "version": "0.1.0",
-  "description": "$DESC",
-  "author": { "name": "$AUTHOR" },
-  "repository": "https://github.com/baoduy/drunk.charts",
-  "license": "MIT",
-  "keywords": []
-}
-JSON
+jq -n \
+  --arg name "$NAME" \
+  --arg desc "$DESC" \
+  --arg author "$AUTHOR" \
+  '{
+    name: $name,
+    version: "0.1.0",
+    description: $desc,
+    author: { name: $author },
+    repository: "https://github.com/baoduy/drunk.charts",
+    license: "MIT",
+    keywords: []
+  }' > "$PLUGIN_DIR/.claude-plugin/plugin.json"
 
 cat > "$PLUGIN_DIR/skills/$NAME/SKILL.md" <<MD
 ---
@@ -85,6 +87,6 @@ cat <<EOF
 Next:
   1. Edit $PLUGIN_DIR/.claude-plugin/plugin.json (set keywords).
   2. Edit $PLUGIN_DIR/skills/$NAME/SKILL.md (use docs/superpowers/templates/SKILL.md.template).
-  3. Run: bash scripts/new-plugin.sh --self-check  # or rely on CI workflow.
+  3. Run: git --no-pager diff -- plugins/$NAME .claude-plugin/marketplace.json
   4. git add plugins/$NAME .claude-plugin/marketplace.json && git commit
 EOF
