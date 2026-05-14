@@ -16,6 +16,9 @@ on:
       - '.claude-plugin/**'
       - 'scripts/new-plugin.sh'
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
