@@ -1,6 +1,0 @@
-dependencies:
-- name: drunk-lib
-  repository: file://../drunk-lib
-  version: 1.2.3
-digest: sha256:65c81f9b0283c87e771b8c7d8a03b11a5005584ef13bb16b0a7ee77ac082ba47
-generated: "2026-04-29T10:55:00.667974+08:00"

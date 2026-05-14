@@ -100,6 +100,7 @@ jobs:
         if: steps.flag.outputs.enable == 'true'
         working-directory: drunk-lib
         run: |
+          mkdir -p /tmp/charts
           helm package . --version "${NEXT_VERSION}" --destination /tmp/charts
           helm push "/tmp/charts/drunk-lib-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
 
@@ -107,6 +108,7 @@ jobs:
         if: steps.flag.outputs.enable == 'true'
         working-directory: drunk-app
         run: |
+          mkdir -p /tmp/charts
           helm dependency update .
           helm package . --version "${NEXT_VERSION}" --destination /tmp/charts
           helm push "/tmp/charts/drunk-app-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
@@ -115,6 +117,7 @@ jobs:
         if: steps.flag.outputs.enable == 'true'
         working-directory: drunk-nginx-gateway
         run: |
+          mkdir -p /tmp/charts
           helm dependency update .
           helm package . --version "${NEXT_VERSION}" --destination /tmp/charts
           helm push "/tmp/charts/drunk-nginx-gateway-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
@@ -123,6 +126,7 @@ jobs:
         if: steps.flag.outputs.enable == 'true'
         working-directory: drunk-traefik-gateway
         run: |
+          mkdir -p /tmp/charts
           helm dependency update .
           helm package . --version "${NEXT_VERSION}" --destination /tmp/charts
           helm push "/tmp/charts/drunk-k8s-gateway-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
@@ -131,6 +135,7 @@ jobs:
         if: steps.flag.outputs.enable == 'true'
         working-directory: drunk-squid-basic-auth
         run: |
+          mkdir -p /tmp/charts
           helm dependency update .
           helm package . --version "${NEXT_VERSION}" --destination /tmp/charts
           helm push "/tmp/charts/drunk-squid-basic-auth-proxy-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
