@@ -17,7 +17,6 @@ concurrency:
 permissions:
   contents: write
   packages: write
-  id-token: write
 
 jobs:
   publish:
@@ -70,13 +69,7 @@ jobs:
           set -euo pipefail
           for d in drunk-lib drunk-app drunk-nginx-gateway drunk-traefik-gateway drunk-squid-basic-auth; do
             f="$d/Chart.yaml"
-            python3 -c "
-          import sys, re
-          p = '$f'
-          s = open(p).read()
-          s2 = re.sub(r'^version:.*$', 'version: ${NEXT_VERSION}', s, count=1, flags=re.M)
-          open(p, 'w').write(s2)
-          "
+            sed -i "s/^version:.*/version: ${NEXT_VERSION}/" "$f"
             echo "synced $f"
           done
 
@@ -157,4 +150,4 @@ jobs:
           draft: false
           prerelease: false
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
