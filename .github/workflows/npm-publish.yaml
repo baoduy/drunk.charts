@@ -1,0 +1,118 @@
+name: npm-publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish to npm"
+        required: false
+        default: "true"
+
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Prevent workflow recursion on bot-created release bump commits.
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.actor != 'github-actions[bot]' &&
+      !startsWith(github.event.head_commit.message, 'chore(release): npm v'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Calculate version
+        id: version
+        uses: paulhatch/semantic-version@v5.4.0
+        with:
+          tag_prefix: "v"
+          major_pattern: "(MAJOR)"
+          minor_pattern: "(MINOR)"
+          version_format: "${major}.${minor}.${patch}"
+          bump_each_commit: false
+          search_commit_body: false
+
+      - name: Set NEXT_VERSION
+        run: echo "NEXT_VERSION=${{ steps.version.outputs.version }}" >> "$GITHUB_ENV"
+
+      - name: Print the version
+        run: echo "Next version is v${NEXT_VERSION}"
+
+      - name: Determine release flag
+        id: flag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "enable=${{ github.event.inputs.release }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "enable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enable=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org/"
+
+      - name: Update version in package.json
+        if: steps.flag.outputs.enable == 'true'
+        run: npm version "${NEXT_VERSION}" --no-git-tag-version --allow-same-version
+
+      - name: Sync plugin manifest versions
+        if: steps.flag.outputs.enable == 'true'
+        run: |
+          set -euo pipefail
+          if [ -f .claude-plugin/marketplace.json ]; then
+            node -e "const fs=require('fs');const p='.claude-plugin/marketplace.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));if(Array.isArray(j.plugins)){j.plugins.forEach(pl=>{pl.version=process.env.NEXT_VERSION});}fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n');"
+          fi
+          for f in plugins/*/.claude-plugin/plugin.json; do
+            [ -f "$f" ] || continue
+            node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('$f','utf8'));j.version=process.env.NEXT_VERSION;fs.writeFileSync('$f',JSON.stringify(j,null,2)+'\n');"
+          done
+
+      - name: Commit version bump
+        id: commit_bump
+        if: steps.flag.outputs.enable == 'true'
+        env:
+          NEXT_VERSION: ${{ env.NEXT_VERSION }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add package.json .claude-plugin/marketplace.json plugins/*/.claude-plugin/plugin.json
+
+          if git diff --cached --quiet; then
+            echo "No version diff to commit"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git commit -m "chore(release): npm v${NEXT_VERSION} [skip ci]"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+          # Tolerate concurrent push from publish-oci.yml on the same SHA.
+          for i in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            git pull --rebase origin main
+          done
+          echo "::error::Failed to push version bump after 3 rebase attempts"
+          exit 1
+
+      - name: Publish to npm
+        if: steps.flag.outputs.enable == 'true' && steps.commit_bump.outputs.changed == 'true'
+        run: npm publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
