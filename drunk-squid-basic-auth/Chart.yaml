@@ -18,4 +18,4 @@ dependencies:
     alias: proxy
     version: 1.x.x
     condition: proxy.enabled
-    repository: "https://baoduy.github.io/drunk.charts/drunk-app"
+    repository: oci://ghcr.io/baoduy
