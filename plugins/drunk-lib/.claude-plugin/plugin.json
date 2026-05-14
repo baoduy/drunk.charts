@@ -1,0 +1,9 @@
+{
+  "name": "drunk-lib",
+  "version": "1.0.0",
+  "description": "Per-template AI assistants for the drunk-lib Helm library chart — Deployment, StatefulSet, CronJob, Job, Service, Ingress, HTTPRoute, Gateway, BackendTLSPolicy, HPA, ConfigMap, Secrets, TLS Secrets, SecretProviderClass, imagePullSecret, NetworkPolicy, ServiceAccount, and Volumes.",
+  "author": { "name": "Steven Hoang" },
+  "repository": "https://github.com/baoduy/drunk.charts",
+  "license": "MIT",
+  "keywords": ["helm", "kubernetes", "drunk-lib", "library-chart", "values", "configuration"]
+}

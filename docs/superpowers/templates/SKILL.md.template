@@ -1,0 +1,58 @@
+---
+name: drunk-lib-<RESOURCE-SLUG>
+description: "Use when configuring/validating the drunk-lib <Resource> partial — answers questions, generates values.yaml snippets, validates a section. Triggers on: <comma-separated keyword list>."
+---
+
+# drunk-lib · <Resource>
+
+You are an expert on the `drunk-lib` Helm library chart's `<Resource>` partial (`drunk-lib/templates/_<file>.tpl`). Help developers configure, generate, and validate the `<resource-yaml-block>` section of `values.yaml`.
+
+## What it renders
+
+<One paragraph: what Kubernetes object the partial emits, when (`.Values.<gate>.enabled`), and how it depends on other partials.>
+
+## Include usage
+
+```yaml
+{{- include "drunk-lib.<name>" . -}}
+```
+
+<Note any required context dict — most partials take the root `.`; some take `(dict "ctx" . "name" "foo")`.>
+
+## Values schema
+
+| Key | Type | Default | Required? | Notes |
+|-----|------|---------|-----------|-------|
+| `.Values.<gate>.enabled` | bool | `false` | yes | Toggles rendering. |
+| `.Values.<…>` | … | … | … | … |
+
+## Generate mode
+
+When the developer says "give me a values.yaml for <Resource> doing X":
+
+**Minimal:**
+```yaml
+<minimal working snippet>
+```
+
+**Typical:**
+```yaml
+<a richer real-world snippet>
+```
+
+## Validate checklist
+
+When the developer pastes a values.yaml section, check each of these and report any miss:
+
+- [ ] `<rule 1>` — <why>
+- [ ] `<rule 2>` — <why>
+- [ ] `<rule 3>` — <why>
+
+## Cross-refs
+
+- `drunk-lib-<sibling>` — <relationship>
+- `drunk-lib-<sibling>` — <relationship>
+
+## Last-reviewed-commit
+
+`<short SHA of `drunk-lib/templates/_<file>.tpl` at time of authoring>`

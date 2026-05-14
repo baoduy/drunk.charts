@@ -1,0 +1,78 @@
+name: validate-plugins
+
+on:
+  pull_request:
+    paths:
+      - 'plugins/**'
+      - '.claude-plugin/**'
+      - 'scripts/new-plugin.sh'
+      - '.github/workflows/validate-plugins.yml'
+  push:
+    branches: [main, dev]
+    paths:
+      - 'plugins/**'
+      - '.claude-plugin/**'
+      - 'scripts/new-plugin.sh'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
+
+      - name: Validate marketplace.json shape
+        run: |
+          set -euo pipefail
+          M=.claude-plugin/marketplace.json
+          jq -e '.name and .owner.name and (.plugins | type == "array") and (.plugins | length > 0)' "$M" \
+            || { echo "::error file=$M::missing required top-level fields"; exit 1; }
+          jq -e '.plugins | all(.name and .version and .source and .description)' "$M" \
+            || { echo "::error file=$M::plugin entry missing name/version/source/description"; exit 1; }
+
+      - name: Validate plugin sources exist
+        run: |
+          set -euo pipefail
+          M=.claude-plugin/marketplace.json
+          jq -r '.plugins[].source' "$M" | while read -r src; do
+            test -d "$src" || { echo "::error::missing plugin dir: $src"; exit 1; }
+            test -f "$src/.claude-plugin/plugin.json" || { echo "::error::missing plugin.json under: $src"; exit 1; }
+          done
+
+      - name: Validate plugin.json fields
+        run: |
+          set -euo pipefail
+          find plugins -mindepth 2 -maxdepth 3 -name plugin.json -print0 | while IFS= read -r -d '' f; do
+            jq -e '.name and .version and .description and .author.name' "$f" \
+              || { echo "::error file=$f::plugin.json missing name/version/description/author.name"; exit 1; }
+          done
+
+      - name: Validate SKILL.md frontmatter
+        run: |
+          set -euo pipefail
+          find plugins -path '*/skills/*/SKILL.md' -print0 | while IFS= read -r -d '' f; do
+            FM=$(awk 'NR==1 && /^---$/ {flag=1; next} /^---$/ && flag {exit} flag' "$f")
+            if [[ -z "$FM" ]]; then
+              echo "::error file=$f::missing YAML frontmatter"; exit 1
+            fi
+            NAME=$(echo "$FM" | yq -r '.name // ""')
+            DESC=$(echo "$FM" | yq -r '.description // ""')
+            [[ -n "$NAME" ]] || { echo "::error file=$f::frontmatter missing name"; exit 1; }
+            [[ -n "$DESC" ]] || { echo "::error file=$f::frontmatter missing description"; exit 1; }
+          done
+
+      - name: Validate skill name uniqueness
+        run: |
+          set -euo pipefail
+          DUPES=$(find plugins -path '*/skills/*/SKILL.md' -print0 \
+            | xargs -0 -I{} sh -c "awk 'NR==1 && /^---$/ {flag=1; next} /^---\$/ && flag {exit} flag' \"{}\" | yq -r '.name // \"\"'" \
+            | sort | uniq -d)
+          if [[ -n "$DUPES" ]]; then
+            echo "::error::duplicate skill names: $DUPES"; exit 1
+          fi
