@@ -7,6 +7,8 @@ on:
       - '.claude-plugin/**'
       - 'scripts/new-plugin.sh'
       - '.github/workflows/validate-plugins.yml'
+      - 'package.json'
+      - '.github/workflows/npm-publish.yaml'
   push:
     branches: [main, dev]
     paths:
