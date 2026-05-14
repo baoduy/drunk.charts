@@ -159,3 +159,124 @@ After any edit inside `drunk-lib/`, `verify.sh` rebuilds the package and refresh
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+## Standalone Template Usage
+
+`drunk-lib` partials can be included individually — you are not required to use `drunk-lib.all`. A chart that only needs a ConfigMap and a Service can call exactly those two partials.
+
+### Minimum values per template
+
+| Template | Required keys | Optional keys added by this feature |
+|---|---|---|
+| `drunk-lib.configMap` | `configMap` (map) | — |
+| `drunk-lib.secrets` | `secrets` (map) | — |
+| `drunk-lib.service` | `service.ports` OR `deployment.ports` | `service.enabled` (bool, default true), `service.type` (string, default ClusterIP) |
+| `drunk-lib.ingress` | `ingress.enabled: true`, `ingress.hosts` | Port resolved via `drunk.utils.ingressPort`: prefers `service.ports` → `deployment.ports` → 8080 |
+| `drunk-lib.hpa` | `autoscaling.enabled: true`, `autoscaling.minReplicas`, `autoscaling.maxReplicas` | `autoscaling.targetKind` (default "Deployment"), `autoscaling.targetApiVersion` (default "apps/v1") |
+| `drunk-lib.cronJobs` | `cronJobs` array with `name` and `schedule` | `cronJobs[].enabled` (bool, default true — set false to skip that entry) |
+| `drunk-lib.jobs` | `jobs` array with `name` | `jobs[].enabled` (bool, default true — set false to skip that entry) |
+| `drunk-lib.deployment` | `deployment.enabled: true`, `global.image`, `global.tag` | all other `deployment.*` keys |
+| `drunk-lib.statefulset` | `statefulset.enabled: true`, `global.image`, `global.tag` | all other `statefulset.*` keys |
+| `drunk-lib.serviceAccount` | `serviceAccount.enabled: true` | `serviceAccount.name` |
+| `drunk-lib.gateway` | `gateway.enabled: true` | all `gateway.*` keys |
+| `drunk-lib.httpRoute` | `httpRoute.enabled: true` | all `httpRoute.*` keys |
+| `drunk-lib.networkPolicies` | `networkPolicies` array | `networkPolicy` (legacy single-policy) |
+| `drunk-lib.volumes` | `volumes` map | — |
+| `drunk-lib.secretProvider` | `secretProvider.enabled: true` | all `secretProvider.*` keys |
+| `drunk-lib.imagePullSecret` | `imageCredentials` map | — |
+| `drunk-lib.tls` | `tlsSecrets` map | — |
+
+### Shared keys (by design)
+
+The following keys are shared across all workload templates (`deployment`, `statefulset`, `cronJobs`, `jobs`). A standalone chart that uses only one workload template simply populates only what that template reads — unused shared keys are absent and silently skipped:
+
+- `env` — environment variables injected into all workload containers
+- `volumes` — shared PVC / emptyDir mounts
+- `resources` — container resource limits / requests
+- `configMap` / `configFrom` — config sources mounted into all workload containers
+- `secrets` / `secretFrom` — secret sources mounted into all workload containers
+- `secretProvider` — CSI secret store
+- `podSecurityContext` / `securityContext` — security contexts
+- `serviceAccount` — service account used by all workloads
+- `nodeSelector` / `affinity` / `tolerations` — scheduling constraints
+- `global.*` — image, tag, imagePullPolicy, imagePullSecret, initContainer, storageClassName
+
+### Example — ConfigMap + Ingress only (no Deployment)
+
+```yaml
+# values.yaml of the new chart
+configMap:
+  APP_ENV: production
+
+service:
+  ports:
+    http: 8080
+
+ingress:
+  enabled: true
+  hosts:
+    - host: myapp.example.com
+      path: /
+```
+
+```yaml
+# templates/all.yaml
+{{ include "drunk-lib.configMap" . }}
+{{ include "drunk-lib.service" . }}
+{{ include "drunk-lib.ingress" . }}
+```
+
+### Example — StatefulSet + HPA targeting StatefulSet
+
+```yaml
+global:
+  image: myapp
+  tag: "1.0.0"
+
+statefulset:
+  enabled: true
+  replicaCount: 3
+  ports:
+    http: 8080
+
+autoscaling:
+  enabled: true
+  targetKind: StatefulSet
+  targetApiVersion: apps/v1
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+```
+
+### Example — suppress Service in existing consumer
+
+```yaml
+# Add to your existing values — no other changes needed
+service:
+  enabled: false
+```
+
+---
+
+## Non-Breaking Guarantee
+
+Every `drunk-lib` change is regression-tested via golden-file snapshots in `drunk-lib/tests/golden/`. `bash drunk-lib/verify.sh` automatically re-renders and diffs the following stable renders after each packaging:
+
+| Golden file | Render scenario |
+|---|---|
+| `drunk-app-default.yaml` | `drunk-app` with default `values.yaml` |
+| `drunk-app-svc-disabled.yaml` | `drunk-app` with `service.enabled: false` |
+| `drunk-app-secretprovider.yaml` | `drunk-app` with `secretProvider.enabled: true` |
+
+`drunk-app-example.yaml` is also committed for human PR review but is **excluded from machine diff** because `_job.tpl` generates Job names with a random suffix (`randAlphaNum 5`) that changes on every render.
+
+If you intentionally change consumer output (e.g. a format fix), update all golden files:
+
+```bash
+bash drunk-lib/snapshot.sh   # re-captures all golden files from repo root
+bash drunk-lib/verify.sh     # must pass after update
+git add drunk-lib/tests/golden/
+git commit -m "test: update golden files for <reason>"
+```

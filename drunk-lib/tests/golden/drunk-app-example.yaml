@@ -1,0 +1,1332 @@
+---
+# Source: drunk-app/templates/networkPolicy.yaml
+# NetworkPolicy resource (multi-policy configuration)
+# Creates a NetworkPolicy for each entry in .Values.networkPolicies
+# Each policy controls network access to pods using labels, namespaces, and CIDR blocks
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: test-release-drunk-test-app-allow-all-ingress-restrict-egress
+  labels:
+    helm.sh/chart: drunk-app-1.3.2
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: drunk-test-app
+      app.kubernetes.io/instance: test-release
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - {}
+  egress:
+    - to:
+      - ipBlock:
+          cidr: 192.168.253.253/32
+---
+# Source: drunk-app/templates/serviceAccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: drunk-test-app
+  labels:
+    helm.sh/chart: drunk-app-1.3.2
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+  # Include optional annotations for service account (e.g., for IRSA, Workload Identity)
+---
+# Source: drunk-app/templates/imagePull-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: drunkcoding-acr-secret
+type: kubernetes.io/dockerconfigjson
+data:
+  # Generate Docker config JSON with base64 encoded credentials
+  .dockerconfigjson: eyJhdXRocyI6IHsiZHJ1bmtjb2RpbmcubmV0IjogeyJhdXRoIjogIlpISjFibXM2WTI5a2FXNW4ifX19
+---
+# Source: drunk-app/templates/secrets.yaml
+# Generate Secret resource from values.secrets
+# Creates a Secret with name "<app-name>-secret" containing all key-value pairs from .Values.secrets
+# Uses stringData for easier handling of secret values
+# Only rendered when .Values.secrets is defined and not empty
+apiVersion: "v1"
+kind: Secret
+metadata:
+  name: drunk-test-app-secret
+stringData:
+  # Convert all values from .Values.secrets to properly quoted strings
+  connectionString: "ABC"
+  redis: "BAC123"
+---
+# Source: drunk-app/templates/tls-secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tls-cloudflare
+type: kubernetes.io/tls
+data:
+  tls.crt: TFMwdExTMUNSVWRKVGlCRFJWSlVTVVpKUTBGVVJTMHRMUzB0Q2sxSlNVUTRSRU5EUVhScFowRjNTVUpCWjBsVlNrWlVhWGwzYm01MVpFSlBPRFZTVWt4MGJHUXZUVTkwU0dwbmQwUlJXVXBMYjFwSmFIWmpUa0ZSUlV3S1FsRkJkMmRaTUhoRGVrRktRbWRPVmtKQldWUkJiRTVJVFZKSmQwVkJXVVJXVVZGSlJFRnNWR0ZYTlc1WldFSjJZMjFWZUVWcVFWRkNaMDVXUWtGalRRcERWazV3WW0xa2FHTkhPWGxhVkVWVFRVSkJSMEV4VlVWRFozZEtVa2RXTWtsRmVIWlpNa1p6VFZGM2QwTm5XVVJXVVZGTVJFRk9SVlJHVlhoSWFrRmpDa0puYTNGb2EybEhPWGN3UWtOUlJWZEVNbFowV1Zkc2MxRkhVbXhrYVRWellqSk9hR0pFUlZWTlFrbEhRVEZWUlVGM2QweExhVFZyV2xoWmRXSkhPV29LV1ZkM2QwbENZMDVOYWxGM1RrUkJlVTFVVFhkTmFrRXhWMmhuVUUxcVJYbE9SRUY2VFVScmVFMTZRWGxOUkZaaFRVbEhUazFSYzNkRFVWbEVWbEZSUndwRmQwcFVVbnBGVTAxQ1FVZEJNVlZGUTBGM1NsVXliSFZhTWtaM1lqTktiRTFTU1hkRlFWbEVWbEZSU0VSQmJGUmhWelZ1V1ZoQ2RtTnRWWGhGYWtGUkNrSm5UbFpDUVc5TlExVlNiR1JwUWsxaU1rNW9Za1JGVFUxQmIwZEJNVlZGUTNkM1JGSkZlRlpOVWpSM1NFRlpTa3R2V2tsb2RtTk9RVkZyUWtabk9Xd0tZbGRHY0dKRlFtdGFXRmwxWWtjNWFsbFhkM2hHUkVGVFFtZE9Wa0pCVFUxRGVXOTFXa2RXTWt4dGVIWlpNa1p6VFVsSlFrbHFRVTVDWjJ0eGFHdHBSd281ZHpCQ1FWRkZSa0ZCVDBOQlVUaEJUVWxKUWtOblMwTkJVVVZCTlZveGRXeFZWMlpEY21RM1Jrd3diMmxGV1haWlVqazNkbGhDYXpaSGNrZEViMnh1Q21Ob2RIQk9ka05vTkcxU2JVdHVlalJ0TTA1dFEycFVOVzAzY0dKeFdHbEphemg2Y0UwNWEyNTBhMkU0ZWpaQlJtRkRZV0V2YzI5NmFXRTJWMFZTT1dJS1dIWmxlbTVwWTBKUmMzbERaM05QYjNZMFJGTkRNQzgyVkVwYUt6aG1jWGxCV1ROUUwyMTJkalJsWWxWUFJXaHVObFZsUVhBemJFUXZaRFF5VWxwQllRb3hRaTlMUjFSTE4weDZPVmxTWlVGTk1ETk1abkJIUWtVd2FTdHJRMVJUVkd3MWQwSlJhekp0ZVVKM1MzY3hZemh6VTJsbE5uaEdhMmRuWjFCek9VOXdDakJVYTJkVFlpOW5lRmt6U0hkeFMwY3pPR1JxYjBsaE1qVnNWek55T1VJeGRVVmlXalpHTHk5MWRIVkNUM3AxTUVSWlpFMUxRMFpSVmxCdFVVbE5hM1lLVWtjMFpsbE9TRkJVYjJJeFEwZDFkMVJMSzJJeFdISlphekJ6U0c5RlVWbFNXbmM1Y0ZoSU1ucFlRbTVVVWpsSmJGRkpSRUZSUVVKdk1GRjNVV3BCYUFwQ1owNVdTRkpGUlVkcVFWbG5aM054VEcxU2JHUnBOWE5pTWs1b1lrbEpTbHBIVmpKTWJYaDJXVEpHYzAxQ01FZEJNVlZrUkdkUlYwSkNVbTVvZFVKdUNucHRjRk5NTlhwa01uQldWa1V6TkZKVWJqVkxVWHBCVGtKbmEzRm9hMmxIT1hjd1FrRlJjMFpCUVU5RFFWRkZRWEZNV1Vwd09USm1iSFp5T1dabkt6RUtaa05JY1dkbVFtMWpXbE5qVlVsd1VFSkJPRnA0UmpaSFFYZ3JVa3A2VDA5dlIzZHNLMnAyUW05Q1JVMWpObEpGT0hCalRHbDJZbFJtVjBWVWExa3dPUXAzUW1oeVF6QkhhV2R1UVZkMlVWWkZkRVJOTmtwbmFFdzVjWFp3YmpJMGNYSk1RMFZ6VVZGa1UzUkNSbUY2TWtGNE0yd3hRalp2Ym1nMVZUWnliQ3RJQ2taSVN6TlNha0pFZGpKSGVrd3JiRkZSUjFOUFFqWkhkekp2TmxoTGJXOWllakEzT1ZKNFVWWXpUbEYxTDJZeldtOXRjRTFTZUU5YWVqQklWelJGVVdFS1lVZHJSak15YlVaR2N6Vm9RVkpRZEc1UGNHWlZWallySzI0NWVqSTFaMDQ0VVZnNVJETklVWFJ1YUdrNUx6SkRWblI0T1VOUlVGRkpTMlJoTjNwRVRRcG9aRkl5VWtaME4zUmpObTlNZW14amNrWTNURFZIUjJSSk1sVkVRbkl5ZWpsTGRIUmhPVlpJYUZsclVtUnhhalY1VG5reFVETkRVMEkwWldZMWJWVjFDbWhWWVhWUlFUMDlDaTB0TFMwdFJVNUVJRU5GVWxSSlJrbERRVlJGTFMwdExTMEs=
+  tls.key: TFMwdExTMUNSVWRKVGlCUVVrbFdRVlJGSUV0RldTMHRMUzB0Q2sxSlNVVjJVVWxDUVVSQlRrSm5hM0ZvYTJsSE9YY3dRa0ZSUlVaQlFWTkRRa3RqZDJkblUycEJaMFZCUVc5SlFrRlJSR3h1VnpaV1VsbzRTM1F6YzFVS2RsTnBTVkpwT1doSU0zVTVZMGRVYjJGeldVOXBWMlI1UnpKck1qaExTR2xhUjFseFpsQnBZbU15V1V0T1VHMWlkV3gxY0dWSmFWUjZUMnQ2TWxObE1ncFNjbnBRYjBGV2IwcHdjaXQ1YWs5S2NuQlpVa2d4ZEdVNU4wOWxTbmRHUTNwSlMwTjNObWt2WjA1SlRGUXZjRTFzYmpkNEszSkpRbXBqTHl0aEt5OW9DalYwVVRSVFIyWndValJEYm1WVlVEa3phbHBHYTBKeVZVZzRiMXBOY25OMlVERm9SalJCZWxSamRDdHJXVVZVVTB3MlVVcE9TazlZYmtGR1ExUmhZa2tLU0VGeVJGWjZlWGhMU2pkeVJWZFRRME5CSzNvd05tNVNUMU5DU25ZclJFWnFZMlpEYjI5aVpuZ3lUMmRvY21KdFZtSmxkakJJVnpSU2RHNXZXQzhyTmdveU5FVTNUemRSVG1nd2QyOUpWa0pWSzFwQlozbFRPVVZpYURsbk1HTTVUMmgyVlVsaE4wSk5jalYyVm1WMGFWUlRkMlZuVWtKb1JtNUVNbXhqWm1KT0NtTkhaRTVJTUdsV1FXZE5Ra0ZCUlVOblowVkJRVTE0TDJGbU1rbENRakpJVkVKamMxbFBlamxzVkZSeE1WVnVhWG92ZDNaSVJGaFhTMnQwTWtocU4xRUtSVll5VVVSWE0wb3pOa05VU21zemR6UkdNMUp0T1VaVWFVWkJZVXcxWmpsNk1rTklialpHU3pRMFdHVXpRM2RRTm1SaE1YQjJSMWtyT0dWWk1VZEJSd3BZVW10b1EzaDBja3AwT1c0eU5tOHphMHhUYkZaSGIzVXpSbkZHT0hKcGJHRlFMMGxzVkcxTVVYZERRWEpvVWpVM1FsRjBNVU5uWjB3NFV6aHBNRWhyQ2xCT09ISktkMDh6Y2t0R1dHZFlkRlZXTVdWRlEwWXpOVnBFYkRScmRsaG5WREJsVkdGdVIzZHhibFJJWkVOWllWaHpUMWxRZDJGQ1NtNUVNamx6VWpJS1l6bGhVRlZsUjJocFdXNDRkMFJLTUZOaFZUaEJVelJCUXpWQkszbEthRVZVVUhGc1dHa3hWMlJzY2pSeE9HRXpNblZDWWtzMFQzVktSVGxtTTA4MU1ncFFkMmR0VG5kVVZVTkNZbGRRYjJacGRDdDRka0pKV0ZsUVExcGFVVXhzWXpVNVVIVkNXaXRIUVZGTFFtZFJSRE5XWXpSNmFYWnRhRFZCTURkRlNpOW9DbWh2UzFWMmFsbHlWRGh0YkRWNVNYUndObXRuY0d3dlEwUjVibVl2YW1Jekt6aFVXWGx5ZWxWU2JHdDFLMWRHVDFCVlprWXdjMFJRZEVWV2RHRXlZWE1LWTFOamVEVnVMMDlIY1dkNWFYUTNRekZ6VVhsNmFGUXhRMUJPYTBsdVRtTmFNR1JZZVdwb1pYUnhiRlI1Y2tJeE5VVmFWblJqV0dOMFRuZzJRa2RCV0FwelFVOTJjRVpuVVU1NVRYWTBTbWRNYzIxM056SnpObEUwVVV0Q1oxRkVkSEZNVWpoSGJuZGFjemszUVRKSE1TOTJRalJMTjNWd00zaDBjSGhWS3pGeENsZDJZV1l2Uld4VFJFTnRSR1l4UkdJeFQxbERhMHR5V1N0TlptOXZaSEl4UVVkYWExQTJaamRsUjFKNFoydzFabkprZGxRMmRqVjJPWGcxUkc1WVRFTUtUM0IwYjJONGFVNDVXRFpNU0U1S1REbHVSVXhyYWpSak5tMUlURkJwS3k5RFZEZzBPVmRuUkRreWF6SjJUQ3RIZERGSFJEQnZhR1p3UlZsVVZGTlNkd3BuVjBKdmJFbExTMDVSUzBKblFYcEVaWE0yYVVneGRrSllkMVp5VTBSVWJFMW9kbTAzVUdsNlRqRTJLMWhNT0hGYVkyNTJha0ZYUW5KMFIwZFdkVkJhQ2s1RlJsUjRVV0pZVlc5aVowTTJkSG80YURRNVZVRkliamxoVlRrME5rTkhabXhXVHpWak1raENjVTFHUlRWWVQyRXpWMHgxVURCclNuaDBSbmM1Y0VNS05HbFhabThyVlZCWVFrZGpOV2h3VUZjeWJsVTFXVGhOVEd0NVJuRlZabEJ3TkVWTE5VSnBRMGdyYVRadFJqUlRTMUVyTVhKUE9VSkJiMGRDUVUxTWRRb3ZUazVMWldZMGRrUm5aa3AyWXpkdVFYaEdaWFJGZWpSbE1Wa3pVeXRhVUhCRWFraHRNMEpFTnpRd1psVmlhSFZ2VW1JM2FVWmpaR2RCVG5ST2QxbzRDbWhJS3pOM2RGa3JRWE13YWpkTWNUUkNWR0ZIWVhCd01UZEpibnBVUW5wTFN6UjROVEF5YzJ4TlRqRXdSRE0wYkV4eldWbzVkalpMZEZKdllUaE9hbGNLUVdSb04xZG5lbVV3TlhOR1MwZGxZMVkyTUhwak5EVllWazg0YUN0RlEySnlaazAxTVZCVU9VRnZSMEZrYkUxUGRtMXNPVUpPV0RnM2VrVmFZWHBPTWdvNVltRk1kRnAxTUc5a1MxWXhOa05STW1JeFkwNUlVVlozTUVKVFRFUXhVbFpOWlZNMVJFcHNkbU0wYkVwdFIyNURNbkpMYjNsRVNGZE9RamcyY0VSRkNrOHZUMEoyU0c1Q00waHZZVlp3ZWxSUFIzcHlTMjlRWVc1T1dEbFJUR3dyTlhZd1NrSklVWFJtVkRCcldUbEdiV1Z1VWk5aWVYQllOV2MwY0N0RFV6Z0tja2xwY21KSE5DOUdNMEZwU0hveVptRXlUa05RTTI4OUNpMHRMUzB0UlU1RUlGQlNTVlpCVkVVZ1MwVlpMUzB0TFMwSw==
+---
+# Source: drunk-app/templates/configMap.yaml
+# Generate ConfigMap resource from values.configMap
+# Creates a ConfigMap with name "<app-name>-config" containing all key-value pairs from .Values.configMap
+# Only rendered when .Values.configMap is defined and not empty
+apiVersion: "v1"
+kind: ConfigMap
+metadata:
+  name: drunk-test-app-config
+data:
+  # Convert all values from .Values.configMap to properly quoted strings
+  hello: "1"
+  log: "123"
+---
+# Source: drunk-app/templates/volumes.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: drunk-test-app-data-vol
+  labels:
+    helm.sh/chart: drunk-app-1.3.2
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  resources:
+    requests:
+      # Storage size from volume config, defaults to 2Gi
+      storage: 2Gi
+  volumeMode: Filesystem
+  accessModes:
+    # Access mode from volume config, defaults to ReadWriteOnce
+    - ReadWriteOnce
+  # Storage class from volume config or global config
+  storageClassName: "abc"
+# Only create PVC for non-emptyDir volumes
+---
+# Source: drunk-app/templates/volumes.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: drunk-test-app-other-vol
+  labels:
+    helm.sh/chart: drunk-app-1.3.2
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  resources:
+    requests:
+      # Storage size from volume config, defaults to 2Gi
+      storage: 2Gi
+  volumeMode: Filesystem
+  accessModes:
+    # Access mode from volume config, defaults to ReadWriteOnce
+    - ReadWriteOnce
+  # Storage class from volume config or global config
+  storageClassName: "111"
+# Only create PVC for non-emptyDir volumes
+---
+# Source: drunk-app/templates/service.yaml
+# Generate Service resource to expose deployment ports
+# Creates a Service only when .Values.deployment.ports is defined (requires deployment with ports)
+# Service type defaults to ClusterIP, can be overridden with .Values.service.type
+# For single port: exposes on port 80 targeting the named port
+# For multiple ports: creates port mapping for each defined port
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-release-drunk-test-app
+  labels: 
+    helm.sh/chart: drunk-app-1.3.2
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  # Service type: ClusterIP (default), NodePort, LoadBalancer, or ExternalName
+  type: ClusterIP
+  ports:
+# For single port deployment, expose on standard port 80
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: 9090
+      targetPort: tcp
+      protocol: TCP
+      name: tcp
+  # Select pods using standard selector labels
+  selector: 
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+---
+# Source: drunk-app/templates/deployment.yaml
+# Generate Deployment resource for long-running application workloads
+# Creates a Deployment when .Values.deployment.enabled is true
+# Supports comprehensive configuration including:
+# - Replica count, update strategy, and deployment settings
+# - Init containers for setup tasks (.Values.global.initContainer)
+# - Main application container with ports, probes, resources
+# - Environment variables, secrets, and configmaps
+# - Volume mounts for persistent storage and secret management
+# - Security contexts, service accounts, and scheduling
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-release-drunk-test-app
+  labels:
+    helm.sh/chart: drunk-app-1.3.2
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  # Replica count from .Values.deployment.replicaCount, defaults to 1
+  replicas: 1
+# Deployment strategy configuration
+  strategy:
+    type: RollingUpdate
+    # Rolling update parameters for RollingUpdate strategy
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  # Pod selector using standard labels
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: drunk-test-app
+      app.kubernetes.io/instance: test-release
+  template:
+    metadata:
+      annotations:
+        # Checksums trigger pod restart when configs/secrets change
+        
+        checksum/configs: 95c650626d3aa0e93729c21bc2642e9d68352d9ced9bb6780aaba025a59e2187
+        checksum/secrets: 72b1a6a3fac22609b081c12eb6972e04b00b248b39eb4d0f2b9b15a679698f80
+        # Additional pod annotations from .Values.deployment.podAnnotations
+        testMe: drunk-coding
+      labels:
+        app.kubernetes.io/name: drunk-test-app
+        app.kubernetes.io/instance: test-release
+    spec:
+      # Security: disable automatic service account token mounting
+      automountServiceAccountToken: false
+      # Image pull secrets for private registries
+      imagePullSecrets:
+      - name: drunkcoding-acr-secret
+      # Service account configuration from .Values.serviceAccount
+      serviceAccountName: drunk-test-app
+      # Pod security context from .Values.podSecurityContext
+      securityContext:
+        fsGroup: 10000
+        runAsGroup: 10000
+        runAsUser: 10000
+      # Init containers for setup tasks (optional)
+      # Begin initContainers - setup tasks that run before main container
+      initContainers:
+        - name: drunk-test-app-init
+          # Init container security context
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          # Init container image from .Values.global.initContainer.image
+          image: "baoduy2412/astro-blog"
+          imagePullPolicy: "IfNotPresent"
+          # Init container command override
+          command:
+            - sh
+            - -c
+            - echo Init complete;
+          # Init container arguments
+          # Environment variables for init container
+          env:
+          - name: env1
+            value: "hello"
+          - name: env2
+            value: "drunkcoding"
+          # Environment from external sources for init container
+          envFrom:
+          # ConfigMap created from .Values.configMap
+          - configMapRef:
+              name: drunk-test-app-config
+          # External ConfigMaps from .Values.configFrom array
+          - configMapRef:
+              name: name_of_other_config
+          # Secret created from .Values.secrets
+          - secretRef:
+              name: drunk-test-app-secret
+          # External Secrets from .Values.secretFrom array
+          - secretRef:
+              name: name_of_other_secret
+          # SecretProvider volume - Azure Key Vault, AWS Secrets Manager, etc.
+          - secretRef:
+              name: my-secret-class
+          # Init container resource limits and requests
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          # Volume mounts for init container
+          volumeMounts:
+            - name: data-vol
+              readOnly: false
+              mountPath: /data
+              subPath: abc.dev
+            - name: other-vol
+              readOnly: false
+              mountPath: /data
+              subPath: abc.dev
+            - name: tmp
+              readOnly: false
+              mountPath: /tmp
+          # SecretProvider volume mount for init container
+            - name: my-secret-class-vol
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+      # End initContainers
+
+      # Begin Containers - main application containers
+      containers:
+        - name: drunk-test-app
+          # Main container security context from .Values.securityContext
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          # Container image from .Values.global.image and .Values.global.tag
+          image: "baoduy2412/astro-blog:latest"
+          imagePullPolicy: "IfNotPresent"
+          # Container command override from .Values.deployment.command
+          # Container arguments from .Values.deployment.args
+          args:
+            - tunnel
+            - --no-autoupdate
+            - run
+            - --token
+            - $(token)
+          # Container ports from .Values.deployment.ports
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: tcp
+              containerPort: 9090
+              protocol: TCP
+          # Health checks - liveness probe from .Values.deployment.liveness
+          livenessProbe:
+            initialDelaySeconds: 60
+            periodSeconds: 300
+            httpGet:
+              path: /healthz
+              port: http
+          # Health checks - readiness probe from .Values.deployment.readiness
+          # Environment variables from .Values.env
+          env:
+          - name: env1
+            value: "hello"
+          - name: env2
+            value: "drunkcoding"
+          # Environment from external sources
+          envFrom:
+          # ConfigMap created from .Values.configMap
+          - configMapRef:
+              name: drunk-test-app-config
+          # External ConfigMaps from .Values.configFrom array
+          - configMapRef:
+              name: name_of_other_config
+          # Secret created from .Values.secrets
+          - secretRef:
+              name: drunk-test-app-secret
+          # External Secrets from .Values.secretFrom array
+          - secretRef:
+              name: name_of_other_secret
+          # SecretProvider volume - Azure Key Vault, AWS Secrets Manager, etc.
+          - secretRef:
+              name: my-secret-class
+          # Container resource limits and requests from .Values.resources
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          # Volume mounts for persistent storage and secrets
+          volumeMounts:
+          # Persistent and emptyDir volumes from .Values.volumes
+          - name: data-vol
+            readOnly: false
+            mountPath: /data
+            subPath: abc.dev
+          - name: other-vol
+            readOnly: false
+            mountPath: /data
+            subPath: abc.dev
+          - name: tmp
+            readOnly: false
+            mountPath: /tmp
+          # SecretProvider volume mount for external secret management
+          - name: my-secret-class-vol
+            mountPath: "/mnt/secrets-store"
+            readOnly: true
+      # End Containers
+      
+      # Volume definitions for the pod
+      volumes:
+      # Volumes from .Values.volumes - PVCs or emptyDir
+      - name: data-vol
+        persistentVolumeClaim:
+          claimName: drunk-test-app-data-vol
+      - name: other-vol
+        persistentVolumeClaim:
+          claimName: drunk-test-app-other-vol
+      - name: tmp
+        emptyDir: {}
+      # SecretProvider volume for external secret management systems
+      - name: my-secret-class-vol
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: my-secret-class-cls
+      
+      # Pod scheduling constraints
+      # Node selector from .Values.nodeSelector
+      # Pod affinity rules from .Values.affinity
+      # Pod tolerations from .Values.tolerations
+---
+# Source: drunk-app/templates/hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: test-release-drunk-test-app
+  labels:
+    helm.sh/chart: drunk-app-1.3.2
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  # Target the deployment for scaling
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: test-release-drunk-test-app
+  # Scaling boundaries from values
+  minReplicas: 1
+  maxReplicas: 100
+  metrics:
+    # CPU-based scaling - configure with .Values.autoscaling.targetCPUUtilizationPercentage
+    # Memory-based scaling - configure with .Values.autoscaling.targetMemoryUtilizationPercentage
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+# Source: drunk-app/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: test-release-drunk-test-app
+  labels:
+    helm.sh/chart: drunk-app-1.3.2
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  # Service name for stable network identity
+  serviceName: test-release-drunk-test-app
+  # Replica count from .Values.statefulset.replicaCount, defaults to 1
+  replicas: 1
+  # Pod management policy: OrderedReady (default) or Parallel
+  podManagementPolicy: OrderedReady
+  # Update strategy: RollingUpdate (default) or OnDelete
+  updateStrategy:
+    type: RollingUpdate
+  # Pod selector using standard labels
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: drunk-test-app
+      app.kubernetes.io/instance: test-release
+  template:
+    metadata:
+      annotations:
+        # Checksums trigger pod restart when configs/secrets change
+        
+        checksum/configs: 95c650626d3aa0e93729c21bc2642e9d68352d9ced9bb6780aaba025a59e2187
+        checksum/secrets: 72b1a6a3fac22609b081c12eb6972e04b00b248b39eb4d0f2b9b15a679698f80
+        # Additional pod annotations from .Values.statefulset.podAnnotations
+        testMe: drunk-coding
+      labels:
+        app.kubernetes.io/name: drunk-test-app
+        app.kubernetes.io/instance: test-release
+    spec:
+      # Security: disable automatic service account token mounting
+      automountServiceAccountToken: false
+      # Image pull secrets for private registries
+      imagePullSecrets:
+      - name: drunkcoding-acr-secret
+      # Service account configuration from .Values.serviceAccount
+      serviceAccountName: drunk-test-app
+      # Pod security context from .Values.podSecurityContext
+      securityContext:
+        fsGroup: 10000
+        runAsGroup: 10000
+        runAsUser: 10000
+      # Init containers for setup tasks (optional)
+      # Begin initContainers - setup tasks that run before main container
+      initContainers:
+        - name: drunk-test-app-init
+          # Init container security context
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          # Init container image from .Values.global.initContainer.image
+          image: "baoduy2412/astro-blog"
+          imagePullPolicy: "IfNotPresent"
+          # Init container command override
+          command:
+            - sh
+            - -c
+            - echo Init complete;
+          # Init container arguments
+          # Environment variables for init container
+          env:
+          - name: env1
+            value: "hello"
+          - name: env2
+            value: "drunkcoding"
+          # Environment from external sources for init container
+          envFrom:
+          # ConfigMap created from .Values.configMap
+          - configMapRef:
+              name: drunk-test-app-config
+          # External ConfigMaps from .Values.configFrom array
+          - configMapRef:
+              name: name_of_other_config
+          # Secret created from .Values.secrets
+          - secretRef:
+              name: drunk-test-app-secret
+          # External Secrets from .Values.secretFrom array
+          - secretRef:
+              name: name_of_other_secret
+          # SecretProvider volume - Azure Key Vault, AWS Secrets Manager, etc.
+          - secretRef:
+              name: my-secret-class
+          # Init container resource limits and requests
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          # Volume mounts for init container
+          volumeMounts:
+          # Persistent and emptyDir volumes from .Values.volumes
+          - name: data-vol
+            readOnly: false
+            mountPath: /data
+            subPath: abc.dev
+          - name: other-vol
+            readOnly: false
+            mountPath: /data
+            subPath: abc.dev
+          - name: tmp
+            readOnly: false
+            mountPath: /tmp
+          # SecretProvider volume mount for init container
+          - name: my-secret-class-vol
+            mountPath: "/mnt/secrets-store"
+            readOnly: true
+      # End initContainers
+
+      # Begin Containers - main application containers  
+      containers:
+        - name: drunk-test-app
+          # Main container security context from .Values.securityContext
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          # Container image from .Values.global.image and .Values.global.tag
+          image: "baoduy2412/astro-blog:latest"
+          imagePullPolicy: "IfNotPresent"
+          # Container command override from .Values.statefulset.command
+          # Container arguments from .Values.statefulset.args
+          args:
+            - tunnel
+            - --no-autoupdate
+            - run
+            - --token
+            - $(token)
+          # Container ports from .Values.statefulset.ports
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: tcp
+              containerPort: 9090
+              protocol: TCP
+          # Health checks - liveness probe from .Values.statefulset.liveness
+          livenessProbe:
+            initialDelaySeconds: 60
+            periodSeconds: 300
+            httpGet:
+              path: /healthz
+              port: http
+          # Health checks - readiness probe from .Values.statefulset.readiness
+          # Environment variables from .Values.env
+          env:
+          - name: env1
+            value: "hello"
+          - name: env2
+            value: "drunkcoding"
+          # Environment from external sources
+          envFrom:
+          # ConfigMap created from .Values.configMap
+          - configMapRef:
+              name: drunk-test-app-config
+          # External ConfigMaps from .Values.configFrom array
+          - configMapRef:
+              name: name_of_other_config
+          # Secret created from .Values.secrets
+          - secretRef:
+              name: drunk-test-app-secret
+          # External Secrets from .Values.secretFrom array
+          - secretRef:
+              name: name_of_other_secret
+          # SecretProvider volume - Azure Key Vault, AWS Secrets Manager, etc.
+          - secretRef:
+              name: my-secret-class
+          # Container resource limits and requests from .Values.resources
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          # Volume mounts for persistent storage and secrets
+          volumeMounts:
+          # Persistent and emptyDir volumes from .Values.volumes
+          - name: data-vol
+            readOnly: false
+            mountPath: /data
+            subPath: abc.dev
+          - name: other-vol
+            readOnly: false
+            mountPath: /data
+            subPath: abc.dev
+          - name: tmp
+            readOnly: false
+            mountPath: /tmp
+          # Volume claim template mounts for StatefulSet persistent storage
+          # SecretProvider volume mount for external secret management
+          - name: my-secret-class-vol
+            mountPath: "/mnt/secrets-store"
+            readOnly: true
+      # End Containers
+
+      # Volume definitions for the pod
+      volumes:
+      # Volumes from .Values.volumes - PVCs or emptyDir
+      - name: data-vol
+        persistentVolumeClaim:
+          claimName: drunk-test-app-data-vol
+      - name: other-vol
+        persistentVolumeClaim:
+          claimName: drunk-test-app-other-vol
+      - name: tmp
+        emptyDir: {}
+      # SecretProvider volume for external secret management systems
+      - name: my-secret-class-vol
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: my-secret-class-cls
+
+      # Pod scheduling constraints
+      # Node selector from .Values.nodeSelector
+      # Pod affinity rules from .Values.affinity
+      # Pod tolerations from .Values.tolerations
+  # Volume claim templates for StatefulSet automatic PVC provisioning
+---
+# Source: drunk-app/templates/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # Job name includes random suffix to avoid conflicts on reruns
+  name: drunk-test-app-drunk-job-1-ptcw4
+  labels:
+    helm.sh/chart: drunk-app-1.3.2
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  # Job execution settings
+  backoffLimit: 4
+  # TTL set for 1 week after job completion (cleanup old jobs automatically)
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      # Security: disable automatic service account token mounting
+      automountServiceAccountToken: false
+      # Image pull secrets for private registries
+      imagePullSecrets:
+      - name: drunkcoding-acr-secret
+      # Service account configuration from .Values.serviceAccount
+      serviceAccountName: drunk-test-app
+      # Pod security context from .Values.podSecurityContext
+      securityContext:
+          fsGroup: 10000
+          runAsGroup: 10000
+          runAsUser: 10000
+      # Job restart policy
+      restartPolicy: OnFailure
+      containers:
+      - name: drunk-job-1
+        # Container security context from .Values.securityContext
+        securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+        # Container image: job-specific or global image
+        image: "baoduy2412/astro-blog:latest"
+        imagePullPolicy: "IfNotPresent"
+        # Job-specific command override
+        # Job-specific arguments
+        args:
+          - hello
+        # Environment variables from .Values.env
+        env:
+        - name: env1
+          value: "hello"
+        - name: env2
+          value: "drunkcoding"
+        # Environment from external sources
+        envFrom:
+        # ConfigMap created from .Values.configMap
+        - configMapRef:
+            name: drunk-test-app-config
+        # External ConfigMaps from .Values.configFrom array
+        - configMapRef:
+            name: name_of_other_config
+        # Secret created from .Values.secrets
+        - secretRef:
+            name: drunk-test-app-secret
+        # External Secrets from .Values.secretFrom array
+        - secretRef:
+            name: name_of_other_secret
+        # SecretProvider volume - Azure Key Vault, AWS Secrets Manager, etc.
+        - secretRef:
+            name: my-secret-class
+        # Resource limits and requests from .Values.resources
+        resources:
+              limits:
+                cpu: 100m
+                memory: 128Mi
+              requests:
+                cpu: 100m
+                memory: 128Mi
+        
+        # Volume mounts for persistent storage and secrets
+        volumeMounts:
+        # Persistent and emptyDir volumes from .Values.volumes
+        - name: data-vol
+          readOnly: false
+          mountPath: /data
+          subPath: abc.dev
+        - name: other-vol
+          readOnly: false
+          mountPath: /data
+          subPath: abc.dev
+        - name: tmp
+          readOnly: false
+          mountPath: /tmp
+        # SecretProvider volume mount for external secret management
+        - name: my-secret-class-vol
+          mountPath: "/mnt/secrets-store"
+          readOnly: true
+
+      # Volume definitions
+      volumes:
+      # Volumes from .Values.volumes - PVCs or emptyDir
+      - name: data-vol
+        persistentVolumeClaim:
+          claimName: drunk-test-app-data-vol
+      - name: other-vol
+        persistentVolumeClaim:
+          claimName: drunk-test-app-other-vol
+      - name: tmp
+        emptyDir: {}
+      # SecretProvider volume for external secret management systems
+      - name: my-secret-class-vol
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: my-secret-class-cls
+---
+# Source: drunk-app/templates/job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # Job name includes random suffix to avoid conflicts on reruns
+  name: drunk-test-app-drunk-job-2-8mbfn
+  labels:
+    helm.sh/chart: drunk-app-1.3.2
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  # Job execution settings
+  backoffLimit: 4
+  # TTL set for 1 week after job completion (cleanup old jobs automatically)
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      # Security: disable automatic service account token mounting
+      automountServiceAccountToken: false
+      # Image pull secrets for private registries
+      imagePullSecrets:
+      - name: drunkcoding-acr-secret
+      # Service account configuration from .Values.serviceAccount
+      serviceAccountName: drunk-test-app
+      # Pod security context from .Values.podSecurityContext
+      securityContext:
+          fsGroup: 10000
+          runAsGroup: 10000
+          runAsUser: 10000
+      # Job restart policy
+      restartPolicy: Always
+      containers:
+      - name: drunk-job-2
+        # Container security context from .Values.securityContext
+        securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+        # Container image: job-specific or global image
+        image: "baoduy2412/astro-blog:latest"
+        imagePullPolicy: "IfNotPresent"
+        # Job-specific command override
+        command:
+          - hello-1
+          - hello-2
+        # Job-specific arguments
+        # Environment variables from .Values.env
+        env:
+        - name: env1
+          value: "hello"
+        - name: env2
+          value: "drunkcoding"
+        # Environment from external sources
+        envFrom:
+        # ConfigMap created from .Values.configMap
+        - configMapRef:
+            name: drunk-test-app-config
+        # External ConfigMaps from .Values.configFrom array
+        - configMapRef:
+            name: name_of_other_config
+        # Secret created from .Values.secrets
+        - secretRef:
+            name: drunk-test-app-secret
+        # External Secrets from .Values.secretFrom array
+        - secretRef:
+            name: name_of_other_secret
+        # SecretProvider volume - Azure Key Vault, AWS Secrets Manager, etc.
+        - secretRef:
+            name: my-secret-class
+        # Resource limits and requests from .Values.resources
+        resources:
+              limits:
+                cpu: 100m
+                memory: 128Mi
+              requests:
+                cpu: 100m
+                memory: 128Mi
+        
+        # Volume mounts for persistent storage and secrets
+        volumeMounts:
+        # Persistent and emptyDir volumes from .Values.volumes
+        - name: data-vol
+          readOnly: false
+          mountPath: /data
+          subPath: abc.dev
+        - name: other-vol
+          readOnly: false
+          mountPath: /data
+          subPath: abc.dev
+        - name: tmp
+          readOnly: false
+          mountPath: /tmp
+        # SecretProvider volume mount for external secret management
+        - name: my-secret-class-vol
+          mountPath: "/mnt/secrets-store"
+          readOnly: true
+
+      # Volume definitions
+      volumes:
+      # Volumes from .Values.volumes - PVCs or emptyDir
+      - name: data-vol
+        persistentVolumeClaim:
+          claimName: drunk-test-app-data-vol
+      - name: other-vol
+        persistentVolumeClaim:
+          claimName: drunk-test-app-other-vol
+      - name: tmp
+        emptyDir: {}
+      # SecretProvider volume for external secret management systems
+      - name: my-secret-class-vol
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: my-secret-class-cls
+---
+# Source: drunk-app/templates/cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: drunk-test-app-drunk-cjob-1
+  labels:
+    helm.sh/chart: drunk-app-1.3.2
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  # Cron schedule expression (e.g., "0 2 * * *" for daily at 2 AM)
+  schedule: "* 0 * * *"
+  # Concurrency policy: Forbid, Allow, or Replace
+  concurrencyPolicy: "Forbid"
+  # Keep only one successful and one failed job history (cleanup old jobs)
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          # Security: disable automatic service account token mounting
+          automountServiceAccountToken: false
+          # Image pull secrets for private registries
+          imagePullSecrets:
+          - name: drunkcoding-acr-secret
+          # Service account configuration from .Values.serviceAccount
+          serviceAccountName: drunk-test-app
+          # Pod security context from .Values.podSecurityContext
+          securityContext:
+            fsGroup: 10000
+            runAsGroup: 10000
+            runAsUser: 10000
+          # Job restart policy
+          restartPolicy: OnFailure
+          containers:
+          - name: drunk-cjob-1
+            # Container security context from .Values.securityContext
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+            # Container image: job-specific or global image
+            image: "baoduy2412/astro-blog:latest"
+            imagePullPolicy: "IfNotPresent"
+            # Job-specific command override
+            # Job-specific arguments
+            args:
+            - hello
+            # Environment variables from .Values.env
+            env:
+            - name: env1
+              value: "hello"
+            - name: env2
+              value: "drunkcoding"
+            # Environment from external sources
+            envFrom:
+            # ConfigMap created from .Values.configMap
+            - configMapRef:
+                name: drunk-test-app-config
+            # External ConfigMaps from .Values.configFrom array
+            - configMapRef:
+                name: name_of_other_config
+            # Secret created from .Values.secrets
+            - secretRef:
+                name: drunk-test-app-secret
+            # External Secrets from .Values.secretFrom array
+            - secretRef:
+                name: name_of_other_secret
+            # SecretProvider volume - Azure Key Vault, AWS Secrets Manager, etc.
+            - secretRef:
+                name: my-secret-class
+            # Resource limits and requests from .Values.resources
+            resources:
+              limits:
+                cpu: 100m
+                memory: 128Mi
+              requests:
+                cpu: 100m
+                memory: 128Mi
+            
+            # Volume mounts for persistent storage and secrets
+            volumeMounts:
+            # Persistent and emptyDir volumes from .Values.volumes
+            - name: data-vol
+              readOnly: false
+              mountPath: /data
+              subPath: abc.dev
+            - name: other-vol
+              readOnly: false
+              mountPath: /data
+              subPath: abc.dev
+            - name: tmp
+              readOnly: false
+              mountPath: /tmp
+            # SecretProvider volume mount for external secret management
+            - name: my-secret-class-vol
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+
+          # Volume definitions
+          volumes:
+          # Volumes from .Values.volumes - PVCs or emptyDir
+          - name: data-vol
+            persistentVolumeClaim:
+              claimName: drunk-test-app-data-vol
+          - name: other-vol
+            persistentVolumeClaim:
+              claimName: drunk-test-app-other-vol
+          - name: tmp
+            emptyDir: {}
+          # SecretProvider volume for external secret management systems
+          - name: my-secret-class-vol
+            csi:
+              driver: secrets-store.csi.k8s.io
+              readOnly: true
+              volumeAttributes:
+                secretProviderClass: my-secret-class-cls
+---
+# Source: drunk-app/templates/cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: drunk-test-app-drunk-cjob-2
+  labels:
+    helm.sh/chart: drunk-app-1.3.2
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  # Cron schedule expression (e.g., "0 2 * * *" for daily at 2 AM)
+  schedule: "* 0 * * *"
+  # Concurrency policy: Forbid, Allow, or Replace
+  concurrencyPolicy: "Forbid"
+  # Keep only one successful and one failed job history (cleanup old jobs)
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          # Security: disable automatic service account token mounting
+          automountServiceAccountToken: false
+          # Image pull secrets for private registries
+          imagePullSecrets:
+          - name: drunkcoding-acr-secret
+          # Service account configuration from .Values.serviceAccount
+          serviceAccountName: drunk-test-app
+          # Pod security context from .Values.podSecurityContext
+          securityContext:
+            fsGroup: 10000
+            runAsGroup: 10000
+            runAsUser: 10000
+          # Job restart policy
+          restartPolicy: Always
+          containers:
+          - name: drunk-cjob-2
+            # Container security context from .Values.securityContext
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+            # Container image: job-specific or global image
+            image: "baoduy2412/astro-blog:latest"
+            imagePullPolicy: "IfNotPresent"
+            # Job-specific command override
+            command:
+            - hello-1
+            - hello-2
+            # Job-specific arguments
+            # Environment variables from .Values.env
+            env:
+            - name: env1
+              value: "hello"
+            - name: env2
+              value: "drunkcoding"
+            # Environment from external sources
+            envFrom:
+            # ConfigMap created from .Values.configMap
+            - configMapRef:
+                name: drunk-test-app-config
+            # External ConfigMaps from .Values.configFrom array
+            - configMapRef:
+                name: name_of_other_config
+            # Secret created from .Values.secrets
+            - secretRef:
+                name: drunk-test-app-secret
+            # External Secrets from .Values.secretFrom array
+            - secretRef:
+                name: name_of_other_secret
+            # SecretProvider volume - Azure Key Vault, AWS Secrets Manager, etc.
+            - secretRef:
+                name: my-secret-class
+            # Resource limits and requests from .Values.resources
+            resources:
+              limits:
+                cpu: 100m
+                memory: 128Mi
+              requests:
+                cpu: 100m
+                memory: 128Mi
+            
+            # Volume mounts for persistent storage and secrets
+            volumeMounts:
+            # Persistent and emptyDir volumes from .Values.volumes
+            - name: data-vol
+              readOnly: false
+              mountPath: /data
+              subPath: abc.dev
+            - name: other-vol
+              readOnly: false
+              mountPath: /data
+              subPath: abc.dev
+            - name: tmp
+              readOnly: false
+              mountPath: /tmp
+            # SecretProvider volume mount for external secret management
+            - name: my-secret-class-vol
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+
+          # Volume definitions
+          volumes:
+          # Volumes from .Values.volumes - PVCs or emptyDir
+          - name: data-vol
+            persistentVolumeClaim:
+              claimName: drunk-test-app-data-vol
+          - name: other-vol
+            persistentVolumeClaim:
+              claimName: drunk-test-app-other-vol
+          - name: tmp
+            emptyDir: {}
+          # SecretProvider volume for external secret management systems
+          - name: my-secret-class-vol
+            csi:
+              driver: secrets-store.csi.k8s.io
+              readOnly: true
+              volumeAttributes:
+                secretProviderClass: my-secret-class-cls
+---
+# Source: drunk-app/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: test-release-drunk-test-app
+  labels:
+    helm.sh/chart: drunk-app-1.3.2
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+  # Optional annotations for ingress controller configuration
+spec:
+  # Ingress class name, defaults to nginx
+  ingressClassName: nginx
+  # TLS configuration using certificate secret
+  tls:
+    - hosts:
+        - "hello.drunkcoding.net"
+        - "api.drunkcoding.net"
+      secretName: chart-example-tls
+  # Route rules for each host in .Values.ingress.hosts
+  rules:
+    - host: "hello.drunkcoding.net"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: test-release-drunk-test-app
+                port:
+                  # Use custom port or auto-detect from deployment ports
+                  number: 8080
+    - host: "api.drunkcoding.net"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: test-release-drunk-test-app
+                port:
+                  # Use custom port or auto-detect from deployment ports
+                  number: 9090
+---
+# Source: drunk-app/templates/volumes.yaml
+# Only create PVC for non-emptyDir volumes
+---
+# Source: drunk-app/templates/backendTlsPolicy.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: test-release-drunk-test-app-tls-policy
+  namespace: default
+spec:
+  options:
+    tls-verify-depth: "1"
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: test-release-drunk-test-app
+      sectionName: "https"
+  validation:
+    hostname: sample.dev.local
+    caCertificateRefs:
+    - group: ""
+      kind: ConfigMap
+      name: cloudflare-origin-ca
+---
+# Source: drunk-app/templates/httproute.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: test-release-drunk-test-app
+  labels:
+    helm.sh/chart: drunk-app-1.3.2
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+  # Optional annotations for route configuration
+spec:
+  # Reference to parent Gateway(s)
+  parentRefs:
+    - name: drunk-dev-gateway
+      kind: Gateway
+      namespace: drunk-gateway
+      sectionName: https
+  # Optional hostnames for routing
+  hostnames:
+    - "sample.dev.local"
+  # Routing rules
+  rules:
+    # Default rule with PathPrefix match
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: test-release-drunk-test-app
+          port: 9090
+---
+# Source: drunk-app/templates/secretProviderClass.yaml
+# Provider type: azure, aws, gcp---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: my-secret-class-cls
+  labels:
+    helm.sh/chart: drunk-app-1.3.2
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  # External secret provider type
+  provider: aws
+  # Provider-specific configuration parameters
+  parameters:
+    # Azure-specific identity configuration
+    usePodIdentity: "false"
+    useWorkloadIdentity: "false"
+    useVMManagedIdentity: "true"
+    userAssignedIdentityID: "your-identity-id"
+    tenantId: "your-tenant-id"
+    # Vault/secret store name
+    keyvaultName: "your-vault-name"
+    # Objects to retrieve from external secret store
+    objects: |
+      array:
+        - |
+          objectName: my-secret-1
+          objectType: cert
+          objectAlias: ""
+          objectVersion: ""
+          objectFormat: "pfx"
+          objectEncoding: "base64"
+        - |
+          objectName: my-secret-2
+          objectType: secret
+          objectAlias: ""
+          objectVersion: ""
+          objectFormat: ""
+          objectEncoding: ""
+  # Kubernetes Secret creation from external objects
+  # Auto-generate secretObjects if not provided
+      # Create secretObjects mapping from .objects list
+  # Create Kubernetes Secret with mapped keys
+  secretObjects:
+    - secretName: my-secret-class
+      type: Opaque
+      data:
+        # Map external secret keys to Kubernetes secret keys
+        - key: my-secret-1
+          objectName: my-secret-1
+        - key: my-secret-2
+          objectName: my-secret-2

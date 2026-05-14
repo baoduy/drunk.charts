@@ -17,3 +17,47 @@ secretProvider:
   #     data:
   #       - key: MY_ENV
   #         objectName: my-secret
+
+# ── Standalone-template flexibility keys (all optional, all additive) ──────
+#
+# service.ports — primary port map for drunk-lib.service.
+#   Same shape as deployment.ports: map of portName → containerPort.
+#   When absent, drunk-lib.service falls back to deployment.ports.
+#   drunk.utils.ingressPort also prefers this key over deployment.ports.
+#   Example:
+#     service:
+#       ports:
+#         http: 8080
+#
+# service.enabled — set to false to suppress the Service resource entirely.
+#   Default: true (Service renders whenever ports are available).
+#   Example:
+#     service:
+#       enabled: false
+#
+# autoscaling.targetKind — scaleTargetRef.kind in the HPA (emitted quoted).
+#   Default: "Deployment". Set to "StatefulSet" for StatefulSet workloads.
+#   Example:
+#     autoscaling:
+#       targetKind: StatefulSet
+#
+# autoscaling.targetApiVersion — scaleTargetRef.apiVersion in the HPA (emitted quoted).
+#   Default: "apps/v1".
+#   Example:
+#     autoscaling:
+#       targetApiVersion: apps/v1
+#
+# cronJobs[].enabled — per-entry flag. false skips that CronJob entry.
+#   Default: true (absent key renders the entry).
+#   Example:
+#     cronJobs:
+#       - name: nightly-report
+#         schedule: "0 2 * * *"
+#         enabled: false   # skip this entry
+#
+# jobs[].enabled — per-entry flag. false skips that Job entry.
+#   Default: true (absent key renders the entry).
+#   Example:
+#     jobs:
+#       - name: db-migrate
+#         enabled: false   # skip this entry
