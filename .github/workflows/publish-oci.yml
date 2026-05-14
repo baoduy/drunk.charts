@@ -2,7 +2,7 @@ name: Publish Helm Charts as OCI
 
 on:
   push:
-    branches: [main]
+    branches: [dev]
   workflow_dispatch:
     inputs:
       release:
@@ -57,7 +57,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "enable=${{ github.event.inputs.release }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/dev" ]; then
             echo "enable=true" >> "$GITHUB_OUTPUT"
           else
             echo "enable=false" >> "$GITHUB_OUTPUT"
@@ -72,22 +72,6 @@ jobs:
             sed -i "s/^version:.*/version: ${NEXT_VERSION}/" "$f"
             echo "synced $f"
           done
-
-      - name: Commit version bump
-        if: steps.flag.outputs.enable == 'true'
-        env:
-          NEXT_VERSION: ${{ env.NEXT_VERSION }}
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add drunk-lib/Chart.yaml drunk-app/Chart.yaml drunk-nginx-gateway/Chart.yaml drunk-traefik-gateway/Chart.yaml drunk-squid-basic-auth/Chart.yaml
-          if git diff --cached --quiet; then
-            echo "No version diff to commit"
-            exit 0
-          fi
-          git commit -m "chore(release): v${NEXT_VERSION} [skip ci]"
-          git push origin HEAD:main
 
       - name: Log in to GitHub Container Registry
         if: steps.flag.outputs.enable == 'true'
@@ -142,7 +126,7 @@ jobs:
 
       - name: Log out from GHCR
         if: always()
-        run: helm registry logout ghcr.io
+        run: helm registry logout ghcr.io || true
 
       - name: Create GitHub Release
         if: steps.flag.outputs.enable == 'true'
