@@ -16,8 +16,9 @@ concurrency:
 
 jobs:
   publish:
+    # Prevent workflow recursion on bot-created release bump commits.
     if: |
-      github.event_name != 'push' ||
+      github.event_name == 'workflow_dispatch' ||
       (github.actor != 'github-actions[bot]' &&
       !startsWith(github.event.head_commit.message, 'chore(release): npm v'))
     runs-on: ubuntu-latest
