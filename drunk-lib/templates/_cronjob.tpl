@@ -17,6 +17,7 @@
 {{- define "drunk-lib.cronJobs" -}}
 {{- $root := . }}
 {{- range .Values.cronJobs }}
+{{- if ne (toString .enabled) "false" }}
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -157,6 +158,7 @@ spec:
                 secretProviderClass: {{ include "app.secretProviderClassName" $root }}
           {{- end }}
           {{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
