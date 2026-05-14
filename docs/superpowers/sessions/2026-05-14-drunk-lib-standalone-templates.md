@@ -9,7 +9,7 @@ stack_shape: be-only
 
 # Session: drunk-lib-standalone-templates
 **Started:** 2026-05-14T03:08:23Z
-**Last update:** 2026-05-14T03:08:23Z
+**Last update:** 2026-05-14T03:30:00Z
 **Team:** superpower-drunk-lib-standalone-templates
 **Worktree:** <pending — planner records in phase 2>
 **Worktree origin:** <pending>
@@ -18,7 +18,7 @@ stack_shape: be-only
 > I would like to help to improve the drunk-lib helm chart for every template please make it flexible as much as possible so that developer can pick stand alone template as use. But still not breaking the existing functionality.
 
 ## Phases
-- [ ] design → docs/superpowers/specs/2026-05-14-drunk-lib-standalone-templates-design.md
+- [x] design → docs/superpowers/specs/2026-05-14-drunk-lib-standalone-templates-design.md (approved 2026-05-14T03:30:00Z; commit a58688e)
 - [ ] worktree → <branch>
 - [ ] plan → docs/superpowers/plans/2026-05-14-drunk-lib-standalone-templates-plan.md
 - [ ] pre_impl_review → arch + sec PASSED
@@ -28,7 +28,7 @@ stack_shape: be-only
 - [ ] finish
 
 ## Teammates planned (be-only shape, 7 lifetime roles)
-- designer — to spawn (phase 1)
+- designer (agent-id: ac78b19aa519b080c) — idle, DESIGN_APPROVED posted
 - planner — to spawn (phase 2)
 - software-architect — to spawn (phase 3, parallel with security-engineer)
 - security-engineer — to spawn (phase 3, parallel with software-architect)
