@@ -23,7 +23,7 @@ stack_shape: be-only
 - [x] design → docs/superpowers/specs/2026-05-14-drunk-lib-standalone-templates-design.md (approved 2026-05-14T03:30:00Z; commit a58688e)
 - [x] worktree → feature/drunk-lib-standalone-templates (origin: created)
 - [x] plan → docs/superpowers/plans/2026-05-14-drunk-lib-standalone-templates-plan.md (approved 2026-05-14T03:36:00Z, 9 impl:be-* tasks)
-- [ ] pre_impl_review → arch + sec PASSED
+- [x] pre_impl_review → arch + sec PASSED (round 2; arch reports `...-arch.md`, sec reports `...-sec.md` on feature branch)
 - [ ] implementation (0/9 tasks complete)
 - [ ] qa
 - [ ] review
@@ -32,8 +32,8 @@ stack_shape: be-only
 ## Teammates planned (be-only shape, 7 lifetime roles)
 - designer (agent-id: ac78b19aa519b080c) — idle, DESIGN_APPROVED posted
 - planner (agent-id: a42984dfc7e882895) — idle, WORKTREE_READY + PLAN_READY posted
-- software-architect — to spawn (phase 3, parallel with security-engineer)
-- security-engineer — to spawn (phase 3, parallel with software-architect)
+- software-architect (agent-id: aa5dc3b3503984cc2) — idle, ARCH_PASSED (after 1 revision round)
+- security-engineer (agent-id: a6bb5dfe7be234ab2) — idle, SEC_PASSED
 - backend-developer — to spawn (phase 4)
 - qa-engineer — to spawn (phase 5)
 - reviewer — to spawn (phase 6)
