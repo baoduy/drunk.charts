@@ -9,6 +9,7 @@
 # Scales the deployment based on CPU and/or memory utilization
 # Requires .Values.autoscaling.minReplicas, .Values.autoscaling.maxReplicas
 # Optional: .Values.autoscaling.targetCPUUtilizationPercentage, .Values.autoscaling.targetMemoryUtilizationPercentage
+# Optional: .Values.autoscaling.targetKind (default: "Deployment"), .Values.autoscaling.targetApiVersion (default: "apps/v1")
 {{- define "drunk-lib.hpa" -}}
 {{- if .Values.autoscaling }}
 {{- if .Values.autoscaling.enabled }}
@@ -20,10 +21,12 @@ metadata:
   labels:
     {{- include "app.labels" . | nindent 4 }}
 spec:
-  # Target the deployment for scaling
+  # Target workload for scaling.
+  # Set autoscaling.targetKind to "StatefulSet" or another workload kind when not scaling a Deployment.
+  # Set autoscaling.targetApiVersion if the workload uses a non-standard API group.
   scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
+    apiVersion: {{ .Values.autoscaling.targetApiVersion | default "apps/v1" | quote }}
+    kind: {{ .Values.autoscaling.targetKind | default "Deployment" | quote }}
     name: {{ include "app.fullname" . }}
   # Scaling boundaries from values
   minReplicas: {{ .Values.autoscaling.minReplicas }}
