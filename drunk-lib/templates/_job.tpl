@@ -15,6 +15,7 @@
 {{- define "drunk-lib.jobs" -}}
 {{- $root := . }}
 {{- range .Values.jobs }}
+{{- if ne (toString .enabled) "false" }}
 ---
 apiVersion: batch/v1
 kind: Job
@@ -152,5 +153,6 @@ spec:
             secretProviderClass: {{ include "app.secretProviderClassName" $root }}
       {{- end }}
       {{- end }}
+{{- end }}
 {{- end }}
 {{- end }}
