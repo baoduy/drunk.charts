@@ -1,0 +1,34 @@
+{
+  "name": "@drunkcoding/drunk-charts",
+  "version": "0.0.0",
+  "description": "Claude Code plugins for drunk.charts — AI assistants for configuring Helm chart deployments (drunk-app, drunk-lib).",
+  "keywords": [
+    "claude-code",
+    "claude-skills",
+    "claude-plugins",
+    "agent-skills",
+    "helm",
+    "kubernetes",
+    "drunk-charts"
+  ],
+  "author": "Steven Hoang",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baoduy/drunk.charts.git"
+  },
+  "homepage": "https://github.com/baoduy/drunk.charts#readme",
+  "bugs": {
+    "url": "https://github.com/baoduy/drunk.charts/issues"
+  },
+  "files": [
+    "plugins/**",
+    ".claude-plugin/marketplace.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}
