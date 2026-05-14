@@ -27,8 +27,12 @@ jobs:
 
       - name: Install yq
         run: |
-          sudo wget -qO /usr/local/bin/yq \
-            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          YQ_VERSION=v4.44.3
+          YQ_URL="https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
+          YQ_SHA256="a2c097180dd884a8d50c956ee16a9cec070f30a7947cf4ebf87d5f36213e9ed7"
+          wget -qO /tmp/yq "$YQ_URL"
+          echo "${YQ_SHA256}  /tmp/yq" | sha256sum -c -
+          sudo mv /tmp/yq /usr/local/bin/yq
           sudo chmod +x /usr/local/bin/yq
           yq --version
 
@@ -76,7 +80,7 @@ jobs:
         run: |
           set -euo pipefail
           DUPES=$(find plugins -path '*/skills/*/SKILL.md' -print0 \
-            | xargs -0 -I{} sh -c "awk 'NR==1 && /^---$/ {flag=1; next} /^---\$/ && flag {exit} flag' \"{}\" | yq -r '.name // \"\"'" \
+            | xargs -0 -I{} sh -c "awk 'NR==1 && /^---$/ {flag=1; next} /^---$/ && flag {exit} flag' \"{}\" | yq -r '.name // \"\"'" \
             | sort | uniq -d)
           if [[ -n "$DUPES" ]]; then
             echo "::error::duplicate skill names: $DUPES"; exit 1
