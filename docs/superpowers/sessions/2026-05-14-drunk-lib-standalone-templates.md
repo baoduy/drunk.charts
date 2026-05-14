@@ -26,7 +26,7 @@ stack_shape: be-only
 - [x] pre_impl_review → arch + sec PASSED (round 2; arch reports `...-arch.md`, sec reports `...-sec.md` on feature branch)
 - [x] implementation (9/9 tasks complete; feature branch HEAD 7312b6c; verify.sh passes)
 - [x] qa → QA_PASSED (report `...-qa.md` on feature branch)
-- [ ] review
+- [x] review → REVIEW_PASSED (no critical/major; 1 minor README heading mismatch + 2 nits)
 - [ ] finish
 
 ## Teammates planned (be-only shape, 7 lifetime roles)
@@ -36,7 +36,7 @@ stack_shape: be-only
 - security-engineer (agent-id: a6bb5dfe7be234ab2) — idle, SEC_PASSED
 - backend-developer (agent-id: ae67f48aa6dababa1) — idle, BE_ALL_DONE 9/9
 - qa-engineer (agent-id: ad24952287a7d3c27) — idle, QA_PASSED
-- reviewer — to spawn (phase 6)
+- reviewer (agent-id: a750014293edd6720) — idle, REVIEW_PASSED; awaiting phase-7 resume
 
 ## Open escalations
 - (none)
