@@ -2,7 +2,7 @@ name: Publish Helm Charts as OCI
 
 on:
   push:
-    branches: [dev]
+    branches: [main]
   workflow_dispatch:
     inputs:
       release:
