@@ -13,6 +13,12 @@
       "version": "1.0.0",
       "source": "./plugins/drunk-app",
       "description": "AI assistant for configuring drunk-app Helm chart deployments"
+    },
+    {
+      "name": "drunk-lib",
+      "version": "1.0.0",
+      "source": "./plugins/drunk-lib",
+      "description": "Per-template assistants for the drunk-lib Helm library chart"
     }
   ]
 }
