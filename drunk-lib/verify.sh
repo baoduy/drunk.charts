@@ -56,14 +56,24 @@ run_diff() {
     tmp="${TMPDIR:-/tmp}/drunk-lib-verify-$$.yaml"
     helm template test-release "$chart_dir" "$@" 2>/dev/null > "$tmp"
 
-    if ! diff -u "$golden_file" "$tmp"; then
+    local golden_norm
+    local tmp_norm
+    golden_norm="${TMPDIR:-/tmp}/drunk-lib-verify-golden-$$.yaml"
+    tmp_norm="${TMPDIR:-/tmp}/drunk-lib-verify-rendered-$$.yaml"
+
+    # Ignore chart-version-only drift in labels by normalizing helm.sh/chart values.
+    # This keeps golden tests focused on behavioral/rendering changes.
+    sed -E 's/^([[:space:]]*helm\.sh\/chart:[[:space:]]*).*/\1__CHART_VERSION_IGNORED__/' "$golden_file" > "$golden_norm"
+    sed -E 's/^([[:space:]]*helm\.sh\/chart:[[:space:]]*).*/\1__CHART_VERSION_IGNORED__/' "$tmp" > "$tmp_norm"
+
+    if ! diff -u "$golden_norm" "$tmp_norm"; then
         echo ""
         echo "[FAIL] $label — output differs from golden file"
         FAIL=1
     else
         echo "[OK]   $label"
     fi
-    rm -f "$tmp"
+    rm -f "$tmp" "$golden_norm" "$tmp_norm"
 }
 
 echo ""

@@ -33,11 +33,11 @@ metadata:
   name: tls-{{ $k }}
 type: kubernetes.io/tls
 data:
-  tls.crt: {{- if $crtFromFile }}{{ $crt | b64enc }}{{ else }}{{ $crt }}{{ end }}
-  tls.key: {{- if $keyFromFile }}{{ $key | b64enc }}{{ else }}{{ $key }}{{ end }}
-  {{- if $ca }}
-  ca.crt: {{- if $caFromFile }}{{ $ca | b64enc }}{{ else }}{{ $ca }}{{ end }}
-  {{- end }}
+  tls.crt: {{ if $crtFromFile }}{{ $crt | b64enc | quote }}{{ else }}{{ $crt | quote }}{{ end }}
+  tls.key: {{ if $keyFromFile }}{{ $key | b64enc | quote }}{{ else }}{{ $key | quote }}{{ end }}
+  {{ if $ca }}
+  ca.crt: {{ if $caFromFile }}{{ $ca | b64enc | quote }}{{ else }}{{ $ca | quote }}{{ end }}
+  {{ end }}
 {{- end }}
 {{- end }}
 {{- end }}
