@@ -35,9 +35,9 @@ type: kubernetes.io/tls
 data:
   tls.crt: {{ if $crtFromFile }}{{ $crt | b64enc | quote }}{{ else }}{{ $crt | quote }}{{ end }}
   tls.key: {{ if $keyFromFile }}{{ $key | b64enc | quote }}{{ else }}{{ $key | quote }}{{ end }}
-  {{ if $ca }}
+  {{- if $ca }}
   ca.crt: {{ if $caFromFile }}{{ $ca | b64enc | quote }}{{ else }}{{ $ca | quote }}{{ end }}
-  {{ end }}
+  {{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
