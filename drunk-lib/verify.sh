@@ -6,6 +6,7 @@
 #   tests/golden/drunk-app-default.yaml       — default values (empty render)
 #   tests/golden/drunk-app-svc-disabled.yaml  — service.enabled: false
 #   tests/golden/drunk-app-secretprovider.yaml — secretProvider.enabled: true
+#   tests/golden/drunk-app-tls-secrets.yaml   — tlsSecrets inline cert/key/ca render
 #
 # Excluded from machine diff (intentionally non-deterministic):
 #   tests/golden/drunk-app-example.yaml       — contains randAlphaNum Job names;
@@ -28,6 +29,11 @@ if [ -z "$latest_tgz" ] || [ ! -f "$latest_tgz" ]; then
     exit 1
 fi
 mkdir -p "$REPO_ROOT/drunk-app/charts"
+
+# Keep only the latest drunk-lib package in drunk-app/charts.
+# Do not delete other dependency charts.
+find "$REPO_ROOT/drunk-app/charts" -maxdepth 1 -type f -name 'drunk-lib-*.tgz' -delete
+
 cp -f "$latest_tgz" "$REPO_ROOT/drunk-app/charts/"
 
 # ── Step 3: Golden-file regression check ──────────────────────────────────
@@ -97,6 +103,16 @@ run_diff "drunk-app (secretProvider.enabled: true)" \
     --set secretProvider.enabled=true \
     --set secretProvider.tenantId=test-tenant \
     --set secretProvider.vaultName=test-vault
+
+run_diff "drunk-app (tlsSecrets inline values)" \
+    "$REPO_ROOT/drunk-app" \
+    "$GOLDEN_DIR/drunk-app-tls-secrets.yaml" \
+    --values "$REPO_ROOT/drunk-app/values.yaml" \
+    --set tlsSecrets.example.enabled=true \
+    --set tlsSecrets.example.crt=Q1JU \
+    --set tlsSecrets.example.key=S0VZ \
+    --set tlsSecrets.example.ca=Q0E= \
+    --show-only templates/tls-secrets.yaml
 
 # drunk-app-example.yaml is intentionally excluded: _job.tpl uses randAlphaNum 5
 # in Job names → non-deterministic output. It is committed for human PR review only.

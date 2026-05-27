@@ -13,6 +13,7 @@
 #   drunk-app-default.yaml      — default values.yaml (renders empty; stable)
 #   drunk-app-svc-disabled.yaml — service.enabled: false regression case
 #   drunk-app-secretprovider.yaml — secretProvider.enabled: true regression case
+#   drunk-app-tls-secrets.yaml  — tlsSecrets inline cert/key/ca render case
 #
 # One render is human-review only (NOT machine-diffed in verify.sh):
 #   drunk-app-example.yaml      — values.example.yaml; contains randAlphaNum Job names
@@ -46,6 +47,17 @@ helm template test-release "$REPO_ROOT/drunk-app" \
   --set secretProvider.vaultName=test-vault \
   2>/dev/null > "$GOLDEN_DIR/drunk-app-secretprovider.yaml"
 echo "    Written: $GOLDEN_DIR/drunk-app-secretprovider.yaml ($(wc -l < "$GOLDEN_DIR/drunk-app-secretprovider.yaml") lines)"
+
+echo "==> Capturing drunk-app (tlsSecrets inline values — machine-diffable) ..."
+helm template test-release "$REPO_ROOT/drunk-app" \
+  --values "$REPO_ROOT/drunk-app/values.yaml" \
+  --set tlsSecrets.example.enabled=true \
+  --set tlsSecrets.example.crt=Q1JU \
+  --set tlsSecrets.example.key=S0VZ \
+  --set tlsSecrets.example.ca=Q0E= \
+  --show-only templates/tls-secrets.yaml \
+  2>/dev/null > "$GOLDEN_DIR/drunk-app-tls-secrets.yaml"
+echo "    Written: $GOLDEN_DIR/drunk-app-tls-secrets.yaml ($(wc -l < "$GOLDEN_DIR/drunk-app-tls-secrets.yaml") lines)"
 
 echo "==> Capturing drunk-app (values.example.yaml — HUMAN REVIEW ONLY, not machine-diffed) ..."
 helm template test-release "$REPO_ROOT/drunk-app" \
