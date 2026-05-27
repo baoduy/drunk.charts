@@ -139,9 +139,9 @@ When `secretObjects` is omitted, drunk-lib auto-generates a `secretObjects` mapp
 tlsSecrets:
   cloudflare:
     enabled: true
-    crt: <base64-encoded PEM>   # OR crtFile: certs/cloudflare.crt
-    key: <base64-encoded PEM>   # OR keyFile: certs/cloudflare.key
-    ca:  <base64-encoded PEM>   # OR caFile:  certs/cloudflare-ca.crt   (optional)
+    crt: <base64-encoded PEM>   # OR crtFile: certs/cloudflare.crt (raw PEM file, auto-encoded)
+    key: <base64-encoded PEM>   # OR keyFile: certs/cloudflare.key (raw PEM file, auto-encoded)
+    ca:  <base64-encoded PEM>   # OR caFile:  certs/cloudflare-ca.crt (raw PEM file, auto-encoded, optional)
 ```
 
 Both `crt` and `key` are required by `kubernetes.io/tls`; the template fails fast at render time if either is missing. Use `enabled: false` to disable an entry without removing it from values.
