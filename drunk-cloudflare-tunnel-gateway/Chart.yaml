@@ -1,0 +1,30 @@
+apiVersion: v2
+name: drunk-cloudflare-tunnel-gateway
+icon: https://drunkcoding.net/assets/logo.png
+description: Cloudflare Tunnel Gateway API wrapper — expose services via a Cloudflare Tunnel with no public LoadBalancer, for drunk.charts
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - gateway-api
+  - ingress
+  - kubernetes
+  - networking
+  - cloudflare
+  - tunnel
+  - zero-trust
+home: https://github.com/baoduy/drunk.charts
+sources:
+  - https://github.com/baoduy/drunk.charts
+  - https://github.com/kubernetes-sigs/gateway-api
+  - https://github.com/lexfrei/cloudflare-tunnel-gateway-controller
+maintainers:
+  - name: baoduy
+    email: drunkcoding@outlook.com
+
+dependencies:
+  - name: cloudflare-tunnel-gateway-controller
+    version: 1.x.x
+    repository: oci://ghcr.io/lexfrei/charts
+    alias: cloudflareTunnel
+    condition: cloudflareTunnel.enabled

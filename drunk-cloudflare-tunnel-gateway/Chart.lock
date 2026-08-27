@@ -1,0 +1,6 @@
+dependencies:
+- name: cloudflare-tunnel-gateway-controller
+  repository: oci://ghcr.io/lexfrei/charts
+  version: 1.1.0
+digest: sha256:fa2390f9fbc481d223bab778be8e6c1e951019584599e4687118600967a5d111
+generated: "2026-08-27T15:07:43.158302+08:00"
