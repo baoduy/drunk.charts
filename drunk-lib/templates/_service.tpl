@@ -1,6 +1,10 @@
 {{- /* Template: _service.tpl                                                */ -}}
 {{- /* Renders a Service. Port source: service.ports → deployment.ports.     */ -}}
 {{- /* Set service.enabled: false to suppress even when ports are defined.   */ -}}
+{{- /* service.annotations   — extra metadata annotations (e.g. Azure        */ -}}
+{{- /*   internal LB: service.beta.kubernetes.io/azure-load-balancer-internal). */ -}}
+{{- /* service.loadBalancerIP — static IP for type: LoadBalancer             */ -}}
+{{- /*   (e.g. AKS fixed private IP "192.168.123.222").                      */ -}}
 {{- define "drunk-lib.service" -}}
 {{- $svc := .Values.service | default dict -}}
 {{- $ports := dict -}}
@@ -20,8 +24,16 @@ kind: Service
 metadata:
   name: {{ include "app.fullname" . }}
   labels: {{ include "app.labels" . | nindent 4 }}
+  {{- with $svc.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ (and (kindIs "map" $svc) $svc.type) | default "ClusterIP" }}
+  {{- with $svc.loadBalancerIP }}
+  # Static IP for type: LoadBalancer (e.g. AKS fixed private IP).
+  loadBalancerIP: {{ . }}
+  {{- end }}
   ports:
 {{- if eq (len $ports) 1 }}
     - port: 80
