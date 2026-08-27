@@ -13,9 +13,8 @@ dependencies:
     version: 4.x.x
     condition: nginx.enabled
     repository: "https://kubernetes.github.io/ingress-nginx"
-
   - name: drunk-app
     alias: proxy
-    version: 1.x.x
+    version: 2.*.*
     condition: proxy.enabled
     repository: oci://ghcr.io/baoduy
