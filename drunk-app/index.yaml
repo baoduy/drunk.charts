@@ -3,7 +3,22 @@ entries:
   drunk-app:
   - apiVersion: v2
     appVersion: latest
-    created: "2026-05-27T20:17:01.479639+08:00"
+    created: "2026-08-27T09:46:04.635371+08:00"
+    dependencies:
+    - name: drunk-lib
+      repository: oci://ghcr.io/baoduy
+      version: 0.0.0
+    description: The drunkcoding template to deploy an application to Kubernetes
+    digest: 5d1d2d4188cc0b11dffbedd28d1f130fe3381c4b081046673c6a8cd70005485c
+    icon: https://drunkcoding.net/assets/logo.png
+    name: drunk-app
+    type: application
+    urls:
+    - drunk-app-1.3.8.tgz
+    version: 1.3.8
+  - apiVersion: v2
+    appVersion: latest
+    created: "2026-08-27T09:46:04.634896+08:00"
     dependencies:
     - name: drunk-lib
       repository: oci://ghcr.io/baoduy
@@ -19,13 +34,13 @@ entries:
   drunk-lib:
   - apiVersion: v2
     appVersion: latest
-    created: "2026-05-27T20:17:01.480071+08:00"
+    created: "2026-08-27T09:46:04.635693+08:00"
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: 15f8ca4410624a6be5158e1e688e5f03a6a95dda2ea4f2a50c62bc01eb5801de
+    digest: 2860370a0a3f76baafb483e8f915352d22c58026b89e0ced0703ebc876ce10fa
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-lib
     type: library
     urls:
-    - charts/drunk-lib-1.3.2.tgz
-    version: 1.3.2
-generated: "2026-05-27T20:17:01.477821+08:00"
+    - charts/drunk-lib-1.3.3.tgz
+    version: 1.3.3
+generated: "2026-08-27T09:46:04.634297+08:00"

@@ -172,7 +172,7 @@ MIT — see [LICENSE](LICENSE).
 |---|---|---|
 | `drunk-lib.configMap` | `configMap` (map) | — |
 | `drunk-lib.secrets` | `secrets` (map) | — |
-| `drunk-lib.service` | `service.ports` OR `deployment.ports` | `service.enabled` (bool, default true), `service.type` (string, default ClusterIP) |
+| `drunk-lib.service` | `service.ports` OR `deployment.ports` | `service.enabled` (bool, default true), `service.type` (string, default ClusterIP), `service.annotations` (map), `service.loadBalancerIP` (string — static IP, e.g. AKS fixed private IP) |
 | `drunk-lib.ingress` | `ingress.enabled: true`, `ingress.hosts` | Port resolved via `drunk.utils.ingressPort`: prefers `service.ports` → `deployment.ports` → 8080 |
 | `drunk-lib.hpa` | `autoscaling.enabled: true`, `autoscaling.minReplicas`, `autoscaling.maxReplicas` | `autoscaling.targetKind` (default "Deployment"), `autoscaling.targetApiVersion` (default "apps/v1") |
 | `drunk-lib.cronJobs` | `cronJobs` array with `name` and `schedule` | `cronJobs[].enabled` (bool, default true — set false to skip that entry) |
@@ -249,6 +249,20 @@ autoscaling:
   maxReplicas: 10
   targetCPUUtilizationPercentage: 70
 ```
+
+### Example — Azure AKS internal LoadBalancer with a fixed private IP
+
+```yaml
+service:
+  type: LoadBalancer
+  loadBalancerIP: 192.168.123.222   # static private IP in your AKS subnet
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+  ports:
+    http: 8080
+```
+
+`annotations` and `loadBalancerIP` are both optional and render nothing when omitted, so existing consumers are unaffected. The same keys work for any cloud provider that honours `spec.loadBalancerIP` / provider annotations.
 
 ### Example — suppress Service in existing consumer
 
