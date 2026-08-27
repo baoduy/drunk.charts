@@ -1,0 +1,115 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Chart Version: {{ .Chart.Version }}
+App Version: {{ .Chart.AppVersion }}
+Release Name: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+
+================================================================================
+  GATEWAY API INSTALLATION
+================================================================================
+
+Gateway API Version: {{ .Values.gatewayAPI.version }}
+Installation Channel: {{ .Values.gatewayAPI.channel }}
+CRD URL: {{ include "gateway.crdURL" . }}
+
+To manually install/update the Gateway API CRDs, run:
+
+  kubectl apply -f {{ include "gateway.crdURL" . }}
+
+Verify:
+
+  kubectl get crd | grep gateway.networking.k8s.io
+
+================================================================================
+  CLOUDFLARE TUNNEL CONTROLLER
+================================================================================
+
+{{- if .Values.cloudflareTunnel.enabled }}
+
+✅ cloudflare-tunnel-gateway-controller subchart is enabled.
+
+It creates the GatewayClass "{{ .Values.cloudflareTunnel.controller.gatewayClassName }}"
+with controller "{{ .Values.cloudflareTunnel.controller.controllerName }}".
+
+⚠️  REQUIRED: two Secrets must exist in namespace {{ .Release.Namespace }} BEFORE the
+   controller becomes healthy (this chart references them by name — it does NOT
+   create them):
+
+   1. "{{ .Values.cloudflareTunnel.gatewayClassConfig.cloudflareCredentialsSecretRef.name }}" with key: api-token
+   2. "{{ .Values.cloudflareTunnel.proxy.tunnelTokenSecretRef.name }}" with key: tunnel-token
+
+   kubectl create secret generic {{ .Values.cloudflareTunnel.gatewayClassConfig.cloudflareCredentialsSecretRef.name }} \
+     -n {{ .Release.Namespace }} --from-literal=api-token="YOUR_API_TOKEN"
+   kubectl create secret generic {{ .Values.cloudflareTunnel.proxy.tunnelTokenSecretRef.name }} \
+     -n {{ .Release.Namespace }} --from-literal=tunnel-token="YOUR_TUNNEL_TOKEN"
+
+{{- if not .Values.cloudflareTunnel.gatewayClassConfig.tunnelID }}
+
+⚠️  cloudflareTunnel.gatewayClassConfig.tunnelID is EMPTY. Set it to your
+   Cloudflare Tunnel ID or the controller cannot bind the tunnel.
+
+{{- end }}
+
+⚠️  The controller assumes EXCLUSIVE ownership of the tunnel config and removes
+   any ingress rules it does not manage. Do not point it at a shared tunnel.
+
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name=cloudflare-tunnel-gateway-controller
+
+{{- else }}
+
+ℹ️  Controller subchart is DISABLED. Install a Cloudflare Tunnel Gateway
+   controller separately and ensure your Gateways use its GatewayClass.
+
+{{- end }}
+
+================================================================================
+  GATEWAY RESOURCES
+================================================================================
+
+{{- if .Values.domains }}
+
+Domain-specific Gateways:
+{{- range .Values.domains }}
+{{- if .enabled }}
+  ✅ Gateway "{{ .name }}-gateway" for {{ range .listeners }}{{ .hostname }} {{ end }}
+{{- end }}
+{{- end }}
+
+  kubectl get gateway -n {{ include "gateway.ns" . }}
+
+{{- else }}
+
+ℹ️  No domain Gateways defined. Add entries under `domains:` in values.yaml.
+
+{{- end }}
+
+================================================================================
+  NEXT STEPS
+================================================================================
+
+1. Confirm Gateway API CRDs:  kubectl get crd | grep gateway.networking.k8s.io
+2. Confirm the two Secrets exist (see above).
+3. Confirm GatewayClass is Accepted:  kubectl get gatewayclass {{ .Values.cloudflareTunnel.controller.gatewayClassName }}
+4. Create an HTTPRoute to expose a service through the tunnel:
+
+   apiVersion: gateway.networking.k8s.io/v1
+   kind: HTTPRoute
+   metadata:
+     name: my-app
+   spec:
+     parentRefs:
+       - name: <your-domain>-gateway
+         namespace: {{ include "gateway.ns" . }}
+     hostnames:
+       - "myapp.example.com"
+     rules:
+       - backendRefs:
+           - name: my-app-service
+             port: 80
+
+For more information:
+  - drunk.charts:     https://github.com/baoduy/drunk.charts
+  - Gateway API:      https://gateway-api.sigs.k8s.io/
+  - CF Tunnel Ctrl:   https://github.com/lexfrei/cloudflare-tunnel-gateway-controller
+================================================================================
