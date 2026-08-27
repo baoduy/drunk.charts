@@ -57,7 +57,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "enable=${{ github.event.inputs.release }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/dev" ]; then
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
             echo "enable=true" >> "$GITHUB_OUTPUT"
           else
             echo "enable=false" >> "$GITHUB_OUTPUT"
