@@ -3,6 +3,6 @@
 #
 # Installation happens in two phases:
 #   1. kubectl apply -f https://github.com/.../gateway-api/releases/.../standard-install.yaml
-#   2. helm upgrade --install --skip-crds ...
+#   2. helm upgrade --install ...   (the controller subchart ships its own GatewayClassConfig CRD, so this chart does NOT use --skip-crds)
 #
 # This directory is preserved to maintain Helm chart structure.
