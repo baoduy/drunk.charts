@@ -1,6 +1,6 @@
 #!/bin/bash
 # Uninstall script for drunk-cloudflare-tunnel-gateway chart
-# Removes Helm release, Gateway API CRDs, and NGINX Gateway Fabric custom CRDs.
+# Removes the Helm release, and optionally (opt-in) the Gateway API CRDs.
 #
 # Usage (basic):
 #   ./uninstall.sh                 # uses defaults
@@ -9,12 +9,12 @@
 #   RELEASE_NAME=cf-tunnel                  # Helm release name
 #   NAMESPACE=cloudflare-tunnel-system      # Target namespace
 #   DELETE_NAMESPACE=true             # Delete the namespace after uninstall
-#   DELETE_CRDS=true                  # Delete Gateway API + NGF CRDs (cluster-wide impact)
-#   FORCE=true                        # Skip confirmations
+#   DELETE_CRDS=false                 # Delete Gateway API CRDs (cluster-wide impact, opt-in)
+#   FORCE=false                       # Skip confirmations
 #
 # Examples:
 #   ./uninstall.sh
-#   DELETE_CRDS=false ./uninstall.sh
+#   DELETE_CRDS=true ./uninstall.sh
 #   FORCE=true DELETE_CRDS=true ./uninstall.sh
 
 set -euo pipefail
@@ -22,8 +22,8 @@ set -euo pipefail
 RELEASE_NAME="${RELEASE_NAME:-cf-tunnel}"
 NAMESPACE="${NAMESPACE:-cloudflare-tunnel-system}"
 DELETE_NAMESPACE="${DELETE_NAMESPACE:-true}"
-DELETE_CRDS="${DELETE_CRDS:-true}"
-FORCE="${FORCE:-true}"
+DELETE_CRDS="${DELETE_CRDS:-false}"
+FORCE="${FORCE:-false}"
 
 CHART_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -51,26 +51,8 @@ discover_related_crds() {
     [[ -n "$crd" ]] && DISCOVERED_GATEWAY_CRDS+=("$crd")
   done <<< "$(kubectl get crd -o name 2>/dev/null | grep -E 'gateway\.networking\.k8s\.io$' | sed 's|customresourcedefinition.apiextensions.k8s.io/||')"
 
-  DISCOVERED_NGF_CRDS=()
-  while IFS= read -r crd; do
-    [[ -n "$crd" ]] && DISCOVERED_NGF_CRDS+=("$crd")
-  done <<< "$(kubectl get crd -o name 2>/dev/null | grep -E 'gateway\.nginx\.org$' | sed 's|customresourcedefinition.apiextensions.k8s.io/||')"
-
-  CERT_MANAGER_CRDS=()
-  while IFS= read -r crd; do
-    [[ -n "$crd" ]] && CERT_MANAGER_CRDS+=("$crd")
-  done <<< "$(kubectl get crd -o name 2>/dev/null | grep -E 'cert-manager\.io$' | sed 's|customresourcedefinition.apiextensions.k8s.io/||')"
-
   if (( ${#DISCOVERED_GATEWAY_CRDS[@]} > 0 )); then
     info "Found Gateway API CRDs: ${DISCOVERED_GATEWAY_CRDS[*]}"
-  fi
-
-  if (( ${#DISCOVERED_NGF_CRDS[@]} > 0 )); then
-    info "Found NGINX Gateway Fabric CRDs: ${DISCOVERED_NGF_CRDS[*]}"
-  fi
-
-  if (( ${#CERT_MANAGER_CRDS[@]} > 0 )); then
-    info "Found cert-manager CRDs: ${CERT_MANAGER_CRDS[*]}"
   fi
 }
 
@@ -115,52 +97,6 @@ else
   else
     error "Failed to uninstall Helm release"
     exit 1
-  fi
-fi
-
-# Delete NGINX Gateway Fabric custom CRDs
-if [[ "$DELETE_CRDS" == "true" ]]; then
-  echo ""
-  if confirm "Delete NGINX Gateway Fabric CRDs (gateway.nginx.org)? WARNING: This will delete ALL NginxProxy/NginxGateway resources cluster-wide!"; then
-    info "Deleting NGINX Gateway Fabric CRDs..."
-
-    existing_ngf_crds=(${DISCOVERED_NGF_CRDS[@]+"${DISCOVERED_NGF_CRDS[@]}"})
-
-    if (( ${#existing_ngf_crds[@]} > 0 )); then
-      info "Found NGF CRDs to delete: ${existing_ngf_crds[*]}"
-      if kubectl delete crd "${existing_ngf_crds[@]}" 2>&1 | grep -v "NotFound"; then
-        success "NGINX Gateway Fabric CRDs deleted successfully"
-        info "Waiting for CRD deletion to complete..."
-        sleep 3
-      else
-        warn "Some NGF CRDs may not have been deleted"
-      fi
-    else
-      info "No NGINX Gateway Fabric CRDs found"
-    fi
-  fi
-fi
-
-# Delete cert-manager CRDs
-if [[ "$DELETE_CRDS" == "true" ]]; then
-  echo ""
-  if confirm "Delete cert-manager CRDs? WARNING: This will delete ALL Certificate resources cluster-wide!"; then
-    info "Deleting cert-manager CRDs..."
-
-    existing_cert_manager_crds=(${CERT_MANAGER_CRDS[@]+"${CERT_MANAGER_CRDS[@]}"})
-
-    if (( ${#existing_cert_manager_crds[@]} > 0 )); then
-      info "Found cert-manager CRDs to delete: ${existing_cert_manager_crds[*]}"
-      if kubectl delete crd "${existing_cert_manager_crds[@]}" 2>&1 | grep -v "NotFound"; then
-        success "cert-manager CRDs deleted successfully"
-        info "Waiting for CRD deletion to complete..."
-        sleep 3
-      else
-        warn "Some cert-manager CRDs may not have been deleted"
-      fi
-    else
-      info "No cert-manager CRDs found"
-    fi
   fi
 fi
 

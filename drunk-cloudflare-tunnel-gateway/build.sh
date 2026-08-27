@@ -34,7 +34,7 @@ if [[ ! -f "$CRD_DIR/.gitkeep" ]]; then
 #
 # Installation happens in two phases:
 #   1. kubectl apply -f https://github.com/.../gateway-api/releases/.../standard-install.yaml
-#   2. helm upgrade --install --skip-crds ...
+#   2. helm upgrade --install ...
 #
 # This directory is preserved to maintain Helm chart structure.
 EOF

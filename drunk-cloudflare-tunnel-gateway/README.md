@@ -144,10 +144,22 @@ Cloudflare dashboard, or another controller — those rules will be deleted.
 ./uninstall.sh
 ```
 
-Defaults to `RELEASE_NAME=cf-tunnel`, `NAMESPACE=cloudflare-tunnel-system`,
-and (by default) deletes the namespace and any Gateway API CRDs it
-discovers cluster-wide — set `DELETE_NAMESPACE=false` and/or
-`DELETE_CRDS=false` to keep them. `FORCE=true` skips confirmation prompts.
-The two referenced Secrets (`cloudflare-credentials`,
-`cloudflare-tunnel-token`) were never created by this chart and are left in
-place; delete them manually with `kubectl delete secret` if desired.
+By default (`RELEASE_NAME=cf-tunnel`, `NAMESPACE=cloudflare-tunnel-system`)
+this removes only the Helm release. Gateway API CRDs are **not** deleted
+unless you opt in with `DELETE_CRDS=true`, in which case the script prompts
+for confirmation unless you also pass `FORCE=true`:
+
+```bash
+DELETE_CRDS=true ./uninstall.sh
+```
+
+⚠️ Gateway API CRDs are shared cluster-wide infrastructure — other Gateway
+API implementations or gateways in the cluster may depend on them. Only set
+`DELETE_CRDS=true` if you are sure no other Gateway/HTTPRoute resources in
+the cluster still need them.
+
+The namespace is deleted by default (`DELETE_NAMESPACE=true`) once its
+resources are removed; set `DELETE_NAMESPACE=false` to keep it. The two
+referenced Secrets (`cloudflare-credentials`, `cloudflare-tunnel-token`)
+were never created by this chart and are left in place; delete them
+manually with `kubectl delete secret` if desired.
