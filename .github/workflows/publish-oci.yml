@@ -63,19 +63,6 @@ jobs:
             echo "enable=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Sync Chart.yaml versions
-        if: steps.flag.outputs.enable == 'true'
-        run: |
-          set -euo pipefail
-          for d in drunk-lib drunk-app drunk-nginx-gateway drunk-traefik-gateway drunk-squid-basic-auth; do
-            f="$d/Chart.yaml"
-            sed -i "s/^version:.*/version: ${NEXT_VERSION}/" "$f"
-            echo "synced $f"
-          done
-          # Keep the drunk-lib dependency version in drunk-app in sync so Chart.yaml is consistent
-          sed -i '/- name: drunk-lib/{n;s/^    version:.*/    version: '"${NEXT_VERSION}"'/;}' drunk-app/Chart.yaml
-          echo "synced drunk-app drunk-lib dependency version to ${NEXT_VERSION}"
-
       - name: Log in to GitHub Container Registry
         if: steps.flag.outputs.enable == 'true'
         run: |
@@ -87,15 +74,18 @@ jobs:
         if: steps.flag.outputs.enable == 'true'
         working-directory: drunk-lib
         run: |
+          set -euo pipefail
           mkdir -p /tmp/charts
-          helm package . --version "${NEXT_VERSION}" --destination /tmp/charts
-          helm push "/tmp/charts/drunk-lib-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
+          LIB_VERSION=$(grep -E '^version:' Chart.yaml | head -1 | awk '{print $2}')
+          echo "LIB_VERSION=${LIB_VERSION}" >> "$GITHUB_ENV"
+          helm package . --destination /tmp/charts
+          helm push "/tmp/charts/drunk-lib-${LIB_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
 
       - name: Vendor drunk-lib into dependent charts
         if: steps.flag.outputs.enable == 'true'
         run: |
           set -euo pipefail
-          LIB_CHART="/tmp/charts/drunk-lib-${NEXT_VERSION}.tgz"
+          LIB_CHART="/tmp/charts/drunk-lib-${LIB_VERSION}.tgz"
           for d in drunk-app; do
             mkdir -p "$d/charts"
             rm -f "$d/charts/drunk-lib-"*.tgz
@@ -107,37 +97,45 @@ jobs:
         if: steps.flag.outputs.enable == 'true'
         working-directory: drunk-app
         run: |
+          set -euo pipefail
           mkdir -p /tmp/charts
+          VERSION=$(grep -E '^version:' Chart.yaml | head -1 | awk '{print $2}')
           helm dependency build .
-          helm package . --version "${NEXT_VERSION}" --destination /tmp/charts
-          helm push "/tmp/charts/drunk-app-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
+          helm package . --destination /tmp/charts
+          helm push "/tmp/charts/drunk-app-${VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
 
       - name: Package + push drunk-nginx-gateway
         if: steps.flag.outputs.enable == 'true'
         working-directory: drunk-nginx-gateway
         run: |
+          set -euo pipefail
           mkdir -p /tmp/charts
+          VERSION=$(grep -E '^version:' Chart.yaml | head -1 | awk '{print $2}')
           helm dependency update .
-          helm package . --version "${NEXT_VERSION}" --destination /tmp/charts
-          helm push "/tmp/charts/drunk-nginx-gateway-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
+          helm package . --destination /tmp/charts
+          helm push "/tmp/charts/drunk-nginx-gateway-${VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
 
       - name: Package + push drunk-traefik-gateway
         if: steps.flag.outputs.enable == 'true'
         working-directory: drunk-traefik-gateway
         run: |
+          set -euo pipefail
           mkdir -p /tmp/charts
+          VERSION=$(grep -E '^version:' Chart.yaml | head -1 | awk '{print $2}')
           helm dependency update .
-          helm package . --version "${NEXT_VERSION}" --destination /tmp/charts
-          helm push "/tmp/charts/drunk-k8s-gateway-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
+          helm package . --destination /tmp/charts
+          helm push "/tmp/charts/drunk-k8s-gateway-${VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
 
       - name: Package + push drunk-squid-basic-auth
         if: steps.flag.outputs.enable == 'true'
         working-directory: drunk-squid-basic-auth
         run: |
+          set -euo pipefail
           mkdir -p /tmp/charts
+          VERSION=$(grep -E '^version:' Chart.yaml | head -1 | awk '{print $2}')
           helm dependency update .
-          helm package . --version "${NEXT_VERSION}" --destination /tmp/charts
-          helm push "/tmp/charts/drunk-squid-basic-auth-proxy-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
+          helm package . --destination /tmp/charts
+          helm push "/tmp/charts/drunk-squid-basic-auth-proxy-${VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
 
       - name: Log out from GHCR
         if: always()

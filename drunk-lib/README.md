@@ -172,7 +172,7 @@ MIT — see [LICENSE](LICENSE).
 |---|---|---|
 | `drunk-lib.configMap` | `configMap` (map) | — |
 | `drunk-lib.secrets` | `secrets` (map) | — |
-| `drunk-lib.service` | `service.ports` OR `deployment.ports` | `service.enabled` (bool, default true), `service.type` (string, default ClusterIP), `service.annotations` (map), `service.loadBalancerIP` (string — static IP, e.g. AKS fixed private IP) |
+| `drunk-lib.service` | `service.ports` OR `deployment.ports` | `service.enabled` (bool, default true), `service.type` (string, default ClusterIP), `service.annotations` (map), `service.loadBalancerIP` (string — static IP, e.g. AKS fixed private IP), `service.port` (int — exposed port for the single-port case, default 80) |
 | `drunk-lib.ingress` | `ingress.enabled: true`, `ingress.hosts` | Port resolved via `drunk.utils.ingressPort`: prefers `service.ports` → `deployment.ports` → 8080 |
 | `drunk-lib.hpa` | `autoscaling.enabled: true`, `autoscaling.minReplicas`, `autoscaling.maxReplicas` | `autoscaling.targetKind` (default "Deployment"), `autoscaling.targetApiVersion` (default "apps/v1") |
 | `drunk-lib.cronJobs` | `cronJobs` array with `name` and `schedule` | `cronJobs[].enabled` (bool, default true — set false to skip that entry) |
