@@ -1,0 +1,27 @@
+# Example values for drunk-cloudflare-tunnel-gateway.
+# Copy, fill in tunnelID, ensure the two referenced Secrets exist, then:
+#   helm upgrade --install cf-tunnel . -n cloudflare-tunnel-system --create-namespace -f values.example.yaml
+
+cloudflareTunnel:
+  enabled: true
+  gatewayClassConfig:
+    create: true
+    tunnelID: "deadbeef-dead-beef-dead-beefdeadbeef" # REPLACE with your real Cloudflare Tunnel ID (UUID)
+    cloudflareCredentialsSecretRef:
+      name: "cloudflare-credentials"      # kubectl secret with key: api-token
+  proxy:
+    tunnelTokenSecretRef:
+      name: "cloudflare-tunnel-token"     # kubectl secret with key: tunnel-token
+
+domains:
+  - name: "drunk-dev"
+    enabled: true
+    gatewayClassName: "cloudflare-tunnel"
+    listeners:
+      - name: http
+        protocol: HTTP
+        port: 80
+        hostname: "*.drunk.dev"
+        allowedRoutes:
+          namespaces:
+            from: All
