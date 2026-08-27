@@ -5,6 +5,7 @@
 {{- /*   internal LB: service.beta.kubernetes.io/azure-load-balancer-internal). */ -}}
 {{- /* service.loadBalancerIP — static IP for type: LoadBalancer             */ -}}
 {{- /*   (e.g. AKS fixed private IP "192.168.123.222").                      */ -}}
+{{- /* service.port — exposed port for the single-port case (default 80).    */ -}}
 {{- define "drunk-lib.service" -}}
 {{- $svc := .Values.service | default dict -}}
 {{- $ports := dict -}}
@@ -36,7 +37,7 @@ spec:
   {{- end }}
   ports:
 {{- if eq (len $ports) 1 }}
-    - port: 80
+    - port: {{ (and (kindIs "map" $svc) $svc.port) | default 80 }}
       targetPort: {{ keys $ports | first }}
       protocol: TCP
       name: {{ keys $ports | first }}
