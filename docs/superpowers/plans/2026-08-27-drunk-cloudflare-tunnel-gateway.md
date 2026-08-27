@@ -21,6 +21,8 @@
 - Gateway API CRDs installed out-of-band (v1.6.1, `standard` channel) via `install.sh`, same two-phase pattern as `drunk-nginx-gateway`.
 - Files that must NOT exist in this chart: `templates/gatewayclass.yaml`, `templates/clusterissuer.yaml`, `templates/certificate.yaml`, `values.aks.yaml`, `values.local.yaml`, any cert-manager dependency.
 - After any change under the chart dir, the deliverable gate is `bash drunk-cloudflare-tunnel-gateway/verify.sh` exiting 0.
+- The vendored subchart hard-`required`s `gatewayClassConfig.tunnelID` (and `cloudflareCredentialsSecretRef.name`) whenever `gatewayClassConfig.create: true`. The shipped `values.yaml` keeps `tunnelID: ""` on purpose (a real deploy must fail loudly until the operator sets it). Therefore EVERY `helm lint` / `helm template` invocation in tests, and `verify.sh`, MUST pass a throwaway tunnelID: `--set cloudflareTunnel.gatewayClassConfig.tunnelID=00000000-0000-0000-0000-000000000000`. `values.example.yaml` sets a non-empty placeholder tunnelID, so renders that use `-f values.example.yaml` need no extra `--set`.
+- Local Helm is v4.x; CI pins v3.17.3. Chart must render on both — avoid Helm-4-only template functions.
 
 ---
 
@@ -43,9 +45,10 @@ There is no chart yet, so this command must fail. Run it and confirm failure:
 
 ```bash
 cd /Users/steven/_CODE/GIT/drunk.charts
+DUMMY=00000000-0000-0000-0000-000000000000
 helm dependency build drunk-cloudflare-tunnel-gateway && \
-helm lint drunk-cloudflare-tunnel-gateway && \
-helm template t drunk-cloudflare-tunnel-gateway | grep -q "kind: GatewayClassConfig"
+helm lint drunk-cloudflare-tunnel-gateway --set cloudflareTunnel.gatewayClassConfig.tunnelID=$DUMMY && \
+helm template t drunk-cloudflare-tunnel-gateway --set cloudflareTunnel.gatewayClassConfig.tunnelID=$DUMMY | grep -q "kind: GatewayClassConfig"
 ```
 
 Expected: FAIL (chart directory does not exist).
@@ -256,9 +259,10 @@ Target namespace for namespaced resources (Gateways). Falls back to release name
 
 ```bash
 cd /Users/steven/_CODE/GIT/drunk.charts
+DUMMY=00000000-0000-0000-0000-000000000000
 helm dependency build drunk-cloudflare-tunnel-gateway && \
-helm lint drunk-cloudflare-tunnel-gateway && \
-helm template t drunk-cloudflare-tunnel-gateway | grep -q "kind: GatewayClassConfig"
+helm lint drunk-cloudflare-tunnel-gateway --set cloudflareTunnel.gatewayClassConfig.tunnelID=$DUMMY && \
+helm template t drunk-cloudflare-tunnel-gateway --set cloudflareTunnel.gatewayClassConfig.tunnelID=$DUMMY | grep -q "kind: GatewayClassConfig"
 ```
 Expected: PASS (dependency resolves from OCI, lint clean, GatewayClassConfig rendered by the subchart).
 
@@ -296,6 +300,7 @@ git commit -m "feat(cf-tunnel-gateway): chart skeleton, controller subchart, val
 ```bash
 cd /Users/steven/_CODE/GIT/drunk.charts
 helm template t drunk-cloudflare-tunnel-gateway \
+  --set cloudflareTunnel.gatewayClassConfig.tunnelID=00000000-0000-0000-0000-000000000000 \
   --set 'domains[0].name=domain1' \
   --set 'domains[0].enabled=true' \
   --set 'domains[0].gatewayClassName=cloudflare-tunnel' \
@@ -435,8 +440,10 @@ For more information:
 
 ```bash
 cd /Users/steven/_CODE/GIT/drunk.charts
+DUMMY=00000000-0000-0000-0000-000000000000
 # domain Gateway renders
 helm template t drunk-cloudflare-tunnel-gateway \
+  --set cloudflareTunnel.gatewayClassConfig.tunnelID=$DUMMY \
   --set 'domains[0].name=domain1' --set 'domains[0].enabled=true' \
   --set 'domains[0].gatewayClassName=cloudflare-tunnel' \
   --set 'domains[0].listeners[0].name=http' \
@@ -446,6 +453,7 @@ helm template t drunk-cloudflare-tunnel-gateway \
   | grep -q "name: domain1-gateway" && echo "OK gateway"
 # routeAccess fallback (no allowedRoutes given → from: Same)
 helm template t drunk-cloudflare-tunnel-gateway \
+  --set cloudflareTunnel.gatewayClassConfig.tunnelID=$DUMMY \
   --set 'domains[0].name=domain1' --set 'domains[0].enabled=true' \
   --set 'domains[0].gatewayClassName=cloudflare-tunnel' \
   --set 'domains[0].listeners[0].name=http' \
@@ -454,7 +462,7 @@ helm template t drunk-cloudflare-tunnel-gateway \
   --set 'domains[0].listeners[0].hostname=*.example.com' \
   | grep -q "from: Same" && echo "OK routeAccess"
 # default render still clean (NOTES is not rendered by `template`, but must not error)
-helm template t drunk-cloudflare-tunnel-gateway >/dev/null && echo "OK default"
+helm template t drunk-cloudflare-tunnel-gateway --set cloudflareTunnel.gatewayClassConfig.tunnelID=$DUMMY >/dev/null && echo "OK default"
 ```
 Expected: all three print OK.
 
@@ -612,11 +620,12 @@ Port `drunk-nginx-gateway/verify.sh`, keeping its structure (colored `print_*`, 
 - Required templates list: `templates/_helpers.tpl`, `templates/NOTES.txt`, `templates/domain-gateways.yaml` (remove gatewayclass/clusterissuer/certificate).
 - Add a NEGATIVE check: FAIL if `templates/gatewayclass.yaml` exists (the subchart owns the GatewayClass).
 - Required values keys: `gatewayAPI`, `domains`, `routeAccess`, `cloudflareTunnel` (remove `gatewayClass`, `gateway`, `certManager`, `nginxGatewayFabric`).
+- Define near the top: `DUMMY_TUNNEL_ID="00000000-0000-0000-0000-000000000000"`. EVERY `helm lint` and `helm template` call in this script MUST pass `--set cloudflareTunnel.gatewayClassConfig.tunnelID="$DUMMY_TUNNEL_ID"` (the subchart hard-`required`s tunnelID when `create: true`; the shipped default is intentionally empty). This includes the `helm lint` in Test 1.
 - Before render tests, run `helm dependency build "$CHART_DIR" >/dev/null 2>&1` (OCI subchart must be present to template); FAIL with a clear message if it errors.
-- Render tests:
-  - default `helm template test "$CHART_DIR"` succeeds.
-  - `helm template test "$CHART_DIR" | grep -q "kind: GatewayClassConfig"` (subchart rendered).
-  - the `domains[0]` scenario renders `domain1-gateway` (reuse the nginx scenario 2 block with `gatewayClassName=cloudflare-tunnel`).
+- Render tests (each adds `--set cloudflareTunnel.gatewayClassConfig.tunnelID="$DUMMY_TUNNEL_ID"`):
+  - default `helm template test "$CHART_DIR" --set ...tunnelID=$DUMMY_TUNNEL_ID` succeeds.
+  - the same render piped to `grep -q "kind: GatewayClassConfig"` (subchart rendered).
+  - the `domains[0]` scenario renders `domain1-gateway` (reuse the nginx scenario 2 block with `gatewayClassName=cloudflare-tunnel`, plus the tunnelID `--set`).
 - Scripts check: `install.sh uninstall.sh build.sh` exist and are executable.
 - Drop the cert-manager ClusterIssuer scenario entirely.
 
