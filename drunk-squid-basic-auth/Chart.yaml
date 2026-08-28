@@ -4,8 +4,8 @@ icon: https://drunkcoding.net/assets/logo.png
 description: The drunkcoding template to deploy an proxy using squid to Kubernetes
 # A chart can be either an 'application' or a 'library' chart.
 type: application
-version: 1.0.0
-appVersion: 'latest'
+version: 2.0.0
+appVersion: "latest"
 
 dependencies:
   - name: ingress-nginx

@@ -3,13 +3,19 @@
 #
 # YAML anchors (DRY defaults):
 #   The `# variables` block below declares anchors used elsewhere in this file
-#   to keep the GatewayClass identity (name + controller) consistent. Anchors
-#   are resolved at YAML parse time, per file — they DRY the defaults but do
-#   NOT propagate through `--set` overrides.
+#   to keep the GatewayClass identity (name + controller) and the Azure Key
+#   Vault identity consistent. Anchors are resolved at YAML parse time, per
+#   file — they DRY the defaults but do NOT propagate through `--set` overrides.
 
 # variables
 gatewayClassName: &gatewayClassName "traefik"
 gatewayControllerName: &gatewayControllerName "traefik.io/gateway-controller"
+# Azure Key Vault identity — consumed by the secretProvider block below.
+# Empty by default; fill in and set secretProvider.enabled: true to use.
+tenantId: &tenantId ""                              # Azure AD tenant ID
+userAssignedIdentityID: &userAssignedIdentityID ""  # Managed identity client ID
+vaultName: &vaultName ""                            # Azure Key Vault name
+cfDnsTokenName: &cfDnsTokenName ""                  # AKV secret name to sync
 
 # Target namespace for Gateway resources (Gateways). If empty, uses release namespace.
 namespace: ""
@@ -117,46 +123,53 @@ domains: []
   #         namespaces:
   #           from: Same
 
-# cert-manager ClusterIssuer for automatic TLS certificate management
-certManager:
-  # Install cert-manager as a dependency (optional)
-  enabled: false
-  # Install cert-manager CRDs
-  installCRDs: true
-  # Create ClusterIssuers defined below (separate from installing dependency)
-  clusterIssuersEnabled: false
-  # ClusterIssuer configuration list (used only if clusterIssuersEnabled=true)
-  clusterIssuers: []
-    # - name: "letsencrypt-prod"
-    #   email: "admin@drunk.dev"
-    #   server: "https://acme-v02.api.letsencrypt.org/directory"
-    #   privateKeySecretRef:
-    #     name: "letsencrypt-prod-key"
-    #   solvers:
-    #     - http01:
-    #         gatewayHTTPRoute:
-    #           parentRefs:
-    #             - kind: Gateway
-    #               name: shared-gateway
-    #               namespace: default
-    #     # For wildcard certificates, use DNS-01
-    #     # - dns01:
-    #     #     cloudflare:
-    #     #       apiTokenSecretRef:
-    #     #         name: cloudflare-api-token
-    #     #         key: api-token
-    #     #   selector:
-    #     #     dnsZones:
-    #     #       - "drunk.dev"
-
-# Top-level clusterIssuers block consumed by templates/clusterissuer.yaml.
-# (Previously missing — the template referenced .Values.clusterIssuers.enabled
-# which produced a nil-pointer error on default render. Added here with
-# enabled: false to match the nginx chart's convention; rendered output is
-# unchanged because the template gates on `.enabled`.)
+# ClusterIssuer / Certificate configuration consumed by templates/clusterissuer.yaml
+# and templates/certificate.yaml. Disabled by default; rendered output is
+# unchanged unless enabled: true.
 clusterIssuers:
   enabled: false
   issuers: []
+    # - name: "letsencrypt-prod"
+    #   spec:
+    #     acme:
+    #       email: "admin@drunk.dev"
+    #       server: "https://acme-v02.api.letsencrypt.org/directory"
+    #       privateKeySecretRef:
+    #         name: "letsencrypt-prod-key"
+    #       solvers:
+    #         - http01:
+    #             gatewayHTTPRoute:
+    #               parentRefs:
+    #                 - kind: Gateway
+    #                   name: shared-gateway
+    #                   namespace: default
+    #         # For wildcard certificates, use DNS-01
+    #         # - dns01:
+    #         #     cloudflare:
+    #         #       apiTokenSecretRef:
+    #         #         name: cloudflare-api-token
+    #         #         key: api-token
+
+# Optional: sync a secret (e.g. a DNS-01 API token) from Azure Key Vault into a
+# Kubernetes Secret via the Secrets Store CSI driver (templates/secretprovider.yaml).
+# Disabled by default — backward-compat no-op. Fill in your own Key Vault details
+# and set enabled: true to use it (e.g. as a ClusterIssuer DNS-01 solver secret).
+secretProvider:
+  enabled: false
+  name: cf-dns-spc                       # SecretProviderClass resource name
+  provider:
+    name: azure
+    tenantId: *tenantId
+    userAssignedIdentityID: *userAssignedIdentityID
+    vaultName: *vaultName
+    usePodIdentity: false
+    useWorkloadIdentity: false           # false → useVMManagedIdentity (node MSI)
+  objects:
+    - *cfDnsTokenName                     # AKV secret name(s) to sync
+  secretName: cf-dns-secret               # K8s Secret name to materialize
+  secretObjects:
+    - key: token
+      objectName: *cfDnsTokenName
 
 # Route access configuration for automatically generated allowedRoutes when
 # listener.allowedRoutes is omitted in values. Modes:

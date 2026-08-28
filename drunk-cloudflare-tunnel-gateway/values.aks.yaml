@@ -1,0 +1,62 @@
+# Azure AKS deployment values for drunk-cloudflare-tunnel-gateway
+# Purpose: Production/AKS override profile.
+#
+# Network model unchanged from the base chart: the controller's in-process
+# cloudflared data plane dials OUT to Cloudflare's edge. There is no
+# LoadBalancer, no in-cluster TLS, and no cert-manager involved — Cloudflare
+# terminates TLS at its edge, so listeners here stay plain HTTP.
+#
+# Usage:
+#   helm dependency build ./drunk-cloudflare-tunnel-gateway
+#   helm upgrade --install cf-tunnel ./drunk-cloudflare-tunnel-gateway \
+#     -n cloudflare-tunnel-system --create-namespace \
+#     -f drunk-cloudflare-tunnel-gateway/values.aks.yaml
+#
+# Set cloudflareTunnel.gatewayClassConfig.tunnelID to your real per-environment
+# Cloudflare Tunnel ID before installing — it is REQUIRED and has no default.
+
+namespace: ""
+
+gatewayAPI:
+  version: "v1.6.1"
+  channel: "standard"
+
+# Example production domain Gateway — uncomment and customize.
+domains: []
+  # - name: "drunk-prod"
+  #   enabled: true
+  #   gatewayClassName: "cloudflare-tunnel"
+  #   listeners:
+  #     - name: http
+  #       protocol: HTTP
+  #       port: 80
+  #       hostname: "*.drunk.dev"
+  #       allowedRoutes:
+  #         namespaces:
+  #           from: All
+
+# Production: apps typically live in their own namespaces, so allow routes
+# from any namespace rather than restricting to the Gateway's own.
+routeAccess:
+  mode: "All"
+  namespaces: []
+  labelKey: "gateway.drunk.charts/access"
+  labelValue: ""
+
+cloudflareTunnel:
+  enabled: true
+  gatewayClassConfig:
+    create: true
+    # REQUIRED — set to your real Cloudflare Tunnel ID (Zero Trust > Networks > Tunnels).
+    # No default is provided on purpose; every environment must set its own.
+    tunnelID: ""
+    # Secret must contain key `api-token`, in the release namespace.
+    cloudflareCredentialsSecretRef:
+      name: "cloudflare-credentials"
+  proxy:
+    # Secret must contain key `tunnel-token`, in the release namespace.
+    tunnelTokenSecretRef:
+      name: "cloudflare-tunnel-token"
+  controller:
+    gatewayClassName: "cloudflare-tunnel"
+    controllerName: "cf.k8s.lex.la/tunnel-controller"

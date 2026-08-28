@@ -3,8 +3,8 @@ name: drunk-nginx-gateway
 icon: https://drunkcoding.net/assets/logo.png
 description: NGINX Gateway Fabric wrapper with Gateway API CRDs, GatewayClass, and cert-manager integration for drunk.charts
 type: application
-version: 1.0.0
-appVersion: "v1.2.0"
+version: 2.0.0
+appVersion: "latest"
 keywords:
   - gateway-api
   - ingress

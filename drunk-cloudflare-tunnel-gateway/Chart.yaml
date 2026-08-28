@@ -3,8 +3,8 @@ name: drunk-cloudflare-tunnel-gateway
 icon: https://drunkcoding.net/assets/logo.png
 description: Cloudflare Tunnel Gateway API wrapper — expose services via a Cloudflare Tunnel with no public LoadBalancer, for drunk.charts
 type: application
-version: 1.0.0
-appVersion: "1.0.0"
+version: 2.0.0
+appVersion: "latest"
 keywords:
   - gateway-api
   - ingress

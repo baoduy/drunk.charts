@@ -4,7 +4,7 @@ index.yaml
 
 # Chart dependencies
 
-drunk-k8s-gateway-\*.tgz
+drunk-traefik-gateway-\*.tgz
 Chart.lock
 
 # Temporary files

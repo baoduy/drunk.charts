@@ -1,6 +1,6 @@
 #!/bin/bash
 #!/bin/bash
-# Install script for drunk-k8s-gateway chart
+# Install script for drunk-traefik-gateway chart
 # Two-phase installation:
 #  1. Install Gateway API CRDs via kubectl (bypasses Helm 3MB limit)
 #  2. Install Helm chart for GatewayClass, Gateway, HTTPRoute resources
@@ -78,7 +78,7 @@ fi
 
 echo ""
 info "========================================="
-info "drunk-k8s-gateway Installation"
+info "drunk-traefik-gateway Installation"
 info "========================================="
 info "Release:   $RELEASE_NAME"
 info "Namespace: $NAMESPACE"

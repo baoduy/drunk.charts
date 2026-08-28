@@ -1,10 +1,10 @@
 apiVersion: v2
-name: drunk-k8s-gateway
+name: drunk-traefik-gateway
 icon: https://drunkcoding.net/assets/logo.png
 description: Kubernetes Gateway API CRDs and cluster-level Gateway resources for drunk.charts
 type: application
-version: 1.0.0
-appVersion: "v1.2.0"
+version: 2.0.0
+appVersion: "latest"
 keywords:
   - gateway-api
   - ingress

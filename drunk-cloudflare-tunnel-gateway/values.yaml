@@ -12,6 +12,7 @@
 
 # variables
 gatewayClassName: &gatewayClassName "cloudflare-tunnel"
+gatewayControllerName: &gatewayControllerName "cf.k8s.lex.la/tunnel-controller"
 
 # Target namespace for Gateway resources. Empty → release namespace.
 namespace: ""
@@ -68,4 +69,4 @@ cloudflareTunnel:
       name: "cloudflare-tunnel-token"
   controller:
     gatewayClassName: *gatewayClassName
-    controllerName: "cf.k8s.lex.la/tunnel-controller"
+    controllerName: *gatewayControllerName

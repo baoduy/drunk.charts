@@ -1,0 +1,54 @@
+# Local development override values for drunk-cloudflare-tunnel-gateway
+# Purpose: Quickly render/install this chart against a local Kubernetes
+# cluster (kind / minikube / k3d / k3s) for smoke testing.
+#
+# Usage:
+#   helm upgrade --install cf-tunnel ./drunk-cloudflare-tunnel-gateway -f values.local.yaml
+#   ./test.sh                          (helm template smoke test, no cluster needed)
+#
+# Notes:
+# - No NodePort/LoadBalancer here — the controller's cloudflared data plane
+#   dials OUT to Cloudflare's edge, so nothing needs to be exposed locally.
+# - No cert-manager — Cloudflare terminates TLS at its edge; listeners stay
+#   plain HTTP.
+# - gatewayClassConfig.tunnelID below is a DUMMY placeholder purely so
+#   `helm template` renders without tripping the subchart's required-field
+#   schema check. Replace with a real Cloudflare Tunnel ID before actually
+#   installing against a cluster.
+
+gatewayAPI:
+  version: "v1.6.1"
+  channel: "standard"
+
+# Single domain Gateway for local testing.
+domains:
+  - name: "drunk-dev"
+    enabled: true
+    gatewayClassName: "cloudflare-tunnel"
+    listeners:
+      - name: http
+        protocol: HTTP
+        port: 80
+        hostname: "*.dev.local"
+
+# Local: restrict routes to the Gateway's own namespace.
+routeAccess:
+  mode: "Same"
+  namespaces: []
+  labelKey: "gateway.drunk.charts/access"
+  labelValue: ""
+
+cloudflareTunnel:
+  enabled: true
+  gatewayClassConfig:
+    create: true
+    # Placeholder dummy — replace with your real Cloudflare Tunnel ID.
+    tunnelID: "00000000-0000-0000-0000-000000000000"
+    cloudflareCredentialsSecretRef:
+      name: "cloudflare-credentials"
+  proxy:
+    tunnelTokenSecretRef:
+      name: "cloudflare-tunnel-token"
+  controller:
+    gatewayClassName: "cloudflare-tunnel"
+    controllerName: "cf.k8s.lex.la/tunnel-controller"

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Test script for drunk-k8s-gateway chart
+# Test script for drunk-traefik-gateway chart
 # Author: Duy Bao (baoduy)
 # Repository: https://github.com/baoduy/drunk.charts
 

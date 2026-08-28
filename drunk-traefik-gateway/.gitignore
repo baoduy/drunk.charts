@@ -8,7 +8,7 @@ Chart.lock
 
 # Generated files
 *.tgz
-drunk-k8s-gateway/
+drunk-traefik-gateway/
 
 # Gateway API CRDs (downloaded at install time)
 crds/*.yaml
