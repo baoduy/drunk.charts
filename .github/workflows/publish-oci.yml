@@ -67,7 +67,7 @@ jobs:
         if: steps.flag.outputs.enable == 'true'
         run: |
           set -euo pipefail
-          for d in drunk-lib drunk-app drunk-nginx-gateway drunk-traefik-gateway drunk-squid-basic-auth; do
+          for d in drunk-lib drunk-app drunk-nginx-gateway drunk-traefik-gateway drunk-squid-basic-auth drunk-cloudflare-tunnel-gateway; do
             f="$d/Chart.yaml"
             sed -i "s/^version:.*/version: ${NEXT_VERSION}/" "$f"
             echo "synced $f"
@@ -143,6 +143,16 @@ jobs:
           helm dependency update .
           helm package . --version "${NEXT_VERSION}" --destination /tmp/charts
           helm push "/tmp/charts/drunk-squid-basic-auth-proxy-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
+
+      - name: Package + push drunk-cloudflare-tunnel-gateway
+        if: steps.flag.outputs.enable == 'true'
+        working-directory: drunk-cloudflare-tunnel-gateway
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/charts
+          helm dependency update .
+          helm package . --version "${NEXT_VERSION}" --destination /tmp/charts
+          helm push "/tmp/charts/drunk-cloudflare-tunnel-gateway-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
 
       - name: Log out from GHCR
         if: always()

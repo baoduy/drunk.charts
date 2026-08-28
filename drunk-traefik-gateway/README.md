@@ -1,10 +1,10 @@
-# drunk-k8s-gateway
+# drunk-traefik-gateway
 
 Kubernetes Gateway API CRDs and cluster-level Gateway resources for drunk.charts
 
 ## Overview
 
-The `drunk-k8s-gateway` chart automates the installation and configuration of:
+The `drunk-traefik-gateway` chart automates the installation and configuration of:
 
 - **Gateway API CRDs** - Core custom resource definitions for Gateway API
 - **GatewayClass** - Defines which Gateway controller implementation to use
@@ -39,7 +39,7 @@ This chart reuses [drunk-lib](../drunk-lib) to maintain consistency across the d
 ./scripts/install-crds.sh
 
 # Install the chart with default settings
-helm install gateway drunk-charts/drunk-k8s-gateway
+helm install gateway drunk-charts/drunk-traefik-gateway
 
 # Or install from local directory
 helm install gateway . -n gateway-system --create-namespace
@@ -71,7 +71,7 @@ The Gateway API CRDs are now included in the chart and will be installed automat
 
 ```bash
 # CRDs are included in the chart
-helm install gateway drunk-charts/drunk-k8s-gateway \
+helm install gateway drunk-charts/drunk-traefik-gateway \
   -n gateway-system \
   --create-namespace
 ```
@@ -142,7 +142,7 @@ traefik:
 Install with the above saved as `values-traefik.yaml`:
 
 ```bash
-helm upgrade --install gateway ./drunk-k8s-gateway \
+helm upgrade --install gateway ./drunk-traefik-gateway \
   -n drunk-gateway --create-namespace \
   -f values-traefik.yaml
 ```
@@ -150,7 +150,7 @@ helm upgrade --install gateway ./drunk-k8s-gateway \
 You can override any upstream chart setting under the `traefik:` key. For example to set resources:
 
 ```bash
-helm upgrade --install gateway ./drunk-k8s-gateway \
+helm upgrade --install gateway ./drunk-traefik-gateway \
   -n drunk-gateway --create-namespace \
   --set gatewayClass.enabled=false \
   --set traefik.enabled=true \
@@ -186,7 +186,7 @@ For Azure AKS deployments, use `values.aks.yaml`:
 
 - `values.aks.yaml` — ready-to-go values for Azure AKS deployments using an
   internal Azure Load Balancer. Customize `loadBalancerIP` and (optionally)
-  the internal-LB subnet annotation before installing. See `QUICKSTART.md`.
+  the internal-LB subnet annotation before installing.
 
 #### 4. (Optional) Install cert-manager
 
@@ -197,10 +197,10 @@ You have two options to install cert-manager:
 cert-manager can be installed automatically with this chart:
 
 ```bash
-# Install drunk-k8s-gateway with cert-manager
-helm install gateway drunk-charts/drunk-k8s-gateway \
-  --set certManager.install=true \
-  --set certManager.installCRDs=true \
+# Install drunk-traefik-gateway with cert-manager
+helm install gateway drunk-charts/drunk-traefik-gateway \
+  --set cert-manager.enabled=true \
+  --set cert-manager.installCRDs=true \
   -n gateway-system \
   --create-namespace
 
@@ -226,7 +226,7 @@ kubectl get pods -n cert-manager
 
 For more information: [cert-manager documentation](https://cert-manager.io/docs/installation/helm/)
 
-#### 5. Install drunk-k8s-gateway Chart
+#### 5. Install drunk-traefik-gateway Chart
 
 ```bash
 # Create a values file
@@ -263,7 +263,7 @@ gateway:
 EOF
 
 # Install the chart
-helm install gateway drunk-charts/drunk-k8s-gateway \
+helm install gateway drunk-charts/drunk-traefik-gateway \
   -f values-production.yaml \
   -n gateway-system \
   --create-namespace
@@ -283,9 +283,8 @@ helm install gateway drunk-charts/drunk-k8s-gateway \
 | `gateway.enabled`                   | Create default Gateway                       | `false`                                      |
 | `gateway.name`                      | Name of the Gateway                          | `shared-gateway`                             |
 | `gateway.gatewayClassName`          | GatewayClass to use                          | `nginx`                                      |
-| `certManager.enabled`               | Install cert-manager as dependency           | `false`                                      |
-| `certManager.installCRDs`           | Install cert-manager CRDs                    | `true`                                       |
-| `certManager.clusterIssuersEnabled` | Create ClusterIssuers (ACME)                 | `false`                                      |
+| `cert-manager.enabled`               | Install vendored cert-manager subchart       | `false`                                      |
+| `clusterIssuers.enabled`            | Render ClusterIssuer/Certificate templates   | `false`                                      |
 
 ### Dealing with Existing Gateway API CRDs
 
@@ -300,12 +299,12 @@ Options to resolve:
 1. Adopt existing CRDs into this release (recommended when versions match):
    ```bash
    ./scripts/adopt-crds.sh gateway drunk-gateway
-   helm upgrade --install gateway ./drunk-k8s-gateway \
+   helm upgrade --install gateway ./drunk-traefik-gateway \
      -n drunk-gateway --create-namespace -f values.local.yaml
    ```
 2. Skip CRDs during install (if you are sure they are present and correct):
    ```bash
-   helm install gateway ./drunk-k8s-gateway --skip-crds \
+   helm install gateway ./drunk-traefik-gateway --skip-crds \
      -n drunk-gateway --create-namespace -f values.local.yaml
    ```
 3. Remove and reinstall CRDs (clean slate):
@@ -315,7 +314,7 @@ Options to resolve:
      tcproutes.gateway.networking.k8s.io tlsroutes.gateway.networking.k8s.io \
      udproutes.gateway.networking.k8s.io grpcroutes.gateway.networking.k8s.io \
      referencegrants.gateway.networking.k8s.io
-   helm upgrade --install gateway ./drunk-k8s-gateway \
+   helm upgrade --install gateway ./drunk-traefik-gateway \
      -n drunk-gateway --create-namespace -f values.local.yaml
    ```
 
@@ -364,7 +363,7 @@ domains:
 Install:
 
 ```bash
-helm install drunk-gateway drunk-charts/drunk-k8s-gateway \
+helm install drunk-gateway drunk-charts/drunk-traefik-gateway \
   -f values-drunk-dev.yaml \
   -n default
 ```
@@ -377,39 +376,43 @@ Automatically create ClusterIssuers for TLS certificate management:
 
 ```yaml
 # values-with-certmanager.yaml
-certManager:
+clusterIssuers:
   enabled: true
-  clusterIssuers:
+  issuers:
     - name: letsencrypt-prod
-      email: admin@drunk.dev
-      server: https://acme-v02.api.letsencrypt.org/directory
-      privateKeySecretRef:
-        name: letsencrypt-prod-key
-      solvers:
-        - http01:
-            gatewayHTTPRoute:
-              parentRefs:
-                - kind: Gateway
-                  name: shared-gateway
-                  namespace: default
+      spec:
+        acme:
+          email: admin@drunk.dev
+          server: https://acme-v02.api.letsencrypt.org/directory
+          privateKeySecretRef:
+            name: letsencrypt-prod-key
+          solvers:
+            - http01:
+                gatewayHTTPRoute:
+                  parentRefs:
+                    - kind: Gateway
+                      name: shared-gateway
+                      namespace: default
 
     - name: letsencrypt-staging
-      email: admin@drunk.dev
-      server: https://acme-staging-v02.api.letsencrypt.org/directory
-      privateKeySecretRef:
-        name: letsencrypt-staging-key
-      solvers:
-        - http01:
-            gatewayHTTPRoute:
-              parentRefs:
-                - kind: Gateway
-                  name: shared-gateway
-                  namespace: default
+      spec:
+        acme:
+          email: admin@drunk.dev
+          server: https://acme-staging-v02.api.letsencrypt.org/directory
+          privateKeySecretRef:
+            name: letsencrypt-staging-key
+          solvers:
+            - http01:
+                gatewayHTTPRoute:
+                  parentRefs:
+                    - kind: Gateway
+                      name: shared-gateway
+                      namespace: default
 
 gateway:
   enabled: true
   name: shared-gateway
-  gatewayClassName: nginx
+  gatewayClassName: traefik
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
   listeners:
@@ -427,23 +430,25 @@ gateway:
 For wildcard certificates, use DNS-01 challenge:
 
 ```yaml
-certManager:
+clusterIssuers:
   enabled: true
-  clusterIssuers:
+  issuers:
     - name: letsencrypt-prod
-      email: admin@drunk.dev
-      server: https://acme-v02.api.letsencrypt.org/directory
-      privateKeySecretRef:
-        name: letsencrypt-prod-key
-      solvers:
-        - dns01:
-            cloudflare:
-              apiTokenSecretRef:
-                name: cloudflare-api-token
-                key: api-token
-          selector:
-            dnsZones:
-              - "drunk.dev"
+      spec:
+        acme:
+          email: admin@drunk.dev
+          server: https://acme-v02.api.letsencrypt.org/directory
+          privateKeySecretRef:
+            name: letsencrypt-prod-key
+          solvers:
+            - dns01:
+                cloudflare:
+                  apiTokenSecretRef:
+                    name: cloudflare-api-token
+                    key: api-token
+              selector:
+                dnsZones:
+                  - "drunk.dev"
 ```
 
 #### Installing cert-manager
@@ -609,7 +614,7 @@ kubectl get crd gateways.gateway.networking.k8s.io -o jsonpath='{.metadata.label
 ### Upgrade Chart
 
 ```bash
-helm upgrade gateway drunk-charts/drunk-k8s-gateway \
+helm upgrade gateway drunk-charts/drunk-traefik-gateway \
   -f values-production.yaml \
   --reuse-values
 ```
@@ -706,12 +711,12 @@ Deploy separate charts for different controllers:
 
 ```bash
 # NGINX Gateway
-helm install nginx-gateway drunk-charts/drunk-k8s-gateway \
+helm install nginx-gateway drunk-charts/drunk-traefik-gateway \
   --set gatewayClass.name=nginx \
   --set gatewayClass.controllerName=gateway.nginx.org/nginx-gateway-controller
 
 # Istio Gateway
-helm install istio-gateway drunk-charts/drunk-k8s-gateway \
+helm install istio-gateway drunk-charts/drunk-traefik-gateway \
   --set gatewayClass.name=istio \
   --set gatewayClass.controllerName=istio.io/gateway-controller
 ```
@@ -720,7 +725,7 @@ helm install istio-gateway drunk-charts/drunk-k8s-gateway \
 
 This chart is designed to work seamlessly with [drunk-app](../drunk-app):
 
-1. Deploy shared Gateway with drunk-k8s-gateway
+1. Deploy shared Gateway with drunk-traefik-gateway
 2. Deploy applications with drunk-app using HTTPRoute
 3. Applications reference the shared Gateway via `parentRefs`
 
@@ -728,7 +733,7 @@ Example workflow:
 
 ```bash
 # 1. Deploy Gateway infrastructure
-helm install gateway drunk-charts/drunk-k8s-gateway -f gateway-values.yaml
+helm install gateway drunk-charts/drunk-traefik-gateway -f gateway-values.yaml
 
 # 2. Deploy application with HTTPRoute
 helm install myapp drunk-charts/drunk-app \

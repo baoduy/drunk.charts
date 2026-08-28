@@ -110,12 +110,12 @@ To view all Gateways:
   CERT-MANAGER INTEGRATION
 ================================================================================
 
-{{- if .Values.certManager.enabled }}
+{{- if .Values.clusterIssuers.enabled }}
 
 ✅ cert-manager ClusterIssuers have been created.
 
-{{- range .Values.certManager.clusterIssuers }}
-  - {{ .name }}: {{ .email }}
+{{- range .Values.clusterIssuers.issuers }}
+  - {{ .name }}
 {{- end }}
 
 To check ClusterIssuer status:
@@ -125,8 +125,9 @@ To check ClusterIssuer status:
 
 {{- else }}
 
-ℹ️  cert-manager integration is disabled.
-   To enable automatic TLS certificate management, set certManager.enabled=true
+ℹ️  cert-manager ClusterIssuers are disabled.
+   Set `clusterIssuers.enabled=true` (and provide `clusterIssuers.issuers[]`) to
+   enable automatic TLS certificate management.
 
 {{- end }}
 

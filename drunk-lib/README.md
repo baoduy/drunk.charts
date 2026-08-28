@@ -17,8 +17,9 @@ The application chart [`drunk-app`](../drunk-app) is the canonical consumer; eac
 # Chart.yaml of the consumer chart
 dependencies:
   - name: drunk-lib
-    version: 1.x.x
-    repository: "https://baoduy.github.io/drunk.charts/drunk-lib"
+    version: 2.x.x
+    repository: oci://ghcr.io/baoduy          # OCI (how drunk-app consumes it)
+    # or: repository: "https://baoduy.github.io/drunk.charts/drunk-lib"
 ```
 
 Then `helm dependency update` and reference any of the named templates below from `<consumer>/templates/*.yaml`.

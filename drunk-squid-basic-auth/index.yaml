@@ -3,19 +3,23 @@ entries:
   drunk-app:
   - apiVersion: v2
     appVersion: latest
-    created: "2024-05-04T16:10:54.428966+08:00"
+    created: "2026-08-28T11:21:07.500066+08:00"
+    dependencies:
+    - name: drunk-lib
+      repository: oci://ghcr.io/baoduy
+      version: 2.0.1
     description: The drunkcoding template to deploy an application to Kubernetes
-    digest: d8459d2a22811d152c186e39e9184c6f57e0df338e52ff917912dcdfa583b4de
+    digest: 73f8b72fcbb6762eae797a5b7a8ba696ab66dbb026def7d62896cde59cb58345
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-app
     type: application
     urls:
-    - charts/drunk-app-1.0.4.tgz
-    version: 1.0.4
+    - charts/drunk-app-2.0.1.tgz
+    version: 2.0.1
   drunk-squid-basic-auth-proxy:
   - apiVersion: v2
     appVersion: latest
-    created: "2024-05-04T16:10:54.428638+08:00"
+    created: "2026-08-28T11:21:07.499575+08:00"
     dependencies:
     - alias: nginx
       condition: nginx.enabled
@@ -25,10 +29,32 @@ entries:
     - alias: proxy
       condition: proxy.enabled
       name: drunk-app
-      repository: https://baoduy.github.io/drunk.charts/drunk-app
-      version: 1.x.x
+      repository: oci://ghcr.io/baoduy
+      version: 2.*.*
     description: The drunkcoding template to deploy an proxy using squid to Kubernetes
-    digest: 8e8d76369de8af3855b5b98aee758cf0743144f100d1c2509aa0d736cd2ff513
+    digest: 3023890b76c63f7d989c78e19dfeda600879d0f38e11371c81aba858f506c5dd
+    icon: https://drunkcoding.net/assets/logo.png
+    name: drunk-squid-basic-auth-proxy
+    type: application
+    urls:
+    - drunk-squid-basic-auth-proxy-2.0.0.tgz
+    version: 2.0.0
+  - apiVersion: v2
+    appVersion: latest
+    created: "2026-08-28T11:21:07.496018+08:00"
+    dependencies:
+    - alias: nginx
+      condition: nginx.enabled
+      name: ingress-nginx
+      repository: https://kubernetes.github.io/ingress-nginx
+      version: 4.x.x
+    - alias: proxy
+      condition: proxy.enabled
+      name: drunk-app
+      repository: oci://ghcr.io/baoduy
+      version: 2.*.*
+    description: The drunkcoding template to deploy an proxy using squid to Kubernetes
+    digest: e061902fffbef3ae31ae0289ad9adf914cb37637a4cff70fa1fba750ccc2b4b6
     icon: https://drunkcoding.net/assets/logo.png
     name: drunk-squid-basic-auth-proxy
     type: application
@@ -37,17 +63,15 @@ entries:
     version: 1.0.0
   ingress-nginx:
   - annotations:
-      artifacthub.io/changes: |-
-        - "update post submit helm ci and clean up (#11221)"
-        - "refactor helm ci tests part I (#11188)"
-        - "Update Ingress-Nginx version controller-v1.10.1"
+      artifacthub.io/changes: |
+        - Update Ingress-Nginx version controller-v1.15.1
       artifacthub.io/prerelease: "false"
     apiVersion: v2
-    appVersion: 1.10.1
-    created: "2024-05-04T16:10:54.432774+08:00"
+    appVersion: 1.15.1
+    created: "2026-08-28T11:21:07.502286+08:00"
     description: Ingress controller for Kubernetes using NGINX as a reverse proxy
       and load balancer
-    digest: b3e4b14509f56080e09b022cde05dd02822fb054616ea212d93981b461732913
+    digest: 3eff0bd18151d6e6b1c441463410571443dda1ac78292cb189346628de784f0c
     home: https://github.com/kubernetes/ingress-nginx
     icon: https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Nginx_logo.svg/500px-Nginx_logo.svg.png
     keywords:
@@ -55,14 +79,14 @@ entries:
     - nginx
     kubeVersion: '>=1.21.0-0'
     maintainers:
+    - name: cpanato
     - name: Gacko
-    - name: rikatz
     - name: strongjz
     - name: tao12345666333
     name: ingress-nginx
     sources:
     - https://github.com/kubernetes/ingress-nginx
     urls:
-    - charts/ingress-nginx-4.10.1.tgz
-    version: 4.10.1
-generated: "2024-05-04T16:10:54.424966+08:00"
+    - charts/ingress-nginx-4.15.1.tgz
+    version: 4.15.1
+generated: "2026-08-28T11:21:07.493164+08:00"

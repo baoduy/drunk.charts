@@ -1,35 +1,51 @@
-# Default values for drunk-nginx-gateway
-# This chart deploys Kubernetes Gateway API CRDs, a GatewayClass, and optionally
-# the NGINX Gateway Fabric controller (vendored as a subchart).
+# Values for drunk-nginx-gateway — configured for Azure AKS (SANDBOX).
+# This chart deploys Kubernetes Gateway API CRDs, a GatewayClass, the NGINX
+# Gateway Fabric controller (vendored subchart) behind an INTERNAL Azure Load
+# Balancer, and per-domain Gateways for the sandbox wildcards.
+#
+# Usage:
+#   helm dependency update ./nginx-gateway
+#   helm upgrade --install gateway ./nginx-gateway \
+#     -n nginx-gateway --create-namespace -f nginx-gateway/values.yaml
 #
 # YAML anchors (DRY defaults):
-#   The `# variables` block below declares anchors used elsewhere in this file
-#   to keep the GatewayClass identity (name + controller) consistent. Anchors
-#   are resolved at YAML parse time, per file — they DRY the defaults but do
-#   NOT propagate through `--set` overrides. To override the gateway class
-#   name, set each consumer path explicitly (e.g.
-#   `--set gatewayClass.name=foo --set gateway.gatewayClassName=foo
-#   --set nginxGatewayFabric.nginxGateway.gatewayClassName=foo`).
+#   The `# variables` block declares anchors used elsewhere in this file to keep
+#   the GatewayClass identity and LoadBalancer IP consistent. Anchors resolve at
+#   YAML parse time, per file — they do NOT propagate through `--set` overrides.
+#   Override each consumer path explicitly if needed.
 
 # variables
-gatewayClassName: &gatewayClassName "nginx"
+gatewayClassName: &gatewayClassName "internal"
 gatewayControllerName: &gatewayControllerName "gateway.nginx.org/nginx-gateway-controller"
+# Azure identity / Key Vault (SANDBOX) — consumed by the secretProvider block below.
+tenantId: &tenantId "d3dea098-4cc5-49aa-a231-463e338bffec"
+userAssignedIdentityID: &userAssignedIdentityID "24675d51-f54c-4faa-81c2-bf1833882b5e"
+vaultName: &vaultName "sandbox-wx-vlt-wvvxza"
+# AKV secret name holding the Cloudflare DNS-01 API token (see secretProvider below).
+cfDnsTokenName: &cfDnsTokenName "cf-dns-token"
+# ACME account email for the letsencrypt-prod ClusterIssuer.
+acmeEmail: &acmeEmail "admin@sanbox.tech"
+# Internal Azure LoadBalancer IP — sandbox subnet 192.168.130.x. Reuses the
+# wx-sys internal-nginx slot (.250), which is currently disabled. MUST be free
+# and routable in the AKS subnet; conflicts if internal-nginx is re-enabled.
+loadBalancerIP: &loadBalancerIP "192.168.130.250"
 
-# Target namespace for Gateway resources (Gateways). If empty, uses release namespace.
+# Target namespace for Gateway resources. If empty, uses release namespace.
 namespace: ""
 
 # Gateway API CRD installation settings (CRDs are applied via install.sh / kubectl
 # to bypass Helm's 3MB annotation limit; this block is informational).
+# channel: "experimental" (from the AKS target) — includes TLSRoute/TCPRoute etc.
+# Basic HTTP/HTTPS + HTTPRoute only needs "standard"; kept experimental to match
+# the AKS deployment author's intent.
 gatewayAPI:
-  version: "v1.2.0"
+  version: "v1.6.1"
   channel: "standard"
-  # url: "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml"
 
 # GatewayClass configuration (cluster-scoped).
-# When the nginxGatewayFabric subchart is enabled, NGF creates the GatewayClass itself
-# and the template below is suppressed (to avoid duplicate-resource errors). In that
-# case, keep `name`/`controllerName` here in sync with
-# `nginxGatewayFabric.nginxGateway.gatewayClassName` / `gatewayControllerName`.
+# When nginxGatewayFabric is enabled, NGF creates the GatewayClass itself and
+# this template is suppressed. Keep name/controllerName in sync with
+# nginxGatewayFabric.nginxGateway below.
 gatewayClass:
   enabled: true
   name: *gatewayClassName
@@ -39,124 +55,219 @@ gatewayClass:
   labels: {}
   # parametersRef points to an NginxProxy resource for data-plane configuration.
   parametersRef: {}
-    # group: gateway.nginx.org
-    # kind: NginxProxy
-    # name: nginx-proxy-config
 
-# Default Gateway configuration (namespace-scoped).
-# Creates a shared Gateway that applications can use.
+# Single shared Gateway (namespace-scoped) serving ALL domains below.
+# NGINX Gateway Fabric provisions one nginx data plane + one LoadBalancer Service
+# per Gateway resource, so ONE Gateway = ONE internal IP (loadBalancerIP above)
+# for every domain. Per-domain TLS is handled by the per-listener certs in
+# `domains` — SNI selects the right wildcard cert. The cert-manager annotation is
+# Gateway-level (the gateway-shim reads every listener and mints one wildcard
+# Certificate per certRef via the letsencrypt-prod DNS-01 issuer).
 gateway:
-  enabled: false
+  enabled: true
   name: "shared-gateway"
   gatewayClassName: *gatewayClassName
   annotations:
-    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
   labels: {}
 
-  listeners:
-    - name: http
-      protocol: HTTP
-      port: 80
-      hostname: "*"
-      allowedRoutes:
-        namespaces:
-          from: All
+# Per-domain listeners, flattened onto the single `gateway` above by
+# templates/domain-gateways.yaml. Each domain contributes an HTTP + HTTPS
+# listener; listener names are auto-prefixed with the domain name to stay unique
+# (e.g. monxa-dev-http, monxa-dev-https). Each HTTPS listener keeps its own
+# wildcard cert secret — that's the per-domain star-cert, chosen at runtime by SNI.
+# allowedRoutes: All — apps for these domains live across many namespaces.
+domains:
+  - name: "wixo-dev"
+    enabled: true
+    listeners:
+      - name: http
+        protocol: HTTP
+        port: 80
+        hostname: "*.wixo.dev"
+        allowedRoutes:
+          namespaces:
+            from: All
+      - name: https
+        protocol: HTTPS
+        port: 443
+        hostname: "*.wixo.dev"
+        tls:
+          mode: Terminate
+          certificateRefs:
+            - kind: Secret
+              name: wixo-dev-tls
+        allowedRoutes:
+          namespaces:
+            from: All
+  - name: "monxa-dev"
+    enabled: true
+    listeners:
+      - name: http
+        protocol: HTTP
+        port: 80
+        hostname: "*.monxa.dev"
+        allowedRoutes:
+          namespaces:
+            from: All
+      - name: https
+        protocol: HTTPS
+        port: 443
+        hostname: "*.monxa.dev"
+        tls:
+          mode: Terminate
+          certificateRefs:
+            - kind: Secret
+              name: monxa-dev-tls
+        allowedRoutes:
+          namespaces:
+            from: All
+  - name: "stdynamo-dev"
+    enabled: true
+    listeners:
+      - name: http
+        protocol: HTTP
+        port: 80
+        hostname: "*.stdynamo.dev"
+        allowedRoutes:
+          namespaces:
+            from: All
+      - name: https
+        protocol: HTTPS
+        port: 443
+        hostname: "*.stdynamo.dev"
+        tls:
+          mode: Terminate
+          certificateRefs:
+            - kind: Secret
+              name: stdynamo-dev-tls
+        allowedRoutes:
+          namespaces:
+            from: All
 
-    - name: https
-      protocol: HTTPS
-      port: 443
-      hostname: "*"
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - kind: Secret
-            name: tls-secret
-      allowedRoutes:
-        namespaces:
-          from: All
-
-# Domain-specific Gateways (rendered by templates/domain-gateways.yaml).
-domains: []
-  # - name: "drunk-dev"
-  #   enabled: true
-  #   gatewayClassName: "nginx"
-  #   annotations:
-  #     cert-manager.io/cluster-issuer: "letsencrypt-prod"
-  #   listeners:
-  #     - name: http
-  #       protocol: HTTP
-  #       port: 80
-  #       hostname: "*.drunk.dev"
-  #       allowedRoutes:
-  #         namespaces:
-  #           from: Same
-  #     - name: https
-  #       protocol: HTTPS
-  #       port: 443
-  #       hostname: "*.drunk.dev"
-  #       tls:
-  #         mode: Terminate
-  #         certificateRefs:
-  #           - kind: Secret
-  #             name: drunk-dev-tls
-  #       allowedRoutes:
-  #         namespaces:
-  #           from: Same
-
-# cert-manager integration. The `cert-manager` subchart (alias) is enabled separately
-# under `cert-manager.enabled`; the keys below configure ClusterIssuers and Certificates
-# rendered by this chart's templates.
-certManager:
-  enabled: false
-  installCRDs: true
-  clusterIssuersEnabled: false
-
-# ClusterIssuer / Certificate configuration consumed by templates/clusterissuer.yaml
-# and templates/certificate.yaml.
+# ClusterIssuer / Certificate config (templates/clusterissuer.yaml, certificate.yaml).
+# NO chart here currently creates the `letsencrypt-prod` ClusterIssuer the Gateways
+# reference; it must already exist in the cluster, or be enabled here (or via wx-sys
+# `certmanagerIssuer`). Set enabled=true + issuers[] to create one.
+# letsencrypt-prod uses ACME DNS-01 via Cloudflare. The API token (Zone:DNS:Edit +
+# Zone:Zone:Read) is synced from Azure Key Vault into the `cf-dns-secret` Secret by
+# the `secretProvider` block below — no manual `kubectl create secret` needed.
 clusterIssuers:
-  enabled: false
-  issuers: []
-    # - name: "letsencrypt-prod"
-    #   spec:
-    #     acme:
-    #       email: "admin@drunk.dev"
-    #       server: "https://acme-v02.api.letsencrypt.org/directory"
-    #       privateKeySecretRef:
-    #         name: "letsencrypt-prod-key"
-    #       solvers:
-    #         - http01:
-    #             gatewayHTTPRoute:
-    #               parentRefs:
-    #                 - kind: Gateway
-    #                   name: shared-gateway
-    #                   namespace: default
+  enabled: true
+  issuers:
+    - name: letsencrypt-prod
+      spec:
+        acme:
+          server: https://acme-v02.api.letsencrypt.org/directory
+          email: *acmeEmail
+          privateKeySecretRef:
+            name: letsencrypt-prod
+          solvers:
+            - dns01:
+                cloudflare:
+                  apiTokenSecretRef:
+                    name: cf-dns-secret
+                    key: token
 
-# Route access configuration for automatically generated allowedRoutes when
-# listener.allowedRoutes is omitted in values. Modes:
-#   All  : Allow routes from all namespaces
-#   Same : Allow routes only from same namespace as the Gateway
-#   List : Allow routes from a labeled set of namespaces (namespaces must already exist)
+# Azure Key Vault → cf-dns-secret via the Secrets Store CSI driver (templates/
+# secretprovider.yaml). The Cloudflare DNS-01 API token is pulled from Key Vault
+# and synced into the `cf-dns-secret` Secret (key `token`) the ClusterIssuer above
+# references. The SPC only materializes that Secret once a pod mounts it — the
+# cert-manager controller mounts it (see cert-manager.volumes/volumeMounts below).
+# Vault-side prereqs (NOT chart): the AKV secret `objects[0]` must exist and the
+# MSI `userAssignedIdentityID` must have GET permission on it.
+secretProvider:
+  enabled: true
+  name: cf-dns-spc                       # SecretProviderClass resource name
+  provider:
+    name: azure
+    tenantId: *tenantId
+    userAssignedIdentityID: *userAssignedIdentityID
+    vaultName: *vaultName
+    usePodIdentity: false
+    useWorkloadIdentity: false           # → useVMManagedIdentity (node MSI), matches wx-sys
+  objects:
+    - *cfDnsTokenName                      # AKV secret name holding the Cloudflare API token
+  secretName: cf-dns-secret               # K8s Secret the ClusterIssuer consumes
+  secretObjects:
+    - key: token
+      objectName: *cfDnsTokenName
+
+# Fallback allowedRoutes when a listener omits allowedRoutes. Shared
+# cross-namespace gateway → All. (Each domain listener above sets it explicitly.)
 routeAccess:
-  mode: "Same"
+  mode: "All"
   namespaces: []
   labelKey: "gateway.drunk.charts/access"
   labelValue: ""
 
-# Vendored cert-manager subchart toggle (Chart.yaml dependency `condition: cert-manager.enabled`).
-# Helm treats a missing condition value as "enabled", so we set it explicitly to false here.
+# Vendored cert-manager subchart toggle (Chart.yaml `condition: cert-manager.enabled`).
+# ENABLED here — this chart now owns cert-manager for the cluster.
+# The wx-sys copy MUST be disabled to avoid a duplicate cluster-singleton (CRD/webhook conflict).
+# Gateway-shim (reads the Gateway `cert-manager.io/cluster-issuer` annotation to mint
+# certs) is on by default in cert-manager 1.21 — feature gate ExperimentalGatewayAPISupport
+# defaults to true — so no extra config needed beyond installing the CRDs below.
 cert-manager:
-  enabled: false
+  enabled: true
+  # Use Cloudflare (1.1.1.1) as the ONLY recursive nameserver for DNS-01 self-check.
+  # Avoids the pod's default resolver returning stale/split-horizon results for the
+  # _acme-challenge TXT record. Equivalent to the extraArgs form:
+  #   extraArgs:
+  #     - --dns01-recursive-nameservers-only
+  #     - --dns01-recursive-nameservers=1.1.1.1:53
+  dns01RecursiveNameserversOnly: true
+  dns01RecursiveNameservers: "1.1.1.1:53"
+  # cert-manager's OWN CRDs (Certificate/Issuer/…) are installed OUT-OF-BAND by
+  # install.sh (Phase 1b) via kubectl — NOT by this subchart. Helm can't install a
+  # CRD and a custom resource of it in the same release (it validates the whole
+  # manifest against live API discovery before applying), and this parent chart
+  # renders Certificate/ClusterIssuer CRs. So keep this false, same as the Gateway
+  # API CRDs. Leaving it true causes Helm to fight kubectl over CRD ownership.
+  crds:
+    enabled: false
+  # Mount the cf-dns SecretProviderClass onto the controller pod so the CSI driver
+  # syncs `cf-dns-secret` into this namespace (secretObjects only sync when mounted).
+  # secretProviderClass must match secretProvider.name above.
+  volumes:
+    - name: cf-dns-secrets-store
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: cf-dns-spc
+  volumeMounts:
+    - name: cf-dns-secrets-store
+      mountPath: /mnt/cf-secrets
+      readOnly: true
 
 # NGINX Gateway Fabric vendored subchart (alias: nginxGatewayFabric).
-# When enabled, installs the upstream `nginx-gateway-fabric` chart from
-# oci://ghcr.io/nginx/charts. Gateway API CRDs MUST be installed first
-# (handled by install.sh).
+# Installs upstream `nginx-gateway-fabric` behind an internal Azure LoadBalancer.
+# Gateway API CRDs MUST be installed first (handled by install.sh).
 nginxGatewayFabric:
-  enabled: false
+  enabled: true
+  # The Chart.yaml alias `nginxGatewayFabric` is camelCase and flows into the
+  # subchart's .Chart.Name, producing invalid (uppercase) RFC 1123 resource names
+  # like `...-nginxGatewayFabric-cert-generator`. Force lowercase derived names.
+  nameOverride: nginx-gateway-fabric
+  fullnameOverride: nginx-gateway-fabric
   nginxGateway:
-    # MUST match `gatewayClass.name` above when subchart-enabled.
+    # MUST match gatewayClass.name above.
     gatewayClassName: *gatewayClassName
     gatewayControllerName: *gatewayControllerName
   nginx:
     service:
       type: LoadBalancer
+      externalTrafficPolicy: "Local"
+      loadBalancerIP: *loadBalancerIP
+      # NGF's NginxProxy CRD has no `annotations` field under `service` —
+      # structural schema pruning silently strips values placed there. Use NGF's
+      # documented `patches` escape hatch (StrategicMerge), which has
+      # x-kubernetes-preserve-unknown-fields=true and survives admission.
+      patches:
+        - type: StrategicMerge
+          value:
+            metadata:
+              annotations:
+                service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+                # Optional: pin to a subnet —
+                # service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "<subnet-name>"

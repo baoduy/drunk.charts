@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build script for drunk-k8s-gateway chart
+# Build script for drunk-traefik-gateway chart
 # Author: Duy Bao (baoduy)
 # Repository: https://github.com/baoduy/drunk.charts
 
@@ -18,7 +18,7 @@ NC='\033[0m'
 GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.2.0}"
 GATEWAY_API_CHANNEL="${GATEWAY_API_CHANNEL:-standard}"
 
-echo -e "${BLUE}Building drunk-k8s-gateway chart...${NC}"
+echo -e "${BLUE}Building drunk-traefik-gateway chart...${NC}"
 cd "$CHART_DIR"
 
 # Gateway API CRDs are installed separately via install.sh (kubectl)
@@ -55,7 +55,7 @@ helm package . -d .
 
 # Generate/update index
 echo "Updating chart index..."
-helm repo index . --url https://baoduy.github.io/drunk.charts/drunk-k8s-gateway
+helm repo index . --url https://baoduy.github.io/drunk.charts/drunk-traefik-gateway
 
 echo -e "${GREEN}✅ Chart built successfully!${NC}"
 echo ""

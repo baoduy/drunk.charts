@@ -1,0 +1,72 @@
+# Default values for drunk-cloudflare-tunnel-gateway
+# This chart vendors the cloudflare-tunnel-gateway-controller subchart (alias
+# `cloudflareTunnel`) and renders per-domain Gateway API `Gateway` resources.
+#
+# Network model: the controller's in-process cloudflared data plane dials OUT
+# to Cloudflare's edge. There is no LoadBalancer and no in-cluster TLS —
+# Cloudflare terminates TLS at its edge — so listeners here are plain HTTP.
+#
+# YAML anchor note: `gatewayClassName` below DRYs the default at parse time but
+# does NOT propagate through `--set`. To override the class name, set each
+# consumer path explicitly.
+
+# variables
+gatewayClassName: &gatewayClassName "cloudflare-tunnel"
+gatewayControllerName: &gatewayControllerName "cf.k8s.lex.la/tunnel-controller"
+
+# Target namespace for Gateway resources. Empty → release namespace.
+namespace: ""
+
+# Gateway API CRD installation settings (CRDs are applied via install.sh /
+# kubectl to bypass Helm's 3MB annotation limit; this block is informational).
+gatewayAPI:
+  version: "v1.6.1"
+  channel: "standard"
+  # url: "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.1/standard-install.yaml"
+
+# Domain-specific Gateways (rendered by templates/domain-gateways.yaml).
+domains: []
+  # - name: "drunk-dev"
+  #   enabled: true
+  #   gatewayClassName: "cloudflare-tunnel"
+  #   annotations: {}
+  #   labels: {}
+  #   listeners:
+  #     - name: http
+  #       protocol: HTTP
+  #       port: 80
+  #       hostname: "*.drunk.dev"
+  #       allowedRoutes:
+  #         namespaces:
+  #           from: Same
+
+# Route access for auto-generated allowedRoutes when a listener omits it.
+#   All  : routes from all namespaces
+#   Same : routes only from the Gateway's namespace
+#   List : routes from a labeled set of namespaces
+routeAccess:
+  mode: "Same"
+  namespaces: []
+  labelKey: "gateway.drunk.charts/access"
+  labelValue: ""
+
+# Vendored cloudflare-tunnel-gateway-controller subchart (alias cloudflareTunnel).
+# Helm treats a missing condition value as "enabled"; we set it explicitly.
+cloudflareTunnel:
+  enabled: true
+  gatewayClassConfig:
+    # Create the GatewayClassConfig CRD + the GatewayClass itself.
+    create: true
+    # REQUIRED per environment — Cloudflare Tunnel ID (Zero Trust > Networks > Tunnels).
+    tunnelID: ""
+    # Secret must contain key `api-token` (optional `account-id`, else auto-detected).
+    cloudflareCredentialsSecretRef:
+      name: "cloudflare-credentials"
+    # accountId: ""
+  proxy:
+    # Secret must contain key `tunnel-token`.
+    tunnelTokenSecretRef:
+      name: "cloudflare-tunnel-token"
+  controller:
+    gatewayClassName: *gatewayClassName
+    controllerName: *gatewayControllerName

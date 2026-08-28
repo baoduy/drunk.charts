@@ -1,5 +1,5 @@
 #!/bin/bash
-# Uninstall script for drunk-k8s-gateway chart
+# Uninstall script for drunk-traefik-gateway chart
 # Removes Helm release, Gateway API CRDs, and Traefik RBAC
 #
 # Usage (basic):
@@ -140,7 +140,7 @@ confirm() {
 
 echo ""
 info "========================================="
-info "drunk-k8s-gateway Uninstallation"
+info "drunk-traefik-gateway Uninstallation"
 info "========================================="
 info "Release:   $RELEASE_NAME"
 info "Namespace: $NAMESPACE"

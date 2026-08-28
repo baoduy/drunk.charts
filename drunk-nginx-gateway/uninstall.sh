@@ -20,7 +20,7 @@
 set -euo pipefail
 
 RELEASE_NAME="${RELEASE_NAME:-nginx-gateway}"
-NAMESPACE="${NAMESPACE:-drunk-nginx-gateway}"
+NAMESPACE="${NAMESPACE:-nginx-gateway}"
 DELETE_NAMESPACE="${DELETE_NAMESPACE:-true}"
 DELETE_CRDS="${DELETE_CRDS:-true}"
 FORCE="${FORCE:-true}"

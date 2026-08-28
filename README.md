@@ -16,6 +16,9 @@ A collection of production-ready Helm charts for deploying applications to Kuber
   - repo url: [https://baoduy.github.io/drunk.charts/drunk-nginx-gateway](https://baoduy.github.io/drunk.charts/drunk-nginx-gateway)
 - **drunk-traefik-gateway** — Traefik gateway chart
   - repo url: [https://baoduy.github.io/drunk.charts/drunk-traefik-gateway](https://baoduy.github.io/drunk.charts/drunk-traefik-gateway)
+- **drunk-cloudflare-tunnel-gateway** — Cloudflare Tunnel Gateway API chart (no public LoadBalancer)
+  - doc: [README.md](./drunk-cloudflare-tunnel-gateway/README.md)
+  - repo url: [https://baoduy.github.io/drunk.charts/drunk-cloudflare-tunnel-gateway](https://baoduy.github.io/drunk.charts/drunk-cloudflare-tunnel-gateway)
 - **drunk-squid-basic-auth** — Squid proxy with basic auth
   - repo url: [https://baoduy.github.io/drunk.charts/drunk-squid-basic-auth](https://baoduy.github.io/drunk.charts/drunk-squid-basic-auth)
 

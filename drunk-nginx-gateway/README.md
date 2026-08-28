@@ -37,8 +37,7 @@ cd drunk-nginx-gateway
 ```
 
 This runs the two-phase install (Gateway API CRDs via `kubectl`, then the chart via
-`helm upgrade --install`) using `values.local.yaml`. See [QUICKSTART.md](QUICKSTART.md)
-for manual steps and overrides.
+`helm upgrade --install`) using `values.local.yaml`.
 
 ## Configuration
 
@@ -141,8 +140,7 @@ clusterIssuers:
                       namespace: default
 ```
 
-For wildcard certificates use a DNS-01 solver. See
-[CERT-MANAGER-TESTING.md](CERT-MANAGER-TESTING.md).
+For wildcard certificates use a DNS-01 solver.
 
 ### NginxProxy `parametersRef`
 
@@ -184,7 +182,7 @@ FORCE_REINSTALL_CRDS=true ./install.sh
 
 - `values.aks.yaml` — ready-to-go values for Azure AKS deployments using an
   internal Azure Load Balancer. Customize `loadBalancerIP` and (optionally)
-  the internal-LB subnet annotation before installing. See `QUICKSTART.md`.
+  the internal-LB subnet annotation before installing.
 
 ### Verify
 

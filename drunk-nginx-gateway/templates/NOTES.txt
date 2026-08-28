@@ -95,9 +95,13 @@ To check the GatewayClass status:
 ✅ Gateway "{{ .Values.gateway.name }}" has been created in namespace {{ .Release.Namespace }}.
 
 GatewayClass: {{ .Values.gateway.gatewayClassName }}
-Listeners:
-{{- range .Values.gateway.listeners }}
-  - {{ .name }}: {{ .protocol }} on port {{ .port }} ({{ .hostname }})
+Listeners (one shared Gateway, per-domain listeners + wildcard certs):
+{{- range $domain := .Values.domains }}
+{{- if $domain.enabled }}
+{{- range $domain.listeners }}
+  - {{ $domain.name }}-{{ .name }}: {{ .protocol }} on port {{ .port }} ({{ .hostname }})
+{{- end }}
+{{- end }}
 {{- end }}
 
 To check the Gateway status:
@@ -118,14 +122,14 @@ To get the Gateway address (once ready):
 
 {{- if .Values.domains }}
 
-Domain-specific Gateways:
+Domains served by the shared Gateway "{{ .Values.gateway.name }}":
 {{- range .Values.domains }}
 {{- if .enabled }}
-  ✅ Gateway "{{ .name }}-gateway" created for {{ range .listeners }}{{ .hostname }} {{ end }}
+  ✅ {{ .name }}: {{ range .listeners }}{{ .hostname }} {{ end }}
 {{- end }}
 {{- end }}
 
-To view all Gateways:
+To view the Gateway:
 
   kubectl get gateway -n {{ .Release.Namespace }}
 
