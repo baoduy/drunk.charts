@@ -156,7 +156,7 @@ print_info "Validating values.yaml structure..."
 if [[ -f "$CHART_DIR/values.yaml" ]]; then
     print_success "values.yaml exists"
 
-    REQUIRED_KEYS=("gatewayAPI" "gatewayClass" "gateway" "domains" "certManager" "nginxGatewayFabric")
+    REQUIRED_KEYS=("gatewayAPI" "gatewayClass" "gateway" "domains" "clusterIssuers" "nginxGatewayFabric")
     for key in "${REQUIRED_KEYS[@]}"; do
         if grep -q "^$key:" "$CHART_DIR/values.yaml"; then
             print_success "$key section found"
@@ -201,6 +201,18 @@ if echo "$RENDERED" | grep -q "domain1-gateway"; then
     print_success "Domain-specific Gateway renders correctly"
 else
     print_error "Domain-specific Gateway failed to render"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# Scenario 3: cf-dns SecretProviderClass syncs the Cloudflare token from Key Vault
+RENDERED=$(helm template test "$CHART_DIR" 2>&1 || true)
+
+if echo "$RENDERED" | grep -q "kind: SecretProviderClass" \
+   && echo "$RENDERED" | grep -q "secretName: cf-dns-secret" \
+   && echo "$RENDERED" | grep -q "secretProviderClass: cf-dns-spc"; then
+    print_success "cf-dns SecretProviderClass + cert-manager mount render correctly"
+else
+    print_error "cf-dns SecretProviderClass wiring failed to render"
     ERRORS=$((ERRORS + 1))
 fi
 echo ""

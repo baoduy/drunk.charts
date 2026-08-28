@@ -10,8 +10,8 @@
 # Environment / flags:
 #   RELEASE_NAME=nginx-gateway        # Helm release name
 #   NAMESPACE=drunk-nginx-gateway     # Target namespace
-#   VALUES_FILE=values.local.yaml     # Values file
-#   GATEWAY_API_VERSION=v1.4.0        # Gateway API version to install
+#   VALUES_FILE=values.yaml           # Values file (AKS/sandbox default)
+#   GATEWAY_API_VERSION=v1.6.1        # Gateway API version to install
 #   GATEWAY_API_CHANNEL=standard      # standard|experimental
 #   SKIP_CRDS=false                   # Skip Gateway API CRD installation (if already installed)
 #   FORCE_REINSTALL_CRDS=false        # Delete and reinstall Gateway API CRDs
@@ -26,9 +26,9 @@
 set -euo pipefail
 
 RELEASE_NAME="${RELEASE_NAME:-nginx-gateway}"
-NAMESPACE="${NAMESPACE:-drunk-nginx-gateway}"
-VALUES_FILE="${VALUES_FILE:-values.local.yaml}"
-GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.4.0}"
+NAMESPACE="${NAMESPACE:-nginx-gateway}"
+VALUES_FILE="${VALUES_FILE:-values.yaml}"
+GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.6.1}"
 GATEWAY_API_CHANNEL="${GATEWAY_API_CHANNEL:-standard}"
 SKIP_CRDS="${SKIP_CRDS:-false}"
 FORCE_REINSTALL_CRDS="${FORCE_REINSTALL_CRDS:-false}"
@@ -131,6 +131,28 @@ else
   fi
 fi
 
+# Phase 1b: Install cert-manager CRDs (out-of-band, like Gateway API above).
+# The vendored cert-manager subchart runs with crds.enabled=false because Helm can't
+# install a CRD and a custom resource of it (Certificate/ClusterIssuer, rendered by this
+# parent chart) in the same release. Version must match cert-manager-*.tgz in charts/.
+CERT_MANAGER_VERSION="${CERT_MANAGER_VERSION:-v1.21.1}"
+CERT_MANAGER_CRDS_URL="https://github.com/cert-manager/cert-manager/releases/download/${CERT_MANAGER_VERSION}/cert-manager.crds.yaml"
+
+if [[ "$SKIP_CRDS" == "true" ]]; then
+  info "SKIP_CRDS=true, skipping cert-manager CRD installation"
+elif kubectl get crd certificates.cert-manager.io >/dev/null 2>&1; then
+  info "cert-manager CRDs already installed, skipping"
+else
+  info "Phase 1b: Installing cert-manager CRDs ($CERT_MANAGER_VERSION)"
+  if curl -fsSL "$CERT_MANAGER_CRDS_URL" | kubectl apply -f -; then
+    kubectl wait --for condition=established --timeout=60s crd/certificates.cert-manager.io 2>/dev/null || warn "cert-manager CRD not established yet"
+    success "cert-manager CRDs installed successfully"
+  else
+    error "Failed to install cert-manager CRDs"
+    exit 1
+  fi
+fi
+
 # NGINX Gateway Fabric subchart provides its own RBAC (ServiceAccount, Role/RoleBinding,
 # ClusterRole/ClusterRoleBinding) and custom CRDs (NginxProxy, NginxGateway). Helm installs
 # them automatically when nginxGatewayFabric.enabled=true — no extra fetch step needed.
@@ -141,6 +163,17 @@ info "Phase 2: Installing Helm chart (GatewayClass, Gateway, HTTPRoute, NGINX Ga
 if [[ "$BUILD_CHART" == "true" ]]; then
   info "Building chart..."
   "$CHART_DIR/build.sh" || warn "Chart build failed, continuing with existing files"
+fi
+
+# A Ctrl+C during a prior run leaves the release in pending-install/pending-upgrade,
+# which makes the next `helm upgrade` block with "another operation in progress".
+# Clear it: rollback to the last good revision, or uninstall if none deployed.
+REL_STATUS=$(helm status "$RELEASE_NAME" -n "$NAMESPACE" 2>/dev/null | awk '/^STATUS:/{print $2}' || true)
+if [[ "$REL_STATUS" == pending-* ]]; then
+  warn "Release '$RELEASE_NAME' is stuck in '$REL_STATUS' (interrupted run). Clearing lock..."
+  helm rollback "$RELEASE_NAME" -n "$NAMESPACE" 2>/dev/null \
+    || helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" 2>/dev/null \
+    || true
 fi
 
 info "Installing Helm release: $RELEASE_NAME"

@@ -1,5 +1,5 @@
 # Certificate resources for TLS secrets
-{{- if and .Values.certManager.enabled .Values.clusterIssuers.enabled }}
+{{- if .Values.clusterIssuers.enabled }}
 {{- range .Values.domains }}
 {{- range .listeners }}
 {{- if and .tls .tls.certificateRefs }}

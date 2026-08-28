@@ -1,33 +1,33 @@
-{{- if .Values.domains }}
+# Single shared Gateway serving every enabled domain's listeners.
+# NGF provisions one nginx data plane + one LoadBalancer Service per Gateway, so
+# collapsing all domains into ONE Gateway yields ONE internal IP. Per-domain TLS
+# is preserved: each domain keeps its own HTTPS listener + wildcard cert, selected
+# at runtime by SNI. Listener names are prefixed with the domain to stay unique.
+{{- if .Values.gateway.enabled }}
 {{- $root := . }}
-{{- range .Values.domains }}
-{{- if .enabled }}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: {{ .name }}-gateway
+  name: {{ .Values.gateway.name }}
   namespace: {{ include "gateway.ns" $root }}
-  {{- with .annotations }}
+  {{- with .Values.gateway.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   labels:
     {{- include "gateway.labels" $root | nindent 4 }}
-    app.kubernetes.io/component: domain-gateway
-    gateway.drunk.charts/domain: {{ .name }}
-    {{- with .labels }}
+    app.kubernetes.io/component: shared-gateway
+    {{- with .Values.gateway.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
-  gatewayClassName: {{ .gatewayClassName }}
-  {{- with .addresses }}
-  addresses:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+  gatewayClassName: {{ .Values.gateway.gatewayClassName }}
   listeners:
-  {{- range .listeners }}
-  - name: {{ .name }}
+  {{- range $domain := .Values.domains }}
+  {{- if $domain.enabled }}
+  {{- range $domain.listeners }}
+  - name: {{ $domain.name }}-{{ .name }}
     protocol: {{ .protocol }}
     port: {{ .port }}
     {{- if .hostname }}
@@ -59,6 +59,6 @@ spec:
       {{- end }}
     {{- end }}
   {{- end }}
-{{- end }}
-{{- end }}
+  {{- end }}
+  {{- end }}
 {{- end }}
