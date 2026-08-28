@@ -132,7 +132,7 @@ jobs:
           mkdir -p /tmp/charts
           helm dependency update .
           helm package . --version "${NEXT_VERSION}" --destination /tmp/charts
-          helm push "/tmp/charts/drunk-k8s-gateway-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
+          helm push "/tmp/charts/drunk-traefik-gateway-${NEXT_VERSION}.tgz" "oci://ghcr.io/${{ github.repository_owner }}"
 
       - name: Package + push drunk-squid-basic-auth
         if: steps.flag.outputs.enable == 'true'
