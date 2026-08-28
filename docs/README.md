@@ -46,8 +46,8 @@ Drunk Charts provides an easy way to deploy applications to production Kubernete
 
 ## 📋 Chart Versions
 
-- **drunk-app**: ![Version](https://img.shields.io/badge/version-1.2.6-blue)
-- **drunk-lib**: ![Version](https://img.shields.io/badge/version-1.0.7-blue)
+- **drunk-app**: ![Version](https://img.shields.io/badge/version-2.0.0-blue)
+- **drunk-lib**: ![Version](https://img.shields.io/badge/version-2.0.0-blue)
 
 ## 🆘 Getting Help
 
