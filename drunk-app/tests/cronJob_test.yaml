@@ -88,6 +88,7 @@ tests:
 
   - it: should create CronJob with secretProvider custom name and secretObjects
     set:
+      volumes: null
       global:
         image: nginx
         tag: stable
@@ -122,6 +123,7 @@ tests:
 
   - it: should create CronJob with secretProvider legacy config
     set:
+      volumes: null
       global:
         image: nginx
         tag: stable
@@ -152,6 +154,7 @@ tests:
 
   - it: should create CronJob with secretProvider default naming when name omitted
     set:
+      volumes: null
       global:
         image: nginx
         tag: stable
@@ -182,6 +185,7 @@ tests:
 
   - it: should not add secretProvider envFrom secretRef when secretObjects missing
     set:
+      volumes: null
       global:
         image: nginx
         tag: stable

@@ -58,6 +58,7 @@ tests:
         app: custom-app
     deployment:
       enabled: true
+      ports: null
   asserts:
   - hasDocuments:
       count: 0

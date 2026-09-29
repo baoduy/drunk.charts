@@ -13,6 +13,8 @@ tests:
 
   - it: should create an Ingress with default service port when enabled
     set:
+      deployment:
+        ports: null
       app:
         fullname: test-app
         labels:
@@ -36,6 +38,8 @@ tests:
 
   - it: should respect custom service port
     set:
+      deployment:
+        ports: null
       service:
         port: 8080
       ingress:
