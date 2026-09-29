@@ -1,7 +1,8 @@
 # Default values for app.
 # fullnameOverride: "YOUR_APP_NAME" # DONOT use this update in the chard name instead
 
- global:
+global: {}
+# To set globals, replace {} with the keys below
 #   image: "YOUR_APP_IMAGE"
 #   tag: "latest"
 #   imagePullPolicy: 'IfNotPresent'
@@ -40,13 +41,13 @@ deployment:
 
 # This is to fix the issue 'Failed to create CoreCLR, HRESULT: 0x8007000E'
 volumes:
-  - name: tmp
+  tmp:
     mountPath: '/tmp'
     readOnly: false
     emptyDir: true
 
 serviceAccount:
-  create: false
+  enabled: false
   annotations: {}
 
 podAnnotations: {}

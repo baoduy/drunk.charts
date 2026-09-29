@@ -4,6 +4,7 @@ templates:
 tests:
   - it: should create a Job with secretProvider custom name and secretObjects
     set:
+      volumes: null
       global:
         image: nginx
         tag: latest
@@ -40,6 +41,7 @@ tests:
 
   - it: should create a Job with secretProvider legacy config (name + secretObjects)
     set:
+      volumes: null
       global:
         image: nginx
         tag: latest
@@ -69,6 +71,7 @@ tests:
 
   - it: should create a Job with secretProvider default naming when name omitted
     set:
+      volumes: null
       global:
         image: nginx
         tag: latest
@@ -98,6 +101,7 @@ tests:
 
   - it: should not add secretProvider envFrom secretRef when secretObjects missing
     set:
+      volumes: null
       global:
         image: nginx
         tag: latest

@@ -1,0 +1,84 @@
+suites: Shipped Defaults Test Suite
+# DRK-1804: a consumer that sets only global.image must get the defaults in values.yaml.
+# Every test sets ONLY global.image, so these fail whenever values.yaml stops loading.
+templates:
+  - deployment.yaml
+  - serviceAccount.yaml
+tests:
+  - it: S1 renders exactly one Deployment when only global.image is set
+    template: deployment.yaml
+    set:
+      global:
+        image: nginx
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+
+  - it: S2 applies the default pod securityContext
+    template: deployment.yaml
+    set:
+      global:
+        image: nginx
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            fsGroup: 10000
+            runAsUser: 10000
+            runAsGroup: 10000
+
+  - it: S3 applies the default container securityContext
+    template: deployment.yaml
+    set:
+      global:
+        image: nginx
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext
+          value:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+
+  - it: S4 applies the default container resources
+    template: deployment.yaml
+    set:
+      global:
+        image: nginx
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources
+          value:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+
+  - it: S5 mounts the default tmp emptyDir volume at /tmp and renders no ServiceAccount
+    set:
+      global:
+        image: nginx
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts
+          value:
+            - name: tmp
+              readOnly: false
+              mountPath: /tmp
+        template: deployment.yaml
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: tmp
+              emptyDir: {}
+        template: deployment.yaml
+      - hasDocuments:
+          count: 0
+        template: serviceAccount.yaml

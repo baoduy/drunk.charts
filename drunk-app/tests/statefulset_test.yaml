@@ -118,6 +118,7 @@ tests:
 
   - it: should create StatefulSet with secretProvider and secretObjects
     set:
+      volumes: null
       statefulset:
         enabled: true
       global:
@@ -155,6 +156,7 @@ tests:
 
   - it: should create StatefulSet with secretProvider using default naming
     set:
+      volumes: null
       statefulset:
         enabled: true
       global:
@@ -191,6 +193,7 @@ tests:
 
   - it: should not add secretProvider envFrom when secretObjects missing
     set:
+      volumes: null
       statefulset:
         enabled: true
       global:
@@ -220,6 +223,7 @@ tests:
 
   - it: should support secretProvider with initContainers
     set:
+      volumes: null
       statefulset:
         enabled: true
       global:
