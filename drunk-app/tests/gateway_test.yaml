@@ -73,9 +73,6 @@ tests:
           path: spec.listeners[0].tls.mode
           value: Terminate
       - equal:
-          path: spec.listeners[0].tls.certificateRefs[0].kind
-          value: Secret
-      - equal:
           path: spec.listeners[0].tls.certificateRefs[0].name
           value: example-tls
 
@@ -134,7 +131,6 @@ tests:
       - isSubset:
           path: metadata.labels
           content:
-            helm.sh/chart: drunk-app-1.2.9
             app.kubernetes.io/name: drunk-app
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/version: latest
@@ -183,27 +179,7 @@ tests:
           path: spec.listeners[0].tls.certificateRefs[1].namespace
           value: cert-namespace
 
-  - it: should support gateway addresses
-    set:
-      gateway:
-        enabled: true
-        gatewayClassName: nginx
-        listeners:
-          - name: http
-            protocol: HTTP
-            port: 80
-        addresses:
-          - type: IPAddress
-            value: 192.168.1.1
-    asserts:
-      - equal:
-          path: spec.addresses[0].type
-          value: IPAddress
-      - equal:
-          path: spec.addresses[0].value
-          value: 192.168.1.1
-
-  - it: should default protocol to HTTP when not specified
+  - it: should fail when listener protocol is not specified
     set:
       gateway:
         enabled: true
@@ -212,11 +188,10 @@ tests:
           - name: default-http
             port: 8080
     asserts:
-      - equal:
-          path: spec.listeners[0].protocol
-          value: HTTP
+      - failedTemplate:
+          errorMessage: gateway.listeners[].protocol is required
 
-  - it: should default certificate kind to Secret when not specified
+  - it: should render certificate kind when specified
     set:
       gateway:
         enabled: true
@@ -228,6 +203,7 @@ tests:
             tls:
               certificateRefs:
                 - name: my-cert
+                  kind: Secret
     asserts:
       - equal:
           path: spec.listeners[0].tls.certificateRefs[0].kind

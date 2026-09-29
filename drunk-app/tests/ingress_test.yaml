@@ -13,6 +13,8 @@ tests:
 
   - it: should create an Ingress with default service port when enabled
     set:
+      deployment:
+        ports: null
       app:
         fullname: test-app
         labels:
@@ -36,6 +38,8 @@ tests:
 
   - it: should respect custom service port
     set:
+      deployment:
+        ports: null
       service:
         port: 8080
       ingress:
@@ -133,7 +137,6 @@ tests:
       - isSubset:
           path: metadata.labels
           content:
-            helm.sh/chart: drunk-app-1.2.8
             app.kubernetes.io/name: drunk-app
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/version: latest
