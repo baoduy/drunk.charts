@@ -59,6 +59,13 @@ spec:
         {{- end }}
       labels:
         {{- include "app.selectorLabels" . | nindent 8 }}
+        {{- /* Custom pod labels from .Values.deployment.podLabels; selector keys are refused, values always render as text */}}
+        {{- range $k, $v := .Values.deployment.podLabels }}
+        {{- if has $k (list "app.kubernetes.io/name" "app.kubernetes.io/instance") }}
+        {{- fail (printf "deployment.podLabels: %s is a selector label and cannot be set on Deployment pods" $k) }}
+        {{- end }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
     spec:
       # Security: disable automatic service account token mounting
       automountServiceAccountToken: false
