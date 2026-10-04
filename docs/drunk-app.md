@@ -33,6 +33,7 @@ The **drunk-app** Helm chart provides a production-ready framework for deploying
   - [Node Scheduling](#node-scheduling)
   - [networkPolicies](#networkpolicies)
 - [Usage Examples](#usage-examples)
+- [Upgrade Notes](#upgrade-notes)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
 
@@ -265,6 +266,8 @@ Wires the [CSI Secrets Store](https://secrets-store-csi-driver.sigs.k8s.io/) dri
 | `secretProvider.provider.tenantId` | string | `""` | ❌ | Azure tenant ID |
 | `secretProvider.provider.vaultName` | string | `""` | ✅ | Vault or secrets store name |
 | `secretProvider.provider.userAssignedIdentityID` | string | `""` | ❌ | Azure user-assigned managed identity |
+| `secretProvider.provider.clientID` | string | — | ❌ | Client id of the workload identity used to read the vault. Written as the `clientID` parameter only when set; never taken from `userAssignedIdentityID` |
+| `secretProvider.provider.useVMManagedIdentity` | bool | `true` | ❌ | Use the node's VM managed identity. Set `false` for workload identity |
 | `secretProvider.provider.usePodIdentity` | bool | `false` | ❌ | Use AAD Pod Identity (Azure, legacy) |
 | `secretProvider.provider.useWorkloadIdentity` | bool | `false` | ❌ | Use Workload Identity (recommended) |
 
@@ -294,6 +297,40 @@ secretProvider:
       objectType: cert
       objectFormat: pfx
       objectEncoding: base64
+```
+
+#### Workload identity
+
+To read Azure Key Vault with [workload identity](https://learn.microsoft.com/azure/aks/workload-identity-overview), the pod needs the `azure.workload.identity/use` label, its service account needs the identity's client id annotation, and the `SecretProviderClass` needs the same client id with VM managed identity turned off:
+
+```yaml
+nameOverride: notification-api
+
+global:
+  image: ghcr.io/baoduy/notification-api
+  tag: latest
+
+serviceAccount:
+  enabled: true
+  annotations:
+    azure.workload.identity/client-id: "11111111-2222-3333-4444-555555555555"
+
+deployment:
+  enabled: true
+  ports:
+    http: 8080
+  podLabels:
+    azure.workload.identity/use: "true"
+
+secretProvider:
+  enabled: true
+  provider:
+    tenantId: "99999999-8888-7777-6666-555555555555"
+    vaultName: drunk-kv
+    clientID: "11111111-2222-3333-4444-555555555555"
+    useVMManagedIdentity: false
+  objects:
+    - ConnectionStrings--Default
 ```
 
 ---
@@ -361,6 +398,7 @@ Controls the main `Deployment` resource.
 | `deployment.command` | string[] | `[]` | ❌ | Override container entrypoint |
 | `deployment.args` | string[] | `[]` | ❌ | Container arguments |
 | `deployment.podAnnotations` | object | `{}` | ❌ | Annotations added to each pod |
+| `deployment.podLabels` | object | `{}` | ❌ | Labels added to each pod (values are rendered as text). `app.kubernetes.io/name` and `app.kubernetes.io/instance` are refused |
 
 #### Rolling Update Strategy
 
@@ -411,6 +449,7 @@ Controls a `StatefulSet` resource. Use for workloads requiring stable network id
 | `statefulset.command` | string[] | `[]` | ❌ | Override container entrypoint |
 | `statefulset.args` | string[] | `[]` | ❌ | Container arguments |
 | `statefulset.podAnnotations` | object | `{}` | ❌ | Annotations added to each pod |
+| `statefulset.podLabels` | object | `{}` | ❌ | Labels added to each pod (values are rendered as text). `app.kubernetes.io/name` and `app.kubernetes.io/instance` are refused |
 
 ```yaml
 statefulset:
@@ -543,12 +582,13 @@ serviceAccount:
 
 #### podAnnotations
 
-Annotations applied to all pods created by this chart.
+Pod annotations are set per workload with `deployment.podAnnotations` and `statefulset.podAnnotations`. Pod labels work the same way with `deployment.podLabels` and `statefulset.podLabels`.
 
 ```yaml
-podAnnotations:
-  prometheus.io/scrape: "true"
-  prometheus.io/port: "8080"
+deployment:
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
 ```
 
 #### podSecurityContext
@@ -990,6 +1030,16 @@ networkPolicies:
           - protocol: TCP
             port: 5432
 ```
+
+---
+
+## Upgrade Notes
+
+### 2.0.4
+
+- `secretProvider.provider.useVMManagedIdentity: false` now renders `"false"`. Before 2.0.4 a plain `false` was ignored and the chart rendered `"true"`. A chart that sets `false` but still needs VM managed identity must now set `true` (or remove the key).
+- New settings: `deployment.podLabels`, `statefulset.podLabels` and `secretProvider.provider.clientID`.
+- The unused top-level `podAnnotations` key was removed from the default values. Use `deployment.podAnnotations` or `statefulset.podAnnotations`.
 
 ---
 

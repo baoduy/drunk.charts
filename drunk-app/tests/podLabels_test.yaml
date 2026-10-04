@@ -1,0 +1,227 @@
+# Acceptance tests for DRK-2043: custom pod labels on Deployment and StatefulSet pods.
+# Scenario names follow the approved spec (DRK-2043 §5); expected values are the spec's literals.
+suite: Pod labels Acceptance Test Suite
+templates:
+  - deployment.yaml
+  - statefulset.yaml
+tests:
+  # Scenario Outline: A workload pod carries a custom label
+  - it: "A workload pod carries a custom label (Deployment)"
+    template: deployment.yaml
+    set:
+      nameOverride: notification-api
+      global:
+        image: nginx
+        tag: latest
+      deployment:
+        enabled: true
+        ports:
+          http: 8080
+        podLabels:
+          azure.workload.identity/use: "true"
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels['azure.workload.identity/use']
+          value: "true"
+      - equal:
+          path: spec.template.metadata.labels['app.kubernetes.io/name']
+          value: notification-api
+      - equal:
+          path: spec.template.metadata.labels['app.kubernetes.io/instance']
+          value: RELEASE-NAME
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            app.kubernetes.io/name: notification-api
+            app.kubernetes.io/instance: RELEASE-NAME
+
+  - it: "A workload pod carries a custom label (StatefulSet)"
+    template: statefulset.yaml
+    set:
+      nameOverride: notification-api
+      global:
+        image: nginx
+        tag: latest
+      statefulset:
+        enabled: true
+        ports:
+          http: 8080
+        podLabels:
+          azure.workload.identity/use: "true"
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels['azure.workload.identity/use']
+          value: "true"
+      - equal:
+          path: spec.template.metadata.labels['app.kubernetes.io/name']
+          value: notification-api
+      - equal:
+          path: spec.template.metadata.labels['app.kubernetes.io/instance']
+          value: RELEASE-NAME
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            app.kubernetes.io/name: notification-api
+            app.kubernetes.io/instance: RELEASE-NAME
+
+  # Scenario: An unquoted label value lands on the pod as text
+  - it: "An unquoted label value lands on the pod as text"
+    template: deployment.yaml
+    set:
+      nameOverride: notification-api
+      global:
+        image: nginx
+        tag: latest
+      deployment:
+        enabled: true
+        ports:
+          http: 8080
+        podLabels:
+          azure.workload.identity/use: true
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels['azure.workload.identity/use']
+          value: "true"
+
+  # Scenario Outline: A pod label that uses a selector key is refused
+  - it: "A pod label that uses a selector key is refused (Deployment, app.kubernetes.io/name)"
+    template: deployment.yaml
+    set:
+      nameOverride: notification-api
+      global:
+        image: nginx
+        tag: latest
+      deployment:
+        enabled: true
+        ports:
+          http: 8080
+        podLabels:
+          app.kubernetes.io/name: other-name
+    asserts:
+      - failedTemplate:
+          errorPattern: "(app\\.kubernetes\\.io/name.*Deployment|Deployment.*app\\.kubernetes\\.io/name)"
+
+  - it: "A pod label that uses a selector key is refused (StatefulSet, app.kubernetes.io/instance)"
+    template: statefulset.yaml
+    set:
+      nameOverride: notification-api
+      global:
+        image: nginx
+        tag: latest
+      statefulset:
+        enabled: true
+        ports:
+          http: 8080
+        podLabels:
+          app.kubernetes.io/instance: other-name
+    asserts:
+      - failedTemplate:
+          errorPattern: "(app\\.kubernetes\\.io/instance.*StatefulSet|StatefulSet.*app\\.kubernetes\\.io/instance)"
+
+  # Input-domain cases (brief §6a D11, D12) beyond the scenario examples.
+  - it: "AT case D12: the other selector key is refused too (Deployment, app.kubernetes.io/instance)"
+    template: deployment.yaml
+    set:
+      global:
+        image: nginx
+        tag: latest
+      deployment:
+        enabled: true
+        ports:
+          http: 8080
+        podLabels:
+          app.kubernetes.io/instance: other-name
+    asserts:
+      - failedTemplate:
+          errorPattern: "(app\\.kubernetes\\.io/instance.*Deployment|Deployment.*app\\.kubernetes\\.io/instance)"
+
+  - it: "AT case D12: the other selector key is refused too (StatefulSet, app.kubernetes.io/name)"
+    template: statefulset.yaml
+    set:
+      global:
+        image: nginx
+        tag: latest
+      statefulset:
+        enabled: true
+        ports:
+          http: 8080
+        podLabels:
+          app.kubernetes.io/name: other-name
+    asserts:
+      - failedTemplate:
+          errorPattern: "(app\\.kubernetes\\.io/name.*StatefulSet|StatefulSet.*app\\.kubernetes\\.io/name)"
+
+  - it: "AT case D12: a non-selector app.kubernetes.io key is rendered on the pod"
+    template: deployment.yaml
+    set:
+      global:
+        image: nginx
+        tag: latest
+      deployment:
+        enabled: true
+        ports:
+          http: 8080
+        podLabels:
+          app.kubernetes.io/component: api
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels['app.kubernetes.io/component']
+          value: api
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            app.kubernetes.io/name: drunk-app
+            app.kubernetes.io/instance: RELEASE-NAME
+
+  - it: "AT case D11: a number label value lands on the pod as text"
+    template: statefulset.yaml
+    set:
+      global:
+        image: nginx
+        tag: latest
+      statefulset:
+        enabled: true
+        ports:
+          http: 8080
+        podLabels:
+          port: 8080
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.port
+          value: "8080"
+
+  - it: "AT case D11 / R2: an empty pod labels map adds no label (Deployment)"
+    template: deployment.yaml
+    set:
+      global:
+        image: nginx
+        tag: latest
+      deployment:
+        enabled: true
+        ports:
+          http: 8080
+        podLabels: {}
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels
+          value:
+            app.kubernetes.io/name: drunk-app
+            app.kubernetes.io/instance: RELEASE-NAME
+
+  - it: "AT case D11 / R2: an empty pod labels map adds no label (StatefulSet)"
+    template: statefulset.yaml
+    set:
+      global:
+        image: nginx
+        tag: latest
+      statefulset:
+        enabled: true
+        ports:
+          http: 8080
+        podLabels: {}
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels
+          value:
+            app.kubernetes.io/name: drunk-app
+            app.kubernetes.io/instance: RELEASE-NAME

@@ -47,6 +47,13 @@ spec:
         {{- end }}
       labels:
         {{- include "app.selectorLabels" . | nindent 8 }}
+        {{- /* Custom pod labels from .Values.statefulset.podLabels; selector keys are refused, values always render as text */}}
+        {{- range $k, $v := .Values.statefulset.podLabels }}
+        {{- if has $k (list "app.kubernetes.io/name" "app.kubernetes.io/instance") }}
+        {{- fail (printf "statefulset.podLabels: %s is a selector label and cannot be set on StatefulSet pods" $k) }}
+        {{- end }}
+        {{ $k }}: {{ $v | quote }}
+        {{- end }}
     spec:
       # Security: disable automatic service account token mounting
       automountServiceAccountToken: false

@@ -21,6 +21,7 @@ deployment:
   ports:
     http: 8080
   replicaCount: 1
+  podLabels: {}
   #command:
   #args:
   #liveness: "/healthz"
@@ -49,8 +50,6 @@ volumes:
 serviceAccount:
   enabled: false
   annotations: {}
-
-podAnnotations: {}
 
 podSecurityContext:
   fsGroup: 10000

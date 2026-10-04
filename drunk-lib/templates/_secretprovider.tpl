@@ -12,6 +12,8 @@
 # - .provider.vaultName: Name of the secret vault/store
 # - .provider.tenantId: Cloud tenant ID
 # - .provider.userAssignedIdentityID: Identity for vault access
+# - .provider.clientID: Workload identity client id; the clientID parameter is written only when set
+# - .provider.useVMManagedIdentity: Defaults to "true"; a bool false renders "false"
 # - .objects: Array of secrets to fetch from vault
 # - .secretObjects: Optional custom mapping of vault secrets to k8s secret keys
 # Auto-generates Kubernetes Secret from vault objects if .secretObjects not provided
@@ -37,8 +39,11 @@ spec:
     # Azure-specific identity configuration
     usePodIdentity: {{ $provider.usePodIdentity | default false | quote }}
     useWorkloadIdentity: {{ $provider.useWorkloadIdentity | default false | quote }}
-    useVMManagedIdentity: {{ $provider.useVMManagedIdentity | default true | quote }}
+    useVMManagedIdentity: {{ ternary $provider.useVMManagedIdentity ($provider.useVMManagedIdentity | default true) (kindIs "bool" $provider.useVMManagedIdentity) | quote }}
     userAssignedIdentityID: {{ $provider.userAssignedIdentityID | quote }}
+    {{- with $provider.clientID }}
+    clientID: {{ . | quote }}
+    {{- end }}
     tenantId: {{ $provider.tenantId | quote }}
     # Vault/secret store name
     keyvaultName: {{ $provider.vaultName | quote }}
