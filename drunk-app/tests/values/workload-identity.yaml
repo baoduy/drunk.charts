@@ -1,0 +1,27 @@
+nameOverride: notification-api
+
+global:
+  image: ghcr.io/baoduy/notification-api
+  tag: latest
+
+serviceAccount:
+  enabled: true
+  annotations:
+    azure.workload.identity/client-id: "11111111-2222-3333-4444-555555555555"
+
+deployment:
+  enabled: true
+  ports:
+    http: 8080
+  podLabels:
+    azure.workload.identity/use: "true"
+
+secretProvider:
+  enabled: true
+  provider:
+    tenantId: "99999999-8888-7777-6666-555555555555"
+    vaultName: drunk-kv
+    clientID: "11111111-2222-3333-4444-555555555555"
+    useVMManagedIdentity: false
+  objects:
+    - ConnectionStrings--Default

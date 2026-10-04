@@ -155,8 +155,6 @@ serviceAccount:
   enabled: true
   annotations: {}
 
-podAnnotations: {}
-
 podSecurityContext:
   fsGroup: 10000
   runAsUser: 10000

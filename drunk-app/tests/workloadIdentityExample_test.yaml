@@ -1,0 +1,40 @@
+# Acceptance test for DRK-2043: the guide's workload identity example renders with no manual patch.
+# The values file is quoted verbatim by docs/drunk-app.md (#### Workload identity); guide_check.sh proves the quote.
+suite: Workload identity guide example Acceptance Test Suite
+templates:
+  - deployment.yaml
+  - serviceAccount.yaml
+  - secretProviderClass.yaml
+values:
+  - values/workload-identity.yaml
+tests:
+  # Scenario: The guide's workload identity example works without a manual patch
+  - it: "The guide's workload identity example works without a manual patch (Deployment pod label)"
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels['azure.workload.identity/use']
+          value: "true"
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: notification-api
+
+  - it: "The guide's workload identity example works without a manual patch (service account annotation)"
+    template: serviceAccount.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations['azure.workload.identity/client-id']
+          value: "11111111-2222-3333-4444-555555555555"
+
+  - it: "The guide's workload identity example works without a manual patch (SecretProviderClass)"
+    template: secretProviderClass.yaml
+    asserts:
+      - equal:
+          path: spec.parameters.clientID
+          value: "11111111-2222-3333-4444-555555555555"
+      - equal:
+          path: spec.parameters.useVMManagedIdentity
+          value: "false"
+      - equal:
+          path: spec.parameters.keyvaultName
+          value: drunk-kv
