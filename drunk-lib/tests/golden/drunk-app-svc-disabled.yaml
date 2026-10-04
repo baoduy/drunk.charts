@@ -1,1 +1,119 @@
+---
+# Source: drunk-app/templates/deployment.yaml
+# Generate Deployment resource for long-running application workloads
+# Creates a Deployment when .Values.deployment.enabled is true
+# Supports comprehensive configuration including:
+# - Replica count, update strategy, and deployment settings
+# - Init containers for setup tasks (.Values.global.initContainer)
+# - Main application container with ports, probes, resources
+# - Environment variables, secrets, and configmaps
+# - Volume mounts for persistent storage and secret management
+# - Security contexts, service accounts, and scheduling
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-release-drunk-app
+  labels:
+    helm.sh/chart: drunk-app-2.0.0
+    app.kubernetes.io/name: drunk-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  # Replica count from .Values.deployment.replicaCount, defaults to 1
+  replicas: 1
+# Deployment strategy configuration
+  # Default strategy: RollingUpdate with safe defaults
+  strategy:
+    type: "RollingUpdate"
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  # Pod selector using standard labels
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: drunk-app
+      app.kubernetes.io/instance: test-release
+  template:
+    metadata:
+      annotations:
+        # Checksums trigger pod restart when configs/secrets change
+        
+        # Additional pod annotations from .Values.deployment.podAnnotations
+      labels:
+        app.kubernetes.io/name: drunk-app
+        app.kubernetes.io/instance: test-release
+    spec:
+      # Security: disable automatic service account token mounting
+      automountServiceAccountToken: false
+      # Image pull secrets for private registries
+      # Service account configuration from .Values.serviceAccount
+      # Pod security context from .Values.podSecurityContext
+      securityContext:
+        fsGroup: 10000
+        runAsGroup: 10000
+        runAsUser: 10000
+      # Init containers for setup tasks (optional)
 
+      # Begin Containers - main application containers
+      containers:
+        - name: drunk-app
+          # Main container security context from .Values.securityContext
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          # Container image from .Values.global.image and .Values.global.tag
+          image: ":latest"
+          imagePullPolicy: "Always"
+          # Container command override from .Values.deployment.command
+          # Container arguments from .Values.deployment.args
+          # Container ports from .Values.deployment.ports
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          # Health checks - liveness probe from .Values.deployment.liveness
+          # Health checks - readiness probe from .Values.deployment.readiness
+          # Environment variables from .Values.env
+          # Environment from external sources
+          envFrom:
+          # ConfigMap created from .Values.configMap
+          # External ConfigMaps from .Values.configFrom array
+          # Secret created from .Values.secrets
+          # External Secrets from .Values.secretFrom array
+          # SecretProvider volume - Azure Key Vault, AWS Secrets Manager, etc.
+          # Container resource limits and requests from .Values.resources
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          # Volume mounts for persistent storage and secrets
+          volumeMounts:
+          # Persistent and emptyDir volumes from .Values.volumes
+          - name: tmp
+            readOnly: false
+            mountPath: /tmp
+          # SecretProvider volume mount for external secret management
+      # End Containers
+      
+      # Volume definitions for the pod
+      volumes:
+      # Volumes from .Values.volumes - PVCs or emptyDir
+      - name: tmp
+        emptyDir: {}
+      # SecretProvider volume for external secret management systems
+      
+      # Pod scheduling constraints
+      # Node selector from .Values.nodeSelector
+      # Pod affinity rules from .Values.affinity
+      # Pod tolerations from .Values.tolerations
+---
+# Source: drunk-app/templates/volumes.yaml
+# Only create PVC for non-emptyDir volumes
