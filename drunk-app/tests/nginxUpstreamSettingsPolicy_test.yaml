@@ -1,0 +1,92 @@
+suite: NGINX UpstreamSettingsPolicy
+templates:
+  - nginxUpstreamSettingsPolicy.yaml
+tests:
+  - it: is absent by default
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: is absent when explicitly disabled
+    set:
+      nginxUpstreamSettingsPolicy:
+        enabled: false
+        keepAlive: {connections: 32}
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: attaches to the chart Service without overriding controller defaults
+    release:
+      namespace: app-namespace
+    set:
+      fullnameOverride: own-service
+      nginxUpstreamSettingsPolicy.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isAPIVersion:
+          of: gateway.nginx.org/v1alpha1
+      - isKind:
+          of: UpstreamSettingsPolicy
+      - equal:
+          path: metadata.name
+          value: own-service-upstream-settings
+      - equal:
+          path: metadata.namespace
+          value: app-namespace
+      - equal:
+          path: spec.targetRefs
+          value:
+            - group: ""
+              kind: Service
+              name: own-service
+      - notExists:
+          path: spec.targetRef
+      - notExists:
+          path: spec.keepAlive
+      - notExists:
+          path: spec.loadBalancingMethod
+      - notExists:
+          path: spec.hashMethodKey
+      - notExists:
+          path: spec.zoneSize
+  - it: passes every upstream setting through
+    set:
+      nginxUpstreamSettingsPolicy:
+        enabled: true
+        keepAlive:
+          connections: 32
+          requests: 1000
+          time: 1h
+          timeout: 60s
+        loadBalancingMethod: hash consistent
+        hashMethodKey: $request_uri
+        zoneSize: 1m
+    asserts:
+      - equal:
+          path: spec.targetRefs[0].name
+          value: RELEASE-NAME-drunk-app
+      - equal:
+          path: spec.keepAlive
+          value: {connections: 32, requests: 1000, time: 1h, timeout: 60s}
+      - equal:
+          path: spec.loadBalancingMethod
+          value: hash consistent
+      - equal:
+          path: spec.hashMethodKey
+          value: $request_uri
+      - equal:
+          path: spec.zoneSize
+          value: 1m
+  - it: preserves zero keep-alive settings and string durations
+    set:
+      nginxUpstreamSettingsPolicy:
+        enabled: true
+        keepAlive: {connections: 0, requests: 0, time: "0", timeout: "0"}
+        zoneSize: "0"
+    asserts:
+      - equal:
+          path: spec.keepAlive
+          value: {connections: 0, requests: 0, time: "0", timeout: "0"}
+      - equal:
+          path: spec.zoneSize
+          value: "0"

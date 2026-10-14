@@ -463,3 +463,92 @@ tests:
       - equal:
           path: spec.rules[0].backendRefs[0].port
           value: 80
+
+  - it: should support response header set without other modifier lists
+    set:
+      httpRoute:
+        enabled: true
+        rules:
+        - filters:
+          - type: ResponseHeaderModifier
+            responseHeaderModifier:
+              set: &id001
+              - name: Strict-Transport-Security
+                value: max-age=31536000; includeSubDomains
+    asserts:
+    - equal:
+        path: spec.rules[0].filters[0].type
+        value: ResponseHeaderModifier
+    - equal:
+        path: spec.rules[0].filters[0].responseHeaderModifier.set
+        value: *id001
+    - notExists:
+        path: spec.rules[0].filters[0].responseHeaderModifier.add
+    - notExists:
+        path: spec.rules[0].filters[0].responseHeaderModifier.remove
+
+  - it: should support response header add without other modifier lists
+    set:
+      httpRoute:
+        enabled: true
+        rules:
+        - filters:
+          - type: ResponseHeaderModifier
+            responseHeaderModifier:
+              add: &id001
+              - name: X-Content-Type-Options
+                value: nosniff
+    asserts:
+    - equal:
+        path: spec.rules[0].filters[0].type
+        value: ResponseHeaderModifier
+    - equal:
+        path: spec.rules[0].filters[0].responseHeaderModifier.add
+        value: *id001
+    - notExists:
+        path: spec.rules[0].filters[0].responseHeaderModifier.set
+    - notExists:
+        path: spec.rules[0].filters[0].responseHeaderModifier.remove
+
+  - it: should support response header remove without other modifier lists
+    set:
+      httpRoute:
+        enabled: true
+        rules:
+        - filters:
+          - type: ResponseHeaderModifier
+            responseHeaderModifier:
+              remove: &id001
+              - Server
+    asserts:
+    - equal:
+        path: spec.rules[0].filters[0].type
+        value: ResponseHeaderModifier
+    - equal:
+        path: spec.rules[0].filters[0].responseHeaderModifier.remove
+        value: *id001
+    - notExists:
+        path: spec.rules[0].filters[0].responseHeaderModifier.set
+    - notExists:
+        path: spec.rules[0].filters[0].responseHeaderModifier.add
+
+  - it: should support response header set add and remove together
+    set:
+      httpRoute:
+        enabled: true
+        rules:
+        - filters:
+          - type: ResponseHeaderModifier
+            responseHeaderModifier: &id001
+              set:
+              - name: Strict-Transport-Security
+                value: max-age=31536000
+              add:
+              - name: X-Content-Type-Options
+                value: nosniff
+              remove:
+              - Server
+    asserts:
+    - equal:
+        path: spec.rules[0].filters[0].responseHeaderModifier
+        value: *id001
