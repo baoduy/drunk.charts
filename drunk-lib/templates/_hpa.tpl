@@ -6,10 +6,12 @@
 
 # Generate HorizontalPodAutoscaler resource for automatic scaling
 # Creates an HPA when .Values.autoscaling.enabled is true
-# Scales the deployment based on CPU and/or memory utilization
+# Scales the workload based on CPU/memory utilization and optional custom metrics
 # Requires .Values.autoscaling.minReplicas, .Values.autoscaling.maxReplicas
 # Optional: .Values.autoscaling.targetCPUUtilizationPercentage, .Values.autoscaling.targetMemoryUtilizationPercentage
 # Optional: .Values.autoscaling.targetKind (default: "Deployment"), .Values.autoscaling.targetApiVersion (default: "apps/v1")
+# Optional: .Values.autoscaling.behavior (map) passes through to spec.behavior without defaults
+# Optional: .Values.autoscaling.metrics (list of full autoscaling/v2 metric specs) appends after CPU and memory
 {{- define "drunk-lib.hpa" -}}
 {{- if .Values.autoscaling }}
 {{- if .Values.autoscaling.enabled }}
@@ -50,6 +52,13 @@ spec:
           type: Utilization
           averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
     {{- end }}
+    {{- with .Values.autoscaling.metrics }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.autoscaling.behavior }}
+  behavior:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

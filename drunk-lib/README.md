@@ -277,7 +277,7 @@ MIT — see [LICENSE](LICENSE).
 | `drunk-lib.secrets` | `secrets` (map) | — |
 | `drunk-lib.service` | `service.ports` OR `deployment.ports` | `service.enabled` (bool, default true), `service.type` (string, default ClusterIP), `service.annotations` (map), `service.loadBalancerIP` (string — static IP, e.g. AKS fixed private IP), `service.port` (int — exposed port for the single-port case, default 80) |
 | `drunk-lib.ingress` | `ingress.enabled: true`, `ingress.hosts` | Port resolved via `drunk.utils.ingressPort`: prefers `service.ports` → `deployment.ports`; one port maps to `80`, no ports to `8080`; multiple ports prefer `http`, else the alphabetically first name |
-| `drunk-lib.hpa` | `autoscaling.enabled: true`, `autoscaling.minReplicas`, `autoscaling.maxReplicas` | `autoscaling.targetKind` (default "Deployment"), `autoscaling.targetApiVersion` (default "apps/v1") |
+| `drunk-lib.hpa` | `autoscaling.enabled: true`, `autoscaling.minReplicas`, `autoscaling.maxReplicas` | `autoscaling.targetKind` (default "Deployment"), `autoscaling.targetApiVersion` (default "apps/v1"), `autoscaling.targetCPUUtilizationPercentage`, `autoscaling.targetMemoryUtilizationPercentage`, `autoscaling.behavior` (optional map, passed through without defaults), `autoscaling.metrics` (optional list of full autoscaling/v2 metric specs, appended after CPU and memory entries in the supplied order) |
 | `drunk-lib.cronJobs` | `cronJobs` array with `name` and `schedule` | `cronJobs[].enabled` (bool, default true — set false to skip that entry) |
 | `drunk-lib.jobs` | `jobs` array with `name` | `jobs[].enabled` (bool, default true — set false to skip that entry) |
 | `drunk-lib.deployment` | `deployment.enabled: true`, `global.image`, `global.tag` | `liveness`, `readiness`, `startup` (string or probe map); `lifecycle`, `preStopSleepSeconds`, `terminationGracePeriodSeconds`, `minReadySeconds`, `progressDeadlineSeconds`, `revisionHistoryLimit`, `strategy`; `autoscaling.omitReplicas`; shared scheduling keys below; existing `deployment.*` keys |
@@ -291,6 +291,16 @@ MIT — see [LICENSE](LICENSE).
 | `drunk-lib.secretProvider` | `secretProvider.enabled: true` | all `secretProvider.*` keys |
 | `drunk-lib.imagePullSecret` | `imageCredentials` map | — |
 | `drunk-lib.tls` | `tlsSecrets` map | — |
+
+### Optional HPA behavior and metrics
+
+`autoscaling.behavior` passes through to `spec.behavior`, including `scaleUp` and `scaleDown` policies, stabilization windows, and `selectPolicy`.
+When omitted or empty, it adds no behavior key or defaults.
+`autoscaling.metrics` accepts full `autoscaling/v2` metric specs (`Pods`, `Object`, `External`, `ContainerResource`, or `Resource`).
+Entries follow any CPU and memory utilization entries in the supplied order, and work without either utilization target.
+Omitting both new keys preserves the existing output, including the bare `metrics:` key when no utilization target is set.
+`Pods`, `Object`, and `External` metrics require a metrics adapter in the cluster, such as Prometheus Adapter or KEDA.
+Commented examples are provided in `drunk-app/values.yaml`.
 
 ### Optional rollout keys
 
