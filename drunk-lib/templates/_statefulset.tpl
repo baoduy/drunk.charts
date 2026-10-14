@@ -22,6 +22,13 @@ metadata:
   name: {{ include "app.fullname" . }}
   labels:
     {{- include "app.labels" . | nindent 4 }}
+    {{- with .Values.statefulset.labels }}
+    {{- include "drunk-lib.objectLabels" (dict "root" $root "workload" $.Values.statefulset "kind" "statefulset") | nindent 4 }}
+    {{- end }}
+  {{- with .Values.statefulset.annotations }}
+  annotations:
+    {{- include "drunk-lib.metadataEntries" . | nindent 4 }}
+  {{- end }}
 spec:
   # Service name for stable network identity
   serviceName: {{ include "app.fullname" . }}
@@ -60,6 +67,9 @@ spec:
     spec:
       # Security: disable automatic service account token mounting
       automountServiceAccountToken: false
+      {{- with .Values.statefulset.priorityClassName }}
+      priorityClassName: {{ . | quote }}
+      {{- end }}
       {{- if hasKey .Values.statefulset "terminationGracePeriodSeconds" }}
       terminationGracePeriodSeconds: {{ .Values.statefulset.terminationGracePeriodSeconds }}
       {{- end }}
@@ -101,7 +111,7 @@ spec:
           env:
           {{- range $k,$v := .Values.env }}
           - name: {{ $k }}
-            value: {{ $v | quote }}
+            {{- include "drunk-lib.envValue" $v | nindent 12 }}
           {{- end }}
           {{- end }}
           # Environment from external sources for init container
@@ -199,7 +209,7 @@ spec:
           env:
           {{- range $k,$v := .Values.env }}
           - name: {{ $k }}
-            value: {{ $v | quote }}
+            {{- include "drunk-lib.envValue" $v | nindent 12 }}
           {{- end }}
           {{- end }}
           # Environment from external sources
@@ -270,12 +280,7 @@ spec:
       {{- if .Values.volumes }}
       {{- range $k,$v := .Values.volumes }}
       - name: {{ $k }}
-        {{- if $v.emptyDir }}
-        emptyDir: {}
-        {{- else }}
-        persistentVolumeClaim:
-          claimName: {{ include "app.name" $root }}-{{ $k }}
-        {{- end }}
+        {{- include "drunk-lib.volumeSource" (dict "root" $root "name" $k "volume" $v) | nindent 8 }}
       {{- end }}
       {{- end }}
       # SecretProvider volume for external secret management systems

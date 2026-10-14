@@ -1,0 +1,153 @@
+suite: statefulset object options
+templates:
+- statefulset.yaml
+tests:
+- it: object options absent by default
+  set:
+    deployment: &id001
+      enabled: false
+    statefulset:
+      enabled: true
+    global: &id002
+      initContainer:
+        image: init:1
+  asserts:
+  - notExists:
+      path: metadata.annotations
+  - notExists:
+      path: metadata.labels.team
+  - notExists:
+      path: spec.template.spec.priorityClassName
+- it: object labels retain standard labels and render as strings
+  set:
+    deployment: *id001
+    statefulset:
+      enabled: true
+      labels:
+        team: ops
+        number: 23
+        flag: true
+    global: *id002
+  asserts:
+  - isSubset:
+      path: metadata.labels
+      content:
+        app.kubernetes.io/name: drunk-app
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/version: latest
+  - isSubset:
+      path: metadata.labels
+      content:
+        team: ops
+        number: '23'
+        flag: 'true'
+  - notExists:
+      path: metadata.annotations
+- it: object annotations retain standard labels and render as strings
+  set:
+    deployment: *id001
+    statefulset:
+      enabled: true
+      annotations:
+        reloader.stakater.com/auto: 'true'
+        number: 23
+        flag: false
+    global: *id002
+  asserts:
+  - isSubset:
+      path: metadata.labels
+      content:
+        app.kubernetes.io/name: drunk-app
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/version: latest
+  - isSubset:
+      path: metadata.annotations
+      content:
+        reloader.stakater.com/auto: 'true'
+        number: '23'
+        flag: 'false'
+  - notExists:
+      path: spec.template.metadata.annotations["reloader.stakater.com/auto"]
+- it: refuse duplicate standard helm.sh/chart
+  set:
+    deployment: *id001
+    statefulset:
+      enabled: true
+      labels:
+        helm.sh/chart: collision
+    global: *id002
+  asserts:
+  - failedTemplate:
+      errorMessage: 'statefulset.labels: helm.sh/chart is a standard label and cannot
+        be overridden'
+- it: refuse duplicate standard app.kubernetes.io/name
+  set:
+    deployment: *id001
+    statefulset:
+      enabled: true
+      labels:
+        app.kubernetes.io/name: collision
+    global: *id002
+  asserts:
+  - failedTemplate:
+      errorMessage: 'statefulset.labels: app.kubernetes.io/name is a standard label
+        and cannot be overridden'
+- it: refuse duplicate standard app.kubernetes.io/instance
+  set:
+    deployment: *id001
+    statefulset:
+      enabled: true
+      labels:
+        app.kubernetes.io/instance: collision
+    global: *id002
+  asserts:
+  - failedTemplate:
+      errorMessage: 'statefulset.labels: app.kubernetes.io/instance is a standard
+        label and cannot be overridden'
+- it: refuse duplicate standard app.kubernetes.io/version
+  set:
+    deployment: *id001
+    statefulset:
+      enabled: true
+      labels:
+        app.kubernetes.io/version: collision
+    global: *id002
+  asserts:
+  - failedTemplate:
+      errorMessage: 'statefulset.labels: app.kubernetes.io/version is a standard label
+        and cannot be overridden'
+- it: refuse duplicate standard app.kubernetes.io/managed-by
+  set:
+    deployment: *id001
+    statefulset:
+      enabled: true
+      labels:
+        app.kubernetes.io/managed-by: collision
+    global: *id002
+  asserts:
+  - failedTemplate:
+      errorMessage: 'statefulset.labels: app.kubernetes.io/managed-by is a standard
+        label and cannot be overridden'
+- it: priority class 'batch-high'
+  set:
+    deployment: *id001
+    statefulset:
+      enabled: true
+      priorityClassName: batch-high
+    global: *id002
+  asserts:
+  - equal:
+      path: spec.template.spec.priorityClassName
+      value: batch-high
+- it: priority class ''
+  set:
+    deployment: *id001
+    statefulset:
+      enabled: true
+      priorityClassName: ''
+    global: *id002
+  asserts:
+  - notExists:
+      path: spec.template.spec.priorityClassName

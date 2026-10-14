@@ -1,0 +1,144 @@
+suite: job env sources
+templates:
+- job.yaml
+tests:
+- it: valueFrom pod-name on every container
+  set:
+    deployment: &id002
+      enabled: false
+    jobs: &id003
+    - name: task
+    env:
+      SOURCE:
+        valueFrom: &id001
+          fieldRef:
+            fieldPath: metadata.name
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: SOURCE
+        valueFrom: *id001
+  - notExists:
+      path: spec.template.spec.containers[0].env[0].value
+- it: valueFrom pod-namespace on every container
+  set:
+    deployment: *id002
+    jobs: *id003
+    env:
+      SOURCE:
+        valueFrom: &id004
+          fieldRef:
+            fieldPath: metadata.namespace
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: SOURCE
+        valueFrom: *id004
+  - notExists:
+      path: spec.template.spec.containers[0].env[0].value
+- it: valueFrom secret on every container
+  set:
+    deployment: *id002
+    jobs: *id003
+    env:
+      SOURCE:
+        valueFrom: &id005
+          secretKeyRef:
+            name: credentials
+            key: password
+            optional: false
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: SOURCE
+        valueFrom: *id005
+  - notExists:
+      path: spec.template.spec.containers[0].env[0].value
+- it: valueFrom config-map on every container
+  set:
+    deployment: *id002
+    jobs: *id003
+    env:
+      SOURCE:
+        valueFrom: &id006
+          configMapKeyRef:
+            name: settings
+            key: mode
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: SOURCE
+        valueFrom: *id006
+  - notExists:
+      path: spec.template.spec.containers[0].env[0].value
+- it: valueFrom resource on every container
+  set:
+    deployment: *id002
+    jobs: *id003
+    env:
+      SOURCE:
+        valueFrom: &id007
+          resourceFieldRef:
+            containerName: worker
+            resource: limits.cpu
+            divisor: 1m
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: SOURCE
+        valueFrom: *id007
+  - notExists:
+      path: spec.template.spec.containers[0].env[0].value
+- it: plain value 'text' keeps the legacy string
+  set:
+    deployment: *id002
+    jobs: *id003
+    env:
+      PLAIN: text
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: PLAIN
+        value: text
+- it: plain value '' keeps the legacy string
+  set:
+    deployment: *id002
+    jobs: *id003
+    env:
+      PLAIN: ''
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: PLAIN
+        value: ''
+- it: plain value False keeps the legacy string
+  set:
+    deployment: *id002
+    jobs: *id003
+    env:
+      PLAIN: false
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: PLAIN
+        value: 'false'
+- it: plain value 23 keeps the legacy string
+  set:
+    deployment: *id002
+    jobs: *id003
+    env:
+      PLAIN: 23
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: PLAIN
+        value: '23'

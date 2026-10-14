@@ -8,7 +8,7 @@ kind: NetworkPolicy
 metadata:
   name: test-release-drunk-test-app-allow-all-ingress-restrict-egress
   labels:
-    helm.sh/chart: drunk-app-2.0.2
+    helm.sh/chart: drunk-app-2.0.3
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -34,7 +34,7 @@ kind: PodDisruptionBudget
 metadata:
   name: test-release-drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-2.0.2
+    helm.sh/chart: drunk-app-2.0.3
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -53,7 +53,7 @@ kind: ServiceAccount
 metadata:
   name: drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-2.0.2
+    helm.sh/chart: drunk-app-2.0.3
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -113,7 +113,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: drunk-test-app-data-vol
   labels:
-    helm.sh/chart: drunk-app-2.0.2
+    helm.sh/chart: drunk-app-2.0.3
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -137,7 +137,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: drunk-test-app-other-vol
   labels:
-    helm.sh/chart: drunk-app-2.0.2
+    helm.sh/chart: drunk-app-2.0.3
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -164,7 +164,7 @@ kind: Service
 metadata:
   name: test-release-drunk-test-app
   labels: 
-    helm.sh/chart: drunk-app-2.0.2
+    helm.sh/chart: drunk-app-2.0.3
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -199,7 +199,7 @@ kind: Deployment
 metadata:
   name: test-release-drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-2.0.2
+    helm.sh/chart: drunk-app-2.0.3
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -470,7 +470,7 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: test-release-drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-2.0.2
+    helm.sh/chart: drunk-app-2.0.3
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -501,9 +501,9 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   # Job name includes random suffix to avoid conflicts on reruns
-  name: drunk-test-app-drunk-job-1-mpypn
+  name: drunk-test-app-drunk-job-1-g345q
   labels:
-    helm.sh/chart: drunk-app-2.0.2
+    helm.sh/chart: drunk-app-2.0.3
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -621,9 +621,9 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   # Job name includes random suffix to avoid conflicts on reruns
-  name: drunk-test-app-drunk-job-2-fj3cd
+  name: drunk-test-app-drunk-job-2-n4b5l
   labels:
-    helm.sh/chart: drunk-app-2.0.2
+    helm.sh/chart: drunk-app-2.0.3
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -743,7 +743,7 @@ kind: CronJob
 metadata:
   name: drunk-test-app-drunk-cjob-1
   labels:
-    helm.sh/chart: drunk-app-2.0.2
+    helm.sh/chart: drunk-app-2.0.3
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -867,7 +867,7 @@ kind: CronJob
 metadata:
   name: drunk-test-app-drunk-cjob-2
   labels:
-    helm.sh/chart: drunk-app-2.0.2
+    helm.sh/chart: drunk-app-2.0.3
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -992,7 +992,7 @@ kind: Ingress
 metadata:
   name: test-release-drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-2.0.2
+    helm.sh/chart: drunk-app-2.0.3
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -1064,7 +1064,7 @@ kind: HTTPRoute
 metadata:
   name: test-release-drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-2.0.2
+    helm.sh/chart: drunk-app-2.0.3
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -1098,7 +1098,7 @@ kind: SecretProviderClass
 metadata:
   name: my-secret-class-cls
   labels:
-    helm.sh/chart: drunk-app-2.0.2
+    helm.sh/chart: drunk-app-2.0.3
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"

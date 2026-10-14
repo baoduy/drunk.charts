@@ -135,3 +135,25 @@ secretProvider:
 #   sectionName: https # default: https; must match the Service port name
 #   hostname: "backend.example.com" # default: tlsValidation.hostname, then first route hostname
 #   options: {tls-verify-depth: "1"} # default; an explicit map replaces all options, including {}
+
+# Workload pod options (all optional; see README for complete examples).
+# env:
+#   POD_NAME: {valueFrom: {fieldRef: {fieldPath: metadata.name}}}
+# volumes:
+#   settings: {mountPath: /etc/settings, configMap: {name: settings}}
+#   credentials: {mountPath: /etc/credentials, secret: {secretName: credentials}}
+#   combined: {mountPath: /etc/combined, projected: {sources: [{configMap: {name: settings}}]}}
+#   external: {mountPath: /mnt/external, csi: {driver: example.csi.k8s.io}}
+#   scratch: {mountPath: /scratch, emptyDir: {medium: Memory, sizeLimit: 64Mi}}
+# deployment / statefulset:
+#   labels: {team: ops} # object labels, distinct from podLabels; standard keys are reserved
+#   annotations: {reloader.stakater.com/auto: "true"} # object annotations
+#   priorityClassName: app-high
+# jobs[] / cronJobs[]:
+#   podLabels: {task: batch}
+#   podAnnotations: {tracking: batch}
+#   resources: {} # replaces app resources
+#   nodeSelector: {} # disables inherited app nodeSelector
+#   tolerations: [] # disables inherited app tolerations
+#   affinity: {} # disables inherited app nodeAffinity; explicit maps render as written
+# Jobs and CronJobs now inherit node scheduling, never app pod affinity/presets/topology spread.

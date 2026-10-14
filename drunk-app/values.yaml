@@ -22,6 +22,11 @@ deployment:
     http: 8080
   replicaCount: 1
   podLabels: {}
+  # Object metadata is separate from podLabels / podAnnotations.
+  # Standard label keys cannot be overridden.
+  # labels: {team: ops}
+  # annotations: {reloader.stakater.com/auto: "true"}
+  # priorityClassName: app-high
   #command:
   #args:
   #liveness: "/healthz"
@@ -52,6 +57,9 @@ deployment:
 # Probe maps pass through the complete Kubernetes probe spec.
 # statefulset:
 #   enabled: false
+#   labels: {team: ops} # object labels; standard label keys cannot be overridden
+#   annotations: {reloader.stakater.com/auto: "true"} # object annotations
+#   priorityClassName: app-high
 #   replicaCount: 3
 #   ports: {http: 8080}
 #   liveness:
@@ -69,18 +77,68 @@ deployment:
 #       sleep: {seconds: 10}
 #   minReadySeconds: 10 # 0 is also valid
 
-#cronJobs:
-#  - name: 'job-one'
-#    schedule: "* 0 * * *"
-#    restartPolicy: OnFailure
-#    command:
-#      - 'Job_Parameters'
+# Jobs and CronJobs now inherit top-level nodeSelector, tolerations and affinity.nodeAffinity.
+# App podAffinity, podAntiAffinity, podAntiAffinityPreset and topologySpreadConstraints are never inherited.
+# Each entry replaces a complete scheduling key, without merging. Explicit empty values disable inheritance.
+# jobs:
+#   - name: migrate
+#     command: [migrate]
+#     podLabels: {task: migration}
+#     podAnnotations: {tracking: migration}
+#     resources: {requests: {cpu: 250m, memory: 256Mi}} # replaces app resources; {} clears them
+#     nodeSelector: {pool: batch}
+#     tolerations: [{key: batch, operator: Exists}]
+#     affinity: {} # or a complete affinity map, rendered as written
+# cronJobs:
+#   - name: report
+#     schedule: "0 2 * * *"
+#     podLabels: {task: report}
+#     podAnnotations: {tracking: report}
+#     resources: {requests: {cpu: 100m, memory: 128Mi}}
+#     nodeSelector: {} # disable each inherited scheduling key separately
+#     tolerations: []
+#     affinity: {}
 
-#cronJobs:
-#  - name: 'job-one'
-#    restartPolicy: OnFailure
-#    command:
-#      - 'Job_Parameters'
+# Plain env values remain strings; valueFrom works on main/init containers and Jobs/CronJobs.
+# env:
+#   LOG_LEVEL: info
+#   POD_NAME:
+#     valueFrom: {fieldRef: {fieldPath: metadata.name}}
+#   POD_NAMESPACE:
+#     valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+#   PASSWORD:
+#     valueFrom: {secretKeyRef: {name: credentials, key: password}}
+#   MODE:
+#     valueFrom: {configMapKeyRef: {name: settings, key: mode}}
+#   CPU_LIMIT:
+#     valueFrom: {resourceFieldRef: {resource: limits.cpu, divisor: 1m}}
+
+# Add entries under volumes below; select one source per entry.
+# Every source supports mountPath, subPath and readOnly (default false).
+# All 4 workloads support these sources; none creates a PVC, including map-shaped emptyDir.
+# No source key (or emptyDir: false) retains the existing PVC behavior.
+# volumes:
+#   settings:
+#     mountPath: /etc/app/app.conf
+#     subPath: app.conf
+#     readOnly: true
+#     configMap: {name: settings, items: [{key: app.conf, path: app.conf}]}
+#   credentials:
+#     mountPath: /etc/credentials
+#     readOnly: true
+#     secret: {secretName: credentials}
+#   combined:
+#     mountPath: /etc/combined
+#     readOnly: true
+#     projected:
+#       sources: [{configMap: {name: settings}}, {secret: {name: credentials}}]
+#   external:
+#     mountPath: /mnt/external
+#     readOnly: true
+#     csi: {driver: example.csi.k8s.io, readOnly: true, volumeAttributes: {bucket: files}}
+#   scratch:
+#     mountPath: /scratch
+#     emptyDir: {medium: Memory, sizeLimit: 64Mi} # true still renders emptyDir: {}
 
 # This is to fix the issue 'Failed to create CoreCLR, HRESULT: 0x8007000E'
 volumes:

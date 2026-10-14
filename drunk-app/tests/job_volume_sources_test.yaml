@@ -1,0 +1,203 @@
+suite: job volume sources
+templates:
+- job.yaml
+tests:
+- it: ConfigMap source and mounts
+  set:
+    deployment: &id002
+      enabled: false
+    jobs: &id003
+    - name: task
+    volumes:
+      input:
+        mountPath: /opt/input
+        readOnly: true
+        subPath: app.conf
+        configMap: &id001
+          name: settings
+          items:
+          - key: app.conf
+            path: app.conf
+  asserts:
+  - equal:
+      path: spec.template.spec.volumes[0]
+      value:
+        configMap: *id001
+        name: input
+  - equal:
+      path: spec.template.spec.containers[0].volumeMounts[0]
+      value:
+        name: input
+        mountPath: /opt/input
+        readOnly: true
+        subPath: app.conf
+- it: Secret source and mounts
+  set:
+    deployment: *id002
+    jobs: *id003
+    volumes:
+      input:
+        mountPath: /opt/input
+        readOnly: true
+        subPath: app.conf
+        secret: &id004
+          secretName: credentials
+          defaultMode: 256
+  asserts:
+  - equal:
+      path: spec.template.spec.volumes[0]
+      value:
+        secret: *id004
+        name: input
+  - equal:
+      path: spec.template.spec.containers[0].volumeMounts[0]
+      value:
+        name: input
+        mountPath: /opt/input
+        readOnly: true
+        subPath: app.conf
+- it: projected source and mounts
+  set:
+    deployment: *id002
+    jobs: *id003
+    volumes:
+      input:
+        mountPath: /opt/input
+        readOnly: true
+        subPath: app.conf
+        projected: &id005
+          sources:
+          - configMap:
+              name: settings
+          - secret:
+              name: credentials
+  asserts:
+  - equal:
+      path: spec.template.spec.volumes[0]
+      value:
+        projected: *id005
+        name: input
+  - equal:
+      path: spec.template.spec.containers[0].volumeMounts[0]
+      value:
+        name: input
+        mountPath: /opt/input
+        readOnly: true
+        subPath: app.conf
+- it: CSI source and mounts
+  set:
+    deployment: *id002
+    jobs: *id003
+    volumes:
+      input:
+        mountPath: /opt/input
+        readOnly: true
+        subPath: app.conf
+        csi: &id006
+          driver: example.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            bucket: files
+  asserts:
+  - equal:
+      path: spec.template.spec.volumes[0]
+      value:
+        csi: *id006
+        name: input
+  - equal:
+      path: spec.template.spec.containers[0].volumeMounts[0]
+      value:
+        name: input
+        mountPath: /opt/input
+        readOnly: true
+        subPath: app.conf
+- it: memory emptyDir with size limit and mounts
+  set:
+    deployment: *id002
+    jobs: *id003
+    volumes:
+      input:
+        mountPath: /opt/input
+        readOnly: true
+        subPath: app.conf
+        emptyDir: &id007
+          medium: Memory
+          sizeLimit: 64Mi
+  asserts:
+  - equal:
+      path: spec.template.spec.volumes[0]
+      value:
+        emptyDir: *id007
+        name: input
+  - equal:
+      path: spec.template.spec.containers[0].volumeMounts[0]
+      value:
+        name: input
+        mountPath: /opt/input
+        readOnly: true
+        subPath: app.conf
+- it: legacy emptyDir true and mounts
+  set:
+    deployment: *id002
+    jobs: *id003
+    volumes:
+      input:
+        mountPath: /opt/input
+        readOnly: true
+        subPath: app.conf
+        emptyDir: true
+  asserts:
+  - equal:
+      path: spec.template.spec.volumes[0]
+      value:
+        emptyDir: {}
+        name: input
+  - equal:
+      path: spec.template.spec.containers[0].volumeMounts[0]
+      value:
+        name: input
+        mountPath: /opt/input
+        readOnly: true
+        subPath: app.conf
+- it: empty emptyDir map and mounts
+  set:
+    deployment: *id002
+    jobs: *id003
+    volumes:
+      input:
+        mountPath: /opt/input
+        readOnly: true
+        subPath: app.conf
+        emptyDir: &id008 {}
+  asserts:
+  - equal:
+      path: spec.template.spec.volumes[0]
+      value:
+        emptyDir: *id008
+        name: input
+  - equal:
+      path: spec.template.spec.containers[0].volumeMounts[0]
+      value:
+        name: input
+        mountPath: /opt/input
+        readOnly: true
+        subPath: app.conf
+- it: untyped volume keeps its PVC source
+  set:
+    deployment: *id002
+    jobs: *id003
+    volumes:
+      data:
+        mountPath: /data
+  asserts:
+  - equal:
+      path: spec.template.spec.volumes[0]
+      value:
+        name: data
+        persistentVolumeClaim:
+          claimName: drunk-app-data
+  - equal:
+      path: spec.template.spec.containers[0].volumeMounts[0].readOnly
+      value: false
+  - notExists:
+      path: spec.template.spec.containers[0].volumeMounts[0].subPath
