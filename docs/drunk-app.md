@@ -515,6 +515,8 @@ The [probe and shutdown rules](#probes-and-graceful-shutdown) also apply under `
 | `statefulset.podLabels` | object | `{}` | ❌ | Labels added to each pod (values are rendered as text). `app.kubernetes.io/name` and `app.kubernetes.io/instance` are refused |
 
 ```yaml
+deployment:
+  enabled: false
 statefulset:
   enabled: true
   replicaCount: 3
@@ -807,7 +809,7 @@ resources:
 
 ### autoscaling
 
-Horizontal Pod Autoscaler (HPA). When enabled, `replicaCount` sets the initial replica count and HPA manages scaling within `minReplicas`/`maxReplicas`.
+Horizontal Pod Autoscaler (HPA) manages scaling within `minReplicas`/`maxReplicas`. With `autoscaling.omitReplicas: false` (the default), the chart also renders the workload replica count; the omission rules below let HPA own Deployment replicas.
 
 | Parameter | Type | Default | Required | Description |
 |-----------|------|---------|----------|-------------|

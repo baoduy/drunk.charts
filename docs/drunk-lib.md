@@ -274,6 +274,8 @@ The [rollout-safety table](#rollout-safety-keys) covers its probes, shutdown and
 #### Configuration:
 
 ```yaml
+deployment:
+  enabled: false
 statefulset:
   enabled: true
   volumeClaimTemplates:
