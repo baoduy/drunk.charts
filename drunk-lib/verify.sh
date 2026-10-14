@@ -8,6 +8,9 @@
 #   tests/golden/drunk-app-secretprovider.yaml — secretProvider.enabled: true
 #   tests/golden/drunk-app-tls-secrets.yaml   — tlsSecrets inline cert/key/ca render
 #
+#   tests/golden/drunk-app-rollout.yaml       — opt-in Deployment rollout safety
+#   tests/golden/drunk-app-statefulset-rollout.yaml — opt-in StatefulSet rollout safety
+#
 # Excluded from machine diff (intentionally non-deterministic):
 #   tests/golden/drunk-app-example.yaml       — contains randAlphaNum Job names;
 #                                               committed for human PR review only
@@ -54,7 +57,8 @@ run_diff() {
     # remaining args are passed verbatim to helm template (--values / --set flags)
 
     if [ ! -f "$golden_file" ]; then
-        echo "[SKIP] $label — golden file not found: $golden_file"
+        echo "[FAIL] $label — golden file not found: $golden_file"
+        FAIL=1
         return
     fi
 
@@ -113,6 +117,16 @@ run_diff "drunk-app (tlsSecrets inline values)" \
     --set tlsSecrets.example.key=S0VZ \
     --set tlsSecrets.example.ca=Q0E= \
     --show-only templates/tls-secrets.yaml
+
+run_diff "drunk-app (Deployment rollout safety)" \
+    "$REPO_ROOT/drunk-app" \
+    "$GOLDEN_DIR/drunk-app-rollout.yaml" \
+    --values "$SCRIPT_DIR/tests/values/rollout.yaml"
+
+run_diff "drunk-app (StatefulSet rollout safety)" \
+    "$REPO_ROOT/drunk-app" \
+    "$GOLDEN_DIR/drunk-app-statefulset-rollout.yaml" \
+    --values "$SCRIPT_DIR/tests/values/statefulset-rollout.yaml"
 
 # drunk-app-example.yaml is intentionally excluded: _job.tpl uses randAlphaNum 5
 # in Job names → non-deterministic output. It is committed for human PR review only.

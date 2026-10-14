@@ -27,6 +27,9 @@ spec:
   serviceName: {{ include "app.fullname" . }}
   # Replica count from .Values.statefulset.replicaCount, defaults to 1
   replicas: {{ .Values.statefulset.replicaCount | default 1 }}
+  {{- if hasKey .Values.statefulset "minReadySeconds" }}
+  minReadySeconds: {{ .Values.statefulset.minReadySeconds }}
+  {{- end }}
   # Pod management policy: OrderedReady (default) or Parallel
   podManagementPolicy: {{ .Values.statefulset.podManagementPolicy | default "OrderedReady" }}
   # Update strategy: RollingUpdate (default) or OnDelete
@@ -57,6 +60,9 @@ spec:
     spec:
       # Security: disable automatic service account token mounting
       automountServiceAccountToken: false
+      {{- if hasKey .Values.statefulset "terminationGracePeriodSeconds" }}
+      terminationGracePeriodSeconds: {{ .Values.statefulset.terminationGracePeriodSeconds }}
+      {{- end }}
       # Image pull secrets for private registries
       {{- if .Values.global.imagePullSecret }}
       imagePullSecrets:
@@ -184,21 +190,9 @@ spec:
               protocol: TCP
             {{- end }}
           {{- end }}
-          # Health checks - liveness probe from .Values.statefulset.liveness
-          {{- if .Values.statefulset.liveness }}
-          livenessProbe:
-            initialDelaySeconds: 60
-            periodSeconds: 300
-            httpGet:
-              path: {{ .Values.statefulset.liveness }}
-              port: http
-          {{- end }}
-          # Health checks - readiness probe from .Values.statefulset.readiness
-          {{- if .Values.statefulset.readiness }}
-          readinessProbe:
-            httpGet:
-              path: {{ .Values.statefulset.readiness }}
-              port: http
+          {{- include "drunk-lib.probes" (dict "workload" .Values.statefulset "kind" "statefulset") | nindent 10 }}
+          {{- if or (hasKey .Values.statefulset "lifecycle") (hasKey .Values.statefulset "preStopSleepSeconds") }}
+          {{- include "drunk-lib.lifecycle" (dict "workload" .Values.statefulset "kind" "statefulset") | nindent 10 }}
           {{- end }}
           # Environment variables from .Values.env
           {{- if .Values.env }}
@@ -302,11 +296,7 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      # Pod affinity rules from .Values.affinity
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "drunk-lib.podScheduling" . | nindent 6 }}
       # Pod tolerations from .Values.tolerations
       {{- with .Values.tolerations }}
       tolerations:

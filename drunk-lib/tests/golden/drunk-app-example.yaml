@@ -8,7 +8,7 @@ kind: NetworkPolicy
 metadata:
   name: test-release-drunk-test-app-allow-all-ingress-restrict-egress
   labels:
-    helm.sh/chart: drunk-app-1.3.5
+    helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -28,13 +28,32 @@ spec:
       - ipBlock:
           cidr: 192.168.253.253/32
 ---
+# Source: drunk-app/templates/pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: test-release-drunk-test-app
+  labels:
+    helm.sh/chart: drunk-app-2.0.1
+    app.kubernetes.io/name: drunk-test-app
+    app.kubernetes.io/instance: test-release
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  minAvailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: drunk-test-app
+      app.kubernetes.io/instance: test-release
+---
 # Source: drunk-app/templates/serviceAccount.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-1.3.5
+    helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -72,8 +91,8 @@ metadata:
   name: tls-cloudflare
 type: kubernetes.io/tls
 data:
-  tls.crt: TFMwdExTMUNSVWRKVGlCRFJWSlVTVVpKUTBGVVJTMHRMUzB0Q2sxSlNVUTRSRU5EUVhScFowRjNTVUpCWjBsVlNrWlVhWGwzYm01MVpFSlBPRFZTVWt4MGJHUXZUVTkwU0dwbmQwUlJXVXBMYjFwSmFIWmpUa0ZSUlV3S1FsRkJkMmRaTUhoRGVrRktRbWRPVmtKQldWUkJiRTVJVFZKSmQwVkJXVVJXVVZGSlJFRnNWR0ZYTlc1WldFSjJZMjFWZUVWcVFWRkNaMDVXUWtGalRRcERWazV3WW0xa2FHTkhPWGxhVkVWVFRVSkJSMEV4VlVWRFozZEtVa2RXTWtsRmVIWlpNa1p6VFZGM2QwTm5XVVJXVVZGTVJFRk9SVlJHVlhoSWFrRmpDa0puYTNGb2EybEhPWGN3UWtOUlJWZEVNbFowV1Zkc2MxRkhVbXhrYVRWellqSk9hR0pFUlZWTlFrbEhRVEZWUlVGM2QweExhVFZyV2xoWmRXSkhPV29LV1ZkM2QwbENZMDVOYWxGM1RrUkJlVTFVVFhkTmFrRXhWMmhuVUUxcVJYbE9SRUY2VFVScmVFMTZRWGxOUkZaaFRVbEhUazFSYzNkRFVWbEVWbEZSUndwRmQwcFVVbnBGVTAxQ1FVZEJNVlZGUTBGM1NsVXliSFZhTWtaM1lqTktiRTFTU1hkRlFWbEVWbEZSU0VSQmJGUmhWelZ1V1ZoQ2RtTnRWWGhGYWtGUkNrSm5UbFpDUVc5TlExVlNiR1JwUWsxaU1rNW9Za1JGVFUxQmIwZEJNVlZGUTNkM1JGSkZlRlpOVWpSM1NFRlpTa3R2V2tsb2RtTk9RVkZyUWtabk9Xd0tZbGRHY0dKRlFtdGFXRmwxWWtjNWFsbFhkM2hHUkVGVFFtZE9Wa0pCVFUxRGVXOTFXa2RXTWt4dGVIWlpNa1p6VFVsSlFrbHFRVTVDWjJ0eGFHdHBSd281ZHpCQ1FWRkZSa0ZCVDBOQlVUaEJUVWxKUWtOblMwTkJVVVZCTlZveGRXeFZWMlpEY21RM1Jrd3diMmxGV1haWlVqazNkbGhDYXpaSGNrZEViMnh1Q21Ob2RIQk9ka05vTkcxU2JVdHVlalJ0TTA1dFEycFVOVzAzY0dKeFdHbEphemg2Y0UwNWEyNTBhMkU0ZWpaQlJtRkRZV0V2YzI5NmFXRTJWMFZTT1dJS1dIWmxlbTVwWTBKUmMzbERaM05QYjNZMFJGTkRNQzgyVkVwYUt6aG1jWGxCV1ROUUwyMTJkalJsWWxWUFJXaHVObFZsUVhBemJFUXZaRFF5VWxwQllRb3hRaTlMUjFSTE4weDZPVmxTWlVGTk1ETk1abkJIUWtVd2FTdHJRMVJUVkd3MWQwSlJhekp0ZVVKM1MzY3hZemh6VTJsbE5uaEdhMmRuWjFCek9VOXdDakJVYTJkVFlpOW5lRmt6U0hkeFMwY3pPR1JxYjBsaE1qVnNWek55T1VJeGRVVmlXalpHTHk5MWRIVkNUM3AxTUVSWlpFMUxRMFpSVmxCdFVVbE5hM1lLVWtjMFpsbE9TRkJVYjJJeFEwZDFkMVJMSzJJeFdISlphekJ6U0c5RlVWbFNXbmM1Y0ZoSU1ucFlRbTVVVWpsSmJGRkpSRUZSUVVKdk1GRjNVV3BCYUFwQ1owNVdTRkpGUlVkcVFWbG5aM054VEcxU2JHUnBOWE5pTWs1b1lrbEpTbHBIVmpKTWJYaDJXVEpHYzAxQ01FZEJNVlZrUkdkUlYwSkNVbTVvZFVKdUNucHRjRk5NTlhwa01uQldWa1V6TkZKVWJqVkxVWHBCVGtKbmEzRm9hMmxIT1hjd1FrRlJjMFpCUVU5RFFWRkZRWEZNV1Vwd09USm1iSFp5T1dabkt6RUtaa05JY1dkbVFtMWpXbE5qVlVsd1VFSkJPRnA0UmpaSFFYZ3JVa3A2VDA5dlIzZHNLMnAyUW05Q1JVMWpObEpGT0hCalRHbDJZbFJtVjBWVWExa3dPUXAzUW1oeVF6QkhhV2R1UVZkMlVWWkZkRVJOTmtwbmFFdzVjWFp3YmpJMGNYSk1RMFZ6VVZGa1UzUkNSbUY2TWtGNE0yd3hRalp2Ym1nMVZUWnliQ3RJQ2taSVN6TlNha0pFZGpKSGVrd3JiRkZSUjFOUFFqWkhkekp2TmxoTGJXOWllakEzT1ZKNFVWWXpUbEYxTDJZeldtOXRjRTFTZUU5YWVqQklWelJGVVdFS1lVZHJSak15YlVaR2N6Vm9RVkpRZEc1UGNHWlZWallySzI0NWVqSTFaMDQ0VVZnNVJETklVWFJ1YUdrNUx6SkRWblI0T1VOUlVGRkpTMlJoTjNwRVRRcG9aRkl5VWtaME4zUmpObTlNZW14amNrWTNURFZIUjJSSk1sVkVRbkl5ZWpsTGRIUmhPVlpJYUZsclVtUnhhalY1VG5reFVETkRVMEkwWldZMWJWVjFDbWhWWVhWUlFUMDlDaTB0TFMwdFJVNUVJRU5GVWxSSlJrbERRVlJGTFMwdExTMEs=
-  tls.key: TFMwdExTMUNSVWRKVGlCUVVrbFdRVlJGSUV0RldTMHRMUzB0Q2sxSlNVVjJVVWxDUVVSQlRrSm5hM0ZvYTJsSE9YY3dRa0ZSUlVaQlFWTkRRa3RqZDJkblUycEJaMFZCUVc5SlFrRlJSR3h1VnpaV1VsbzRTM1F6YzFVS2RsTnBTVkpwT1doSU0zVTVZMGRVYjJGeldVOXBWMlI1UnpKck1qaExTR2xhUjFseFpsQnBZbU15V1V0T1VHMWlkV3gxY0dWSmFWUjZUMnQ2TWxObE1ncFNjbnBRYjBGV2IwcHdjaXQ1YWs5S2NuQlpVa2d4ZEdVNU4wOWxTbmRHUTNwSlMwTjNObWt2WjA1SlRGUXZjRTFzYmpkNEszSkpRbXBqTHl0aEt5OW9DalYwVVRSVFIyWndValJEYm1WVlVEa3phbHBHYTBKeVZVZzRiMXBOY25OMlVERm9SalJCZWxSamRDdHJXVVZVVTB3MlVVcE9TazlZYmtGR1ExUmhZa2tLU0VGeVJGWjZlWGhMU2pkeVJWZFRRME5CSzNvd05tNVNUMU5DU25ZclJFWnFZMlpEYjI5aVpuZ3lUMmRvY21KdFZtSmxkakJJVnpSU2RHNXZXQzhyTmdveU5FVTNUemRSVG1nd2QyOUpWa0pWSzFwQlozbFRPVVZpYURsbk1HTTVUMmgyVlVsaE4wSk5jalYyVm1WMGFWUlRkMlZuVWtKb1JtNUVNbXhqWm1KT0NtTkhaRTVJTUdsV1FXZE5Ra0ZCUlVOblowVkJRVTE0TDJGbU1rbENRakpJVkVKamMxbFBlamxzVkZSeE1WVnVhWG92ZDNaSVJGaFhTMnQwTWtocU4xRUtSVll5VVVSWE0wb3pOa05VU21zemR6UkdNMUp0T1VaVWFVWkJZVXcxWmpsNk1rTklialpHU3pRMFdHVXpRM2RRTm1SaE1YQjJSMWtyT0dWWk1VZEJSd3BZVW10b1EzaDBja3AwT1c0eU5tOHphMHhUYkZaSGIzVXpSbkZHT0hKcGJHRlFMMGxzVkcxTVVYZERRWEpvVWpVM1FsRjBNVU5uWjB3NFV6aHBNRWhyQ2xCT09ISktkMDh6Y2t0R1dHZFlkRlZXTVdWRlEwWXpOVnBFYkRScmRsaG5WREJsVkdGdVIzZHhibFJJWkVOWllWaHpUMWxRZDJGQ1NtNUVNamx6VWpJS1l6bGhVRlZsUjJocFdXNDRkMFJLTUZOaFZUaEJVelJCUXpWQkszbEthRVZVVUhGc1dHa3hWMlJzY2pSeE9HRXpNblZDWWtzMFQzVktSVGxtTTA4MU1ncFFkMmR0VG5kVVZVTkNZbGRRYjJacGRDdDRka0pKV0ZsUVExcGFVVXhzWXpVNVVIVkNXaXRIUVZGTFFtZFJSRE5XWXpSNmFYWnRhRFZCTURkRlNpOW9DbWh2UzFWMmFsbHlWRGh0YkRWNVNYUndObXRuY0d3dlEwUjVibVl2YW1Jekt6aFVXWGx5ZWxWU2JHdDFLMWRHVDFCVlprWXdjMFJRZEVWV2RHRXlZWE1LWTFOamVEVnVMMDlIY1dkNWFYUTNRekZ6VVhsNmFGUXhRMUJPYTBsdVRtTmFNR1JZZVdwb1pYUnhiRlI1Y2tJeE5VVmFWblJqV0dOMFRuZzJRa2RCV0FwelFVOTJjRVpuVVU1NVRYWTBTbWRNYzIxM056SnpObEUwVVV0Q1oxRkVkSEZNVWpoSGJuZGFjemszUVRKSE1TOTJRalJMTjNWd00zaDBjSGhWS3pGeENsZDJZV1l2Uld4VFJFTnRSR1l4UkdJeFQxbERhMHR5V1N0TlptOXZaSEl4UVVkYWExQTJaamRsUjFKNFoydzFabkprZGxRMmRqVjJPWGcxUkc1WVRFTUtUM0IwYjJONGFVNDVXRFpNU0U1S1REbHVSVXhyYWpSak5tMUlURkJwS3k5RFZEZzBPVmRuUkRreWF6SjJUQ3RIZERGSFJEQnZhR1p3UlZsVVZGTlNkd3BuVjBKdmJFbExTMDVSUzBKblFYcEVaWE0yYVVneGRrSllkMVp5VTBSVWJFMW9kbTAzVUdsNlRqRTJLMWhNT0hGYVkyNTJha0ZYUW5KMFIwZFdkVkJhQ2s1RlJsUjRVV0pZVlc5aVowTTJkSG80YURRNVZVRkliamxoVlRrME5rTkhabXhXVHpWak1raENjVTFHUlRWWVQyRXpWMHgxVURCclNuaDBSbmM1Y0VNS05HbFhabThyVlZCWVFrZGpOV2h3VUZjeWJsVTFXVGhOVEd0NVJuRlZabEJ3TkVWTE5VSnBRMGdyYVRadFJqUlRTMUVyTVhKUE9VSkJiMGRDUVUxTWRRb3ZUazVMWldZMGRrUm5aa3AyWXpkdVFYaEdaWFJGZWpSbE1Wa3pVeXRhVUhCRWFraHRNMEpFTnpRd1psVmlhSFZ2VW1JM2FVWmpaR2RCVG5ST2QxbzRDbWhJS3pOM2RGa3JRWE13YWpkTWNUUkNWR0ZIWVhCd01UZEpibnBVUW5wTFN6UjROVEF5YzJ4TlRqRXdSRE0wYkV4eldWbzVkalpMZEZKdllUaE9hbGNLUVdSb04xZG5lbVV3TlhOR1MwZGxZMVkyTUhwak5EVllWazg0YUN0RlEySnlaazAxTVZCVU9VRnZSMEZrYkUxUGRtMXNPVUpPV0RnM2VrVmFZWHBPTWdvNVltRk1kRnAxTUc5a1MxWXhOa05STW1JeFkwNUlVVlozTUVKVFRFUXhVbFpOWlZNMVJFcHNkbU0wYkVwdFIyNURNbkpMYjNsRVNGZE9RamcyY0VSRkNrOHZUMEoyU0c1Q00waHZZVlp3ZWxSUFIzcHlTMjlRWVc1T1dEbFJUR3dyTlhZd1NrSklVWFJtVkRCcldUbEdiV1Z1VWk5aWVYQllOV2MwY0N0RFV6Z0tja2xwY21KSE5DOUdNMEZwU0hveVptRXlUa05RTTI4OUNpMHRMUzB0UlU1RUlGQlNTVlpCVkVVZ1MwVlpMUzB0TFMwSw==
+  tls.crt: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUQ4RENDQXRpZ0F3SUJBZ0lVSkZUaXl3bm51ZEJPODVSUkx0bGQvTU90SGpnd0RRWUpLb1pJaHZjTkFRRUwKQlFBd2dZMHhDekFKQmdOVkJBWVRBbE5ITVJJd0VBWURWUVFJREFsVGFXNW5ZWEJ2Y21VeEVqQVFCZ05WQkFjTQpDVk5wYm1kaGNHOXlaVEVTTUJBR0ExVUVDZ3dKUkdWMklFeHZZMkZzTVF3d0NnWURWUVFMREFORVRGVXhIakFjCkJna3Foa2lHOXcwQkNRRVdEMlZ0WVdsc1FHUmxkaTVzYjJOaGJERVVNQklHQTFVRUF3d0xLaTVrWlhZdWJHOWoKWVd3d0lCY05NalF3TkRBeU1UTXdNakExV2hnUE1qRXlOREF6TURreE16QXlNRFZhTUlHTk1Rc3dDUVlEVlFRRwpFd0pUUnpFU01CQUdBMVVFQ0F3SlUybHVaMkZ3YjNKbE1SSXdFQVlEVlFRSERBbFRhVzVuWVhCdmNtVXhFakFRCkJnTlZCQW9NQ1VSbGRpQk1iMk5oYkRFTU1Bb0dBMVVFQ3d3RFJFeFZNUjR3SEFZSktvWklodmNOQVFrQkZnOWwKYldGcGJFQmtaWFl1Ykc5allXd3hGREFTQmdOVkJBTU1DeW91WkdWMkxteHZZMkZzTUlJQklqQU5CZ2txaGtpRwo5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBNVoxdWxVV2ZDcmQ3Rkwwb2lFWXZZUjk3dlhCazZHckdEb2xuCmNodHBOdkNoNG1SbUtuejRtM05tQ2pUNW03cGJxWGlJazh6cE05a250a2E4ejZBRmFDYWEvc296aWE2V0VSOWIKWHZlem5pY0JRc3lDZ3NPb3Y0RFNDMC82VEpaKzhmcXlBWTNQL212djRlYlVPRWhuNlVlQXAzbEQvZDQyUlpBYQoxQi9LR1RLN0x6OVlSZUFNMDNMZnBHQkUwaStrQ1RTVGw1d0JRazJteUJ3S3cxYzhzU2llNnhGa2dnZ1BzOU9wCjBUa2dTYi9neFkzSHdxS0czOGRqb0lhMjVsVzNyOUIxdUViWjZGLy91dHVCT3p1MERZZE1LQ0ZRVlBtUUlNa3YKUkc0ZllOSFBUb2IxQ0d1d1RLK2IxWHJZazBzSG9FUVlSWnc5cFhIMnpYQm5UUjlJbFFJREFRQUJvMFF3UWpBaApCZ05WSFJFRUdqQVlnZ3NxTG1SbGRpNXNiMk5oYklJSlpHVjJMbXh2WTJGc01CMEdBMVVkRGdRV0JCUm5odUJuCnptcFNMNXpkMnBWVkUzNFJUbjVLUXpBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQVFFQXFMWUpwOTJmbHZyOWZnKzEKZkNIcWdmQm1jWlNjVUlwUEJBOFp4RjZHQXgrUkp6T09vR3dsK2p2Qm9CRU1jNlJFOHBjTGl2YlRmV0VUa1kwOQp3QmhyQzBHaWduQVd2UVZFdERNNkpnaEw5cXZwbjI0cXJMQ0VzUVFkU3RCRmF6MkF4M2wxQjZvbmg1VTZybCtICkZISzNSakJEdjJHekwrbFFRR1NPQjZHdzJvNlhLbW9iejA3OVJ4UVYzTlF1L2YzWm9tcE1SeE9aejBIVzRFUWEKYUdrRjMybUZGczVoQVJQdG5PcGZVVjYrK245ejI1Z044UVg5RDNIUXRuaGk5LzJDVnR4OUNRUFFJS2RhN3pETQpoZFIyUkZ0N3RjNm9MemxjckY3TDVHR2RJMlVEQnIyejlLdHRhOVZIaFlrUmRxajV5TnkxUDNDU0I0ZWY1bVV1CmhVYXVRQT09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K"
+  tls.key: "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUV2UUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQktjd2dnU2pBZ0VBQW9JQkFRRGxuVzZWUlo4S3Qzc1UKdlNpSVJpOWhIM3U5Y0dUb2FzWU9pV2R5RzJrMjhLSGlaR1lxZlBpYmMyWUtOUG1idWx1cGVJaVR6T2t6MlNlMgpScnpQb0FWb0pwcit5ak9KcnBZUkgxdGU5N09lSndGQ3pJS0N3NmkvZ05JTFQvcE1sbjd4K3JJQmpjLythKy9oCjV0UTRTR2ZwUjRDbmVVUDkzalpGa0JyVUg4b1pNcnN2UDFoRjRBelRjdCtrWUVUU0w2UUpOSk9YbkFGQ1RhYkkKSEFyRFZ6eXhLSjdyRVdTQ0NBK3owNm5ST1NCSnYrREZqY2ZDb29iZngyT2docmJtVmJldjBIVzRSdG5vWC8rNgoyNEU3TzdRTmgwd29JVkJVK1pBZ3lTOUViaDlnMGM5T2h2VUlhN0JNcjV2VmV0aVRTd2VnUkJoRm5EMmxjZmJOCmNHZE5IMGlWQWdNQkFBRUNnZ0VBQU14L2FmMklCQjJIVEJjc1lPejlsVFRxMVVuaXovd3ZIRFhXS2t0MkhqN1EKRVYyUURXM0ozNkNUSmszdzRGM1JtOUZUaUZBYUw1Zjl6MkNIbjZGSzQ0WGUzQ3dQNmRhMXB2R1krOGVZMUdBRwpYUmtoQ3h0ckp0OW4yNm8za0xTbFZHb3UzRnFGOHJpbGFQL0lsVG1MUXdDQXJoUjU3QlF0MUNnZ0w4UzhpMEhrClBOOHJKd08zcktGWGdYdFVWMWVFQ0YzNVpEbDRrdlhnVDBlVGFuR3dxblRIZENZYVhzT1lQd2FCSm5EMjlzUjIKYzlhUFVlR2hpWW44d0RKMFNhVThBUzRBQzVBK3lKaEVUUHFsWGkxV2RscjRxOGEzMnVCYks0T3VKRTlmM081MgpQd2dtTndUVUNCYldQb2ZpdCt4dkJJWFlQQ1paUUxsYzU5UHVCWitHQVFLQmdRRDNWYzR6aXZtaDVBMDdFSi9oCmhvS1V2allyVDhtbDV5SXRwNmtncGwvQ0R5bmYvamIzKzhUWXlyelVSbGt1K1dGT1BVZkYwc0RQdEVWdGEyYXMKY1NjeDVuL09HcWd5aXQ3QzFzUXl6aFQxQ1BOa0luTmNaMGRYeWpoZXRxbFR5ckIxNUVaVnRjWGN0Tng2QkdBWApzQU92cEZnUU55TXY0SmdMc213NzJzNlE0UUtCZ1FEdHFMUjhHbndaczk3QTJHMS92QjRLN3VwM3h0cHhVKzFxCld2YWYvRWxTRENtRGYxRGIxT1lDa0tyWStNZm9vZHIxQUdaa1A2ZjdlR1J4Z2w1ZnJkdlQ2djV2OXg1RG5YTEMKT3B0b2N4aU45WDZMSE5KTDluRUxrajRjNm1ITFBpKy9DVDg0OVdnRDkyazJ2TCtHdDFHRDBvaGZwRVlUVFNSdwpnV0JvbElLS05RS0JnQXpEZXM2aUgxdkJYd1ZyU0RUbE1odm03UGl6TjE2K1hMOHFaY252akFXQnJ0R0dWdVBaCk5FRlR4UWJYVW9iZ0M2dHo4aDQ5VUFIbjlhVTk0NkNHZmxWTzVjMkhCcU1GRTVYT2EzV0x1UDBrSnh0Rnc5cEMKNGlXZm8rVVBYQkdjNWhwUFcyblU1WThNTGt5RnFVZlBwNEVLNUJpQ0graTZtRjRTS1ErMXJPOUJBb0dCQU1MdQovTk5LZWY0dkRnZkp2YzduQXhGZXRFejRlMVkzUytaUHBEakhtM0JENzQwZlViaHVvUmI3aUZjZGdBTnROd1o4CmhIKzN3dFkrQXMwajdMcTRCVGFHYXBwMTdJbnpUQnpLSzR4NTAyc2xNTjEwRDM0bExzWVo5djZLdFJvYThOalcKQWRoN1dnemUwNXNGS0dlY1Y2MHpjNDVYVk84aCtFQ2JyZk01MVBUOUFvR0FkbE1Pdm1sOUJOWDg3ekVaYXpOMgo5YmFMdFp1MG9kS1YxNkNRMmIxY05IUVZ3MEJTTEQxUlZNZVM1REpsdmM0bEptR25DMnJLb3lESFdOQjg2cERFCk8vT0J2SG5CM0hvYVZwelRPR3pyS29QYW5OWDlRTGwrNXYwSkJIUXRmVDBrWTlGbWVuUi9ieXBYNWc0cCtDUzgKcklpcmJHNC9GM0FpSHoyZmEyTkNQM289Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K"
 ---
 # Source: drunk-app/templates/configMap.yaml
 # Generate ConfigMap resource from values.configMap
@@ -94,7 +113,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: drunk-test-app-data-vol
   labels:
-    helm.sh/chart: drunk-app-1.3.5
+    helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -118,7 +137,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: drunk-test-app-other-vol
   labels:
-    helm.sh/chart: drunk-app-1.3.5
+    helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -145,7 +164,7 @@ kind: Service
 metadata:
   name: test-release-drunk-test-app
   labels: 
-    helm.sh/chart: drunk-app-1.3.5
+    helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -180,21 +199,22 @@ kind: Deployment
 metadata:
   name: test-release-drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-1.3.5
+    helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
     app.kubernetes.io/managed-by: Helm
 spec:
-  # Replica count from .Values.deployment.replicaCount, defaults to 1
-  replicas: 1
+  minReadySeconds: 10
+  progressDeadlineSeconds: 600
+  revisionHistoryLimit: 5
 # Deployment strategy configuration
   strategy:
     type: RollingUpdate
     # Rolling update parameters for RollingUpdate strategy
     rollingUpdate:
       maxSurge: 1
-      maxUnavailable: 1
+      maxUnavailable: 0
   # Pod selector using standard labels
   selector:
     matchLabels:
@@ -215,6 +235,7 @@ spec:
     spec:
       # Security: disable automatic service account token mounting
       automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
       # Image pull secrets for private registries
       imagePullSecrets:
       - name: drunkcoding-acr-secret
@@ -328,12 +349,28 @@ spec:
               protocol: TCP
           # Health checks - liveness probe from .Values.deployment.liveness
           livenessProbe:
-            initialDelaySeconds: 60
-            periodSeconds: 300
+            failureThreshold: 3
             httpGet:
               path: /healthz
               port: http
+            periodSeconds: 10
           # Health checks - readiness probe from .Values.deployment.readiness
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz/ready
+              port: http
+            periodSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 5
+            failureThreshold: 30
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 10
           # Environment variables from .Values.env
           env:
           - name: env1
@@ -407,6 +444,24 @@ spec:
       # Pod scheduling constraints
       # Node selector from .Values.nodeSelector
       # Pod affinity rules from .Values.affinity
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: test-release
+                  app.kubernetes.io/name: drunk-test-app
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/instance: test-release
+              app.kubernetes.io/name: drunk-test-app
+          maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
       # Pod tolerations from .Values.tolerations
 ---
 # Source: drunk-app/templates/hpa.yaml
@@ -415,7 +470,7 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: test-release-drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-1.3.5
+    helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -429,7 +484,7 @@ spec:
     kind: "Deployment"
     name: test-release-drunk-test-app
   # Scaling boundaries from values
-  minReplicas: 1
+  minReplicas: 3
   maxReplicas: 100
   metrics:
     # CPU-based scaling - configure with .Values.autoscaling.targetCPUUtilizationPercentage
@@ -441,252 +496,14 @@ spec:
           type: Utilization
           averageUtilization: 80
 ---
-# Source: drunk-app/templates/statefulset.yaml
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: test-release-drunk-test-app
-  labels:
-    helm.sh/chart: drunk-app-1.3.5
-    app.kubernetes.io/name: drunk-test-app
-    app.kubernetes.io/instance: test-release
-    app.kubernetes.io/version: "latest"
-    app.kubernetes.io/managed-by: Helm
-spec:
-  # Service name for stable network identity
-  serviceName: test-release-drunk-test-app
-  # Replica count from .Values.statefulset.replicaCount, defaults to 1
-  replicas: 1
-  # Pod management policy: OrderedReady (default) or Parallel
-  podManagementPolicy: OrderedReady
-  # Update strategy: RollingUpdate (default) or OnDelete
-  updateStrategy:
-    type: RollingUpdate
-  # Pod selector using standard labels
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: drunk-test-app
-      app.kubernetes.io/instance: test-release
-  template:
-    metadata:
-      annotations:
-        # Checksums trigger pod restart when configs/secrets change
-        
-        checksum/configs: 95c650626d3aa0e93729c21bc2642e9d68352d9ced9bb6780aaba025a59e2187
-        checksum/secrets: 72b1a6a3fac22609b081c12eb6972e04b00b248b39eb4d0f2b9b15a679698f80
-        # Additional pod annotations from .Values.statefulset.podAnnotations
-        testMe: drunk-coding
-      labels:
-        app.kubernetes.io/name: drunk-test-app
-        app.kubernetes.io/instance: test-release
-    spec:
-      # Security: disable automatic service account token mounting
-      automountServiceAccountToken: false
-      # Image pull secrets for private registries
-      imagePullSecrets:
-      - name: drunkcoding-acr-secret
-      # Service account configuration from .Values.serviceAccount
-      serviceAccountName: drunk-test-app
-      # Pod security context from .Values.podSecurityContext
-      securityContext:
-        fsGroup: 10000
-        runAsGroup: 10000
-        runAsUser: 10000
-      # Init containers for setup tasks (optional)
-      # Begin initContainers - setup tasks that run before main container
-      initContainers:
-        - name: drunk-test-app-init
-          # Init container security context
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-              - ALL
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-          # Init container image from .Values.global.initContainer.image
-          image: "baoduy2412/astro-blog"
-          imagePullPolicy: "IfNotPresent"
-          # Init container command override
-          command:
-            - sh
-            - -c
-            - echo Init complete;
-          # Init container arguments
-          # Environment variables for init container
-          env:
-          - name: env1
-            value: "hello"
-          - name: env2
-            value: "drunkcoding"
-          # Environment from external sources for init container
-          envFrom:
-          # ConfigMap created from .Values.configMap
-          - configMapRef:
-              name: drunk-test-app-config
-          # External ConfigMaps from .Values.configFrom array
-          - configMapRef:
-              name: name_of_other_config
-          # Secret created from .Values.secrets
-          - secretRef:
-              name: drunk-test-app-secret
-          # External Secrets from .Values.secretFrom array
-          - secretRef:
-              name: name_of_other_secret
-          # SecretProvider volume - Azure Key Vault, AWS Secrets Manager, etc.
-          - secretRef:
-              name: my-secret-class
-          # Init container resource limits and requests
-          resources:
-            limits:
-              cpu: 100m
-              memory: 128Mi
-            requests:
-              cpu: 100m
-              memory: 128Mi
-          # Volume mounts for init container
-          volumeMounts:
-          # Persistent and emptyDir volumes from .Values.volumes
-          - name: data-vol
-            readOnly: false
-            mountPath: /data
-            subPath: abc.dev
-          - name: other-vol
-            readOnly: false
-            mountPath: /data
-            subPath: abc.dev
-          - name: tmp
-            readOnly: false
-            mountPath: /tmp
-          # SecretProvider volume mount for init container
-          - name: my-secret-class-vol
-            mountPath: "/mnt/secrets-store"
-            readOnly: true
-      # End initContainers
-
-      # Begin Containers - main application containers  
-      containers:
-        - name: drunk-test-app
-          # Main container security context from .Values.securityContext
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-              - ALL
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-          # Container image from .Values.global.image and .Values.global.tag
-          image: "baoduy2412/astro-blog:latest"
-          imagePullPolicy: "IfNotPresent"
-          # Container command override from .Values.statefulset.command
-          # Container arguments from .Values.statefulset.args
-          args:
-            - tunnel
-            - --no-autoupdate
-            - run
-            - --token
-            - $(token)
-          # Container ports from .Values.statefulset.ports
-          ports:
-            - name: http
-              containerPort: 8080
-              protocol: TCP
-            - name: tcp
-              containerPort: 9090
-              protocol: TCP
-          # Health checks - liveness probe from .Values.statefulset.liveness
-          livenessProbe:
-            initialDelaySeconds: 60
-            periodSeconds: 300
-            httpGet:
-              path: /healthz
-              port: http
-          # Health checks - readiness probe from .Values.statefulset.readiness
-          # Environment variables from .Values.env
-          env:
-          - name: env1
-            value: "hello"
-          - name: env2
-            value: "drunkcoding"
-          # Environment from external sources
-          envFrom:
-          # ConfigMap created from .Values.configMap
-          - configMapRef:
-              name: drunk-test-app-config
-          # External ConfigMaps from .Values.configFrom array
-          - configMapRef:
-              name: name_of_other_config
-          # Secret created from .Values.secrets
-          - secretRef:
-              name: drunk-test-app-secret
-          # External Secrets from .Values.secretFrom array
-          - secretRef:
-              name: name_of_other_secret
-          # SecretProvider volume - Azure Key Vault, AWS Secrets Manager, etc.
-          - secretRef:
-              name: my-secret-class
-          # Container resource limits and requests from .Values.resources
-          resources:
-            limits:
-              cpu: 100m
-              memory: 128Mi
-            requests:
-              cpu: 100m
-              memory: 128Mi
-          # Volume mounts for persistent storage and secrets
-          volumeMounts:
-          # Persistent and emptyDir volumes from .Values.volumes
-          - name: data-vol
-            readOnly: false
-            mountPath: /data
-            subPath: abc.dev
-          - name: other-vol
-            readOnly: false
-            mountPath: /data
-            subPath: abc.dev
-          - name: tmp
-            readOnly: false
-            mountPath: /tmp
-          # Volume claim template mounts for StatefulSet persistent storage
-          # SecretProvider volume mount for external secret management
-          - name: my-secret-class-vol
-            mountPath: "/mnt/secrets-store"
-            readOnly: true
-      # End Containers
-
-      # Volume definitions for the pod
-      volumes:
-      # Volumes from .Values.volumes - PVCs or emptyDir
-      - name: data-vol
-        persistentVolumeClaim:
-          claimName: drunk-test-app-data-vol
-      - name: other-vol
-        persistentVolumeClaim:
-          claimName: drunk-test-app-other-vol
-      - name: tmp
-        emptyDir: {}
-      # SecretProvider volume for external secret management systems
-      - name: my-secret-class-vol
-        csi:
-          driver: secrets-store.csi.k8s.io
-          readOnly: true
-          volumeAttributes:
-            secretProviderClass: my-secret-class-cls
-
-      # Pod scheduling constraints
-      # Node selector from .Values.nodeSelector
-      # Pod affinity rules from .Values.affinity
-      # Pod tolerations from .Values.tolerations
-  # Volume claim templates for StatefulSet automatic PVC provisioning
----
 # Source: drunk-app/templates/job.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
   # Job name includes random suffix to avoid conflicts on reruns
-  name: drunk-test-app-drunk-job-1-vtd7r
+  name: drunk-test-app-drunk-job-1-ylroh
   labels:
-    helm.sh/chart: drunk-app-1.3.5
+    helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -804,9 +621,9 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   # Job name includes random suffix to avoid conflicts on reruns
-  name: drunk-test-app-drunk-job-2-eaz63
+  name: drunk-test-app-drunk-job-2-pw7up
   labels:
-    helm.sh/chart: drunk-app-1.3.5
+    helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -926,7 +743,7 @@ kind: CronJob
 metadata:
   name: drunk-test-app-drunk-cjob-1
   labels:
-    helm.sh/chart: drunk-app-1.3.5
+    helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -1050,7 +867,7 @@ kind: CronJob
 metadata:
   name: drunk-test-app-drunk-cjob-2
   labels:
-    helm.sh/chart: drunk-app-1.3.5
+    helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -1175,12 +992,14 @@ kind: Ingress
 metadata:
   name: test-release-drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-1.3.5
+    helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
     app.kubernetes.io/managed-by: Helm
   # Optional annotations for ingress controller configuration
+  annotations:
+    kubernetes.io/ingress.class: nginx
 spec:
   # Ingress class name, defaults to nginx
   ingressClassName: nginx
@@ -1245,7 +1064,7 @@ kind: HTTPRoute
 metadata:
   name: test-release-drunk-test-app
   labels:
-    helm.sh/chart: drunk-app-1.3.5
+    helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"
@@ -1279,7 +1098,7 @@ kind: SecretProviderClass
 metadata:
   name: my-secret-class-cls
   labels:
-    helm.sh/chart: drunk-app-1.3.5
+    helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app
     app.kubernetes.io/instance: test-release
     app.kubernetes.io/version: "latest"

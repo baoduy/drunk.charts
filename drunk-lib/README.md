@@ -38,6 +38,7 @@ Then `helm dependency update` and reference any of the named templates below fro
 | `_ingress.tpl` | `drunk-lib.ingress` | `ingress` | networking.k8s.io/v1 `Ingress` |
 | `_job.tpl` | `drunk-lib.jobs` | `jobs[]` | `Job` (one per entry) |
 | `_networkPolicy.tpl` | `drunk-lib.networkPolicies` | `networkPolicy`, `networkPolicies[]` | `NetworkPolicy` |
+| `_pdb.tpl` | `drunk-lib.pdb` | `podDisruptionBudget` | `policy/v1` `PodDisruptionBudget` |
 | `_secretprovider.tpl` | `drunk-lib.secretProvider` | `secretProvider` | `SecretProviderClass` (CSI Secrets Store) |
 | `_secrets.tpl` | `drunk-lib.secrets` | `secrets`, `secretFrom` | `Secret` |
 | `_service.tpl` | `drunk-lib.service` | `service`, `deployment.ports` | `Service` |
@@ -174,12 +175,13 @@ MIT — see [LICENSE](LICENSE).
 | `drunk-lib.configMap` | `configMap` (map) | — |
 | `drunk-lib.secrets` | `secrets` (map) | — |
 | `drunk-lib.service` | `service.ports` OR `deployment.ports` | `service.enabled` (bool, default true), `service.type` (string, default ClusterIP), `service.annotations` (map), `service.loadBalancerIP` (string — static IP, e.g. AKS fixed private IP), `service.port` (int — exposed port for the single-port case, default 80) |
-| `drunk-lib.ingress` | `ingress.enabled: true`, `ingress.hosts` | Port resolved via `drunk.utils.ingressPort`: prefers `service.ports` → `deployment.ports` → 8080 |
+| `drunk-lib.ingress` | `ingress.enabled: true`, `ingress.hosts` | Port resolved via `drunk.utils.ingressPort`: prefers `service.ports` → `deployment.ports`; one port maps to `80`, no ports to `8080`; multiple ports prefer `http`, else the alphabetically first name |
 | `drunk-lib.hpa` | `autoscaling.enabled: true`, `autoscaling.minReplicas`, `autoscaling.maxReplicas` | `autoscaling.targetKind` (default "Deployment"), `autoscaling.targetApiVersion` (default "apps/v1") |
 | `drunk-lib.cronJobs` | `cronJobs` array with `name` and `schedule` | `cronJobs[].enabled` (bool, default true — set false to skip that entry) |
 | `drunk-lib.jobs` | `jobs` array with `name` | `jobs[].enabled` (bool, default true — set false to skip that entry) |
-| `drunk-lib.deployment` | `deployment.enabled: true`, `global.image`, `global.tag` | all other `deployment.*` keys |
-| `drunk-lib.statefulset` | `statefulset.enabled: true`, `global.image`, `global.tag` | all other `statefulset.*` keys |
+| `drunk-lib.deployment` | `deployment.enabled: true`, `global.image`, `global.tag` | `liveness`, `readiness`, `startup` (string or probe map); `lifecycle`, `preStopSleepSeconds`, `terminationGracePeriodSeconds`, `minReadySeconds`, `progressDeadlineSeconds`, `revisionHistoryLimit`, `strategy`; `autoscaling.omitReplicas`; shared scheduling keys below; existing `deployment.*` keys |
+| `drunk-lib.statefulset` | `statefulset.enabled: true`, `global.image`, `global.tag` | `liveness`, `readiness`, `startup` (string or probe map); `lifecycle`, `preStopSleepSeconds`, `terminationGracePeriodSeconds`, `minReadySeconds`; shared scheduling keys below; existing `statefulset.*` keys |
+| `drunk-lib.pdb` | `podDisruptionBudget.enabled: true`, an enabled Deployment or StatefulSet, exactly one of `minAvailable` / `maxUnavailable` | `unhealthyPodEvictionPolicy` (default `AlwaysAllow`) |
 | `drunk-lib.serviceAccount` | `serviceAccount.enabled: true` | `serviceAccount.name` |
 | `drunk-lib.gateway` | `gateway.enabled: true` | all `gateway.*` keys |
 | `drunk-lib.httpRoute` | `httpRoute.enabled: true` | all `httpRoute.*` keys |
@@ -188,6 +190,89 @@ MIT — see [LICENSE](LICENSE).
 | `drunk-lib.secretProvider` | `secretProvider.enabled: true` | all `secretProvider.*` keys |
 | `drunk-lib.imagePullSecret` | `imageCredentials` map | — |
 | `drunk-lib.tls` | `tlsSecrets` map | — |
+
+### Optional rollout keys
+
+The probe and shutdown keys belong under `deployment` or `statefulset`. The scheduling keys below are top-level. All features are opt-in.
+
+| Key | Behavior when set |
+|---|---|
+| `deployment.liveness`, `statefulset.liveness` | A string keeps the legacy HTTP probe with port `http`, delay `60`, period `300`. A map passes through unchanged. |
+| `deployment.readiness`, `statefulset.readiness` | A string keeps the legacy HTTP probe on port `http`. A map passes through unchanged. |
+| `deployment.startup`, `statefulset.startup` | A string probes the path on port `http` with period `5`, failure threshold `30`. A map passes through unchanged. |
+| `deployment.lifecycle`, `statefulset.lifecycle` | Raw main-container lifecycle, including `{}`, overrides convenience sleep. |
+| `deployment.preStopSleepSeconds`, `statefulset.preStopSleepSeconds` | Native `preStop.sleep.seconds`; no shell or container sleep binary needed. |
+| `deployment.terminationGracePeriodSeconds`, `statefulset.terminationGracePeriodSeconds` | Pod termination budget; must exceed `preStopSleepSeconds` when both are set, even with a raw lifecycle override. |
+| `deployment.minReadySeconds`, `statefulset.minReadySeconds` | Workload ready interval; presence checks retain `0`. |
+| `deployment.progressDeadlineSeconds`, `deployment.revisionHistoryLimit` | Optional Deployment spec fields; presence checks retain `0`. |
+| `deployment.strategy.maxSurge`, `deployment.strategy.maxUnavailable` | Retain explicit `0` or percentages; absent keys default to `1` / `0`. Both cannot be zero for RollingUpdate. `Recreate` emits no rollingUpdate block or comment. |
+| `autoscaling.omitReplicas` | Default `false`; omits Deployment `spec.replicas` only with an enabled HPA targeting Deployment (including an unset targetKind). StatefulSet replicas remain. HPA `minReplicas` remains. |
+| `podAntiAffinityPreset` | Default `""`; `soft` uses preferred anti-affinity, weight `100`; `hard` uses required anti-affinity. Both use hostname topology and this chart's selector labels. Unknown presets fail with the allowed values. |
+| `topologySpreadConstraints` | Default absent; list of raw constraints. Missing `labelSelector` receives this chart's selector labels. Explicit selectors remain unchanged. |
+| `podDisruptionBudget.enabled` | Default `false`; emits a budget only for an enabled Deployment or StatefulSet. Also included by `drunk-lib.all`. |
+| `podDisruptionBudget.minAvailable`, `podDisruptionBudget.maxUnavailable` | Set exactly one, integer or percentage. An integer minAvailable at least equal to the effective replica count fails when autoscaling is disabled. Replica count defaults to `1`. |
+| `podDisruptionBudget.unhealthyPodEvictionPolicy` | Default `AlwaysAllow` when enabled; raw policy override supported. |
+
+**Migration for `autoscaling.omitReplicas`:** On an existing release that already has an HPA, turning this flag on makes Helm/Argo drop the replicas field once. Kubernetes then defaults replicas to `1` until the HPA scales back up. Plan the first sync accordingly. Making this flag the default later would be a breaking change and is outside this patch.
+
+Probe maps support `httpGet` (including `scheme: HTTPS`), `tcpSocket`, `exec`, and `grpc`, plus all Kubernetes probe timings. Shutdown hooks apply only to the main container, never init containers, Jobs, or CronJobs.
+
+The anti-affinity preset preserves user affinity such as `nodeAffinity`. An explicit `affinity.podAntiAffinity` wins, including an empty map. Share one YAML anchor across aliased sub-charts: injected selectors use each alias's own `app.kubernetes.io/name`.
+
+Use Kubernetes **1.30+** for the [native sleep lifecycle action](https://kubernetes.io/blog/2025/05/14/kubernetes-v1-33-updates-to-container-lifecycle/), and **1.31+** for stable [unhealthyPodEvictionPolicy](https://kubernetes.io/docs/tasks/run-application/configure-pdb/#unhealthy-pod-eviction-policy). Earlier clusters retain their existing behavior when these features are absent.
+
+### Example — Zero-downtime Deployment
+
+```yaml
+global:
+  image: example/app
+  tag: "1.0.0"
+podAntiAffinityPreset: soft
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 50
+        preference:
+          matchExpressions:
+            - key: pool
+              operator: In
+              values: [apps]
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+deployment:
+  enabled: true
+  replicaCount: 3
+  ports: {http: 8080, https: 8443}
+  liveness:
+    httpGet: {path: /healthz, port: https, scheme: HTTPS}
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    httpGet: {path: /healthz/ready, port: https, scheme: HTTPS}
+    periodSeconds: 5
+    failureThreshold: 3
+  startup: "/healthz"
+  terminationGracePeriodSeconds: 45
+  preStopSleepSeconds: 10
+  minReadySeconds: 10
+  progressDeadlineSeconds: 600
+  revisionHistoryLimit: 5
+  strategy: {type: RollingUpdate, maxSurge: 0, maxUnavailable: 1}
+autoscaling:
+  enabled: true
+  omitReplicas: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+```
+
+Readiness must reflect whether the app can serve traffic. Tune shutdown, startup, and rollout timing for the application. The first HPA migration still needs the sync planning described above.
 
 ### Shared keys (by design)
 
@@ -284,6 +369,9 @@ Every `drunk-lib` change is regression-tested via golden-file snapshots in `drun
 | `drunk-app-default.yaml` | `drunk-app` with default `values.yaml` |
 | `drunk-app-svc-disabled.yaml` | `drunk-app` with `service.enabled: false` |
 | `drunk-app-secretprovider.yaml` | `drunk-app` with `secretProvider.enabled: true` |
+| `drunk-app-tls-secrets.yaml` | Inline TLS cert/key/CA |
+| `drunk-app-rollout.yaml` | Opt-in F1–F6 Deployment |
+| `drunk-app-statefulset-rollout.yaml` | Opt-in F1, F2, F5, F6 StatefulSet |
 
 `drunk-app-example.yaml` is also committed for human PR review but is **excluded from machine diff** because `_job.tpl` generates Job names with a random suffix (`randAlphaNum 5`) that changes on every render.
 

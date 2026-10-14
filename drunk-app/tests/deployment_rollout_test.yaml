@@ -1,0 +1,595 @@
+suite: deployment opt-in rollout safety
+templates:
+- deployment.yaml
+tests:
+- it: new fields are absent by default
+  set:
+    deployment:
+      enabled: true
+  asserts:
+  - notExists:
+      path: spec.template.spec.containers[0].startupProbe
+  - notExists:
+      path: spec.template.spec.containers[0].lifecycle
+  - notExists:
+      path: spec.template.spec.terminationGracePeriodSeconds
+  - notExists:
+      path: spec.template.spec.topologySpreadConstraints
+  - notExists:
+      path: spec.template.spec.affinity
+  - notExists:
+      path: spec.minReadySeconds
+- it: legacy probe strings keep timings
+  set:
+    deployment:
+      enabled: true
+      liveness: /live
+      readiness: /ready
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe
+      value:
+        initialDelaySeconds: 60
+        periodSeconds: 300
+        httpGet:
+          path: /live
+          port: http
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe
+      value:
+        httpGet:
+          path: /ready
+          port: http
+- it: httpGet probe maps pass through unchanged
+  set:
+    deployment:
+      enabled: true
+      liveness: &id001
+        httpGet:
+          path: /healthz
+          port: https
+          scheme: HTTPS
+        periodSeconds: 5
+        failureThreshold: 3
+        timeoutSeconds: 2
+      readiness: *id001
+      startup: *id001
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe
+      value: *id001
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe
+      value: *id001
+  - equal:
+      path: spec.template.spec.containers[0].startupProbe
+      value: *id001
+- it: tcpSocket probe maps pass through unchanged
+  set:
+    deployment:
+      enabled: true
+      liveness: &id002
+        tcpSocket:
+          port: 9090
+        periodSeconds: 5
+        failureThreshold: 3
+        timeoutSeconds: 2
+      readiness: *id002
+      startup: *id002
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe
+      value: *id002
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe
+      value: *id002
+  - equal:
+      path: spec.template.spec.containers[0].startupProbe
+      value: *id002
+- it: exec probe maps pass through unchanged
+  set:
+    deployment:
+      enabled: true
+      liveness: &id003
+        exec:
+          command:
+          - check
+          - health
+        periodSeconds: 5
+        failureThreshold: 3
+        timeoutSeconds: 2
+      readiness: *id003
+      startup: *id003
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe
+      value: *id003
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe
+      value: *id003
+  - equal:
+      path: spec.template.spec.containers[0].startupProbe
+      value: *id003
+- it: grpc probe maps pass through unchanged
+  set:
+    deployment:
+      enabled: true
+      liveness: &id004
+        grpc:
+          port: 9090
+          service: health
+        periodSeconds: 5
+        failureThreshold: 3
+        timeoutSeconds: 2
+      readiness: *id004
+      startup: *id004
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe
+      value: *id004
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe
+      value: *id004
+  - equal:
+      path: spec.template.spec.containers[0].startupProbe
+      value: *id004
+- it: startup string has slow-start defaults
+  set:
+    deployment:
+      enabled: true
+      startup: /start
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].startupProbe
+      value:
+        httpGet:
+          path: /start
+          port: http
+        periodSeconds: 5
+        failureThreshold: 30
+- it: native sleep and grace period render on main container only
+  set:
+    deployment:
+      enabled: true
+      preStopSleepSeconds: 10
+      terminationGracePeriodSeconds: 45
+    global:
+      initContainer:
+        image: init
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].lifecycle.preStop.sleep.seconds
+      value: 10
+  - equal:
+      path: spec.template.spec.terminationGracePeriodSeconds
+      value: 45
+  - notExists:
+      path: spec.template.spec.initContainers[0].lifecycle
+- it: raw lifecycle {} overrides convenience sleep
+  set:
+    deployment:
+      enabled: true
+      lifecycle: &id005 {}
+      preStopSleepSeconds: 10
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].lifecycle
+      value: *id005
+- it: 'raw lifecycle {''preStop'': {''exec'': {''command'': [''drain'']}}} overrides
+    convenience sleep'
+  set:
+    deployment:
+      enabled: true
+      lifecycle: &id006
+        preStop:
+          exec:
+            command:
+            - drain
+      preStopSleepSeconds: 10
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].lifecycle
+      value: *id006
+- it: grace period may be explicitly zero
+  set:
+    deployment:
+      enabled: true
+      terminationGracePeriodSeconds: 0
+  asserts:
+  - equal:
+      path: spec.template.spec.terminationGracePeriodSeconds
+      value: 0
+  - notExists:
+      path: spec.template.spec.containers[0].lifecycle
+- it: sleep 45 must fit inside grace period
+  set:
+    deployment:
+      enabled: true
+      preStopSleepSeconds: 45
+      terminationGracePeriodSeconds: 45
+  asserts:
+  - failedTemplate:
+      errorMessage: deployment.preStopSleepSeconds (45) must be less than terminationGracePeriodSeconds
+        (45)
+- it: sleep 46 must fit inside grace period
+  set:
+    deployment:
+      enabled: true
+      preStopSleepSeconds: 46
+      terminationGracePeriodSeconds: 45
+  asserts:
+  - failedTemplate:
+      errorMessage: deployment.preStopSleepSeconds (46) must be less than terminationGracePeriodSeconds
+        (45)
+- it: validation still applies with lifecycle override
+  set:
+    deployment:
+      enabled: true
+      lifecycle: {}
+      preStopSleepSeconds: 45
+      terminationGracePeriodSeconds: 45
+  asserts:
+  - failedTemplate:
+      errorMessage: deployment.preStopSleepSeconds (45) must be less than terminationGracePeriodSeconds
+        (45)
+- it: minReadySeconds honors explicit zero
+  set:
+    deployment:
+      enabled: true
+      minReadySeconds: 0
+  asserts:
+  - equal:
+      path: spec.minReadySeconds
+      value: 0
+- it: minReadySeconds renders a positive value
+  set:
+    deployment:
+      enabled: true
+      minReadySeconds: 10
+  asserts:
+  - equal:
+      path: spec.minReadySeconds
+      value: 10
+- it: soft preset preserves user nodeAffinity
+  set:
+    deployment:
+      enabled: true
+    podAntiAffinityPreset: soft
+    affinity:
+      nodeAffinity: &id007
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: pool
+              operator: In
+              values:
+              - apps
+  asserts:
+  - equal:
+      path: spec.template.spec.affinity.nodeAffinity
+      value: *id007
+  - equal:
+      path: spec.template.spec.affinity.podAntiAffinity
+      value:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels: &id008
+                app.kubernetes.io/name: drunk-app
+                app.kubernetes.io/instance: RELEASE-NAME
+- it: hard preset uses required anti-affinity
+  set:
+    deployment:
+      enabled: true
+    podAntiAffinityPreset: hard
+  asserts:
+  - equal:
+      path: spec.template.spec.affinity.podAntiAffinity
+      value:
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels: *id008
+- it: explicit podAntiAffinity wins over preset
+  set:
+    deployment:
+      enabled: true
+    podAntiAffinityPreset: soft
+    affinity:
+      podAntiAffinity: &id009
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - topologyKey: custom-node
+          labelSelector:
+            matchLabels:
+              app: custom
+  asserts:
+  - equal:
+      path: spec.template.spec.affinity.podAntiAffinity
+      value: *id009
+- it: explicit empty podAntiAffinity also wins
+  set:
+    deployment:
+      enabled: true
+    podAntiAffinityPreset: hard
+    affinity:
+      podAntiAffinity: {}
+  asserts:
+  - equal:
+      path: spec.template.spec.affinity.podAntiAffinity
+      value: {}
+- it: spread selectors injected independently and explicit selectors preserved
+  set:
+    deployment:
+      enabled: true
+    topologySpreadConstraints:
+    - &id010
+      maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          custom: selector
+  asserts:
+  - equal:
+      path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+      value: *id008
+  - equal:
+      path: spec.template.spec.topologySpreadConstraints[1].labelSelector.matchLabels
+      value:
+        custom: selector
+- it: chart alias name supplies both scheduling selectors
+  set:
+    deployment:
+      enabled: true
+    nameOverride: second-app
+    podAntiAffinityPreset: soft
+    topologySpreadConstraints:
+    - *id010
+  asserts:
+  - equal:
+      path: spec.template.spec.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution[0].podAffinityTerm.labelSelector.matchLabels
+      value:
+        app.kubernetes.io/name: second-app
+        app.kubernetes.io/instance: RELEASE-NAME
+  - equal:
+      path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+      value:
+        app.kubernetes.io/name: second-app
+        app.kubernetes.io/instance: RELEASE-NAME
+- it: rollout controls preserve zero
+  set:
+    deployment:
+      enabled: true
+      progressDeadlineSeconds: 0
+      revisionHistoryLimit: 0
+  asserts:
+  - equal:
+      path: spec.progressDeadlineSeconds
+      value: 0
+  - equal:
+      path: spec.revisionHistoryLimit
+      value: 0
+- it: rollout controls absent by default
+  set:
+    deployment:
+      enabled: true
+  asserts:
+  - notExists:
+      path: spec.progressDeadlineSeconds
+  - notExists:
+      path: spec.revisionHistoryLimit
+- it: 'strategy preserves {''maxSurge'': 0, ''maxUnavailable'': 1}'
+  set:
+    deployment:
+      enabled: true
+      strategy:
+        maxSurge: 0
+        maxUnavailable: 1
+  asserts:
+  - equal:
+      path: spec.strategy.rollingUpdate
+      value:
+        maxSurge: 0
+        maxUnavailable: 1
+- it: 'strategy preserves {''maxSurge'': ''25%'', ''maxUnavailable'': ''10%''}'
+  set:
+    deployment:
+      enabled: true
+      strategy:
+        maxSurge: 25%
+        maxUnavailable: 10%
+  asserts:
+  - equal:
+      path: spec.strategy.rollingUpdate
+      value:
+        maxSurge: 25%
+        maxUnavailable: 10%
+- it: 'strategy preserves {''maxSurge'': 2}'
+  set:
+    deployment:
+      enabled: true
+      strategy:
+        maxSurge: 2
+  asserts:
+  - equal:
+      path: spec.strategy.rollingUpdate
+      value:
+        maxSurge: 2
+        maxUnavailable: 0
+- it: zero zero strategy fails for 0
+  set:
+    deployment:
+      enabled: true
+      strategy:
+        maxSurge: 0
+        maxUnavailable: 0
+  asserts:
+  - failedTemplate:
+      errorMessage: deployment.strategy.maxSurge and deployment.strategy.maxUnavailable
+        must not both be 0
+- it: zero zero strategy fails for '0'
+  set:
+    deployment:
+      enabled: true
+      strategy:
+        maxSurge: '0'
+        maxUnavailable: '0'
+  asserts:
+  - failedTemplate:
+      errorMessage: deployment.strategy.maxSurge and deployment.strategy.maxUnavailable
+        must not both be 0
+- it: zero zero strategy fails for '0%'
+  set:
+    deployment:
+      enabled: true
+      strategy:
+        maxSurge: 0%
+        maxUnavailable: 0%
+  asserts:
+  - failedTemplate:
+      errorMessage: deployment.strategy.maxSurge and deployment.strategy.maxUnavailable
+        must not both be 0
+- it: Recreate has no rollingUpdate and ignores unused zero settings
+  set:
+    deployment:
+      enabled: true
+      strategy:
+        type: Recreate
+        maxSurge: 0
+        maxUnavailable: 0
+  asserts:
+  - equal:
+      path: spec.strategy.type
+      value: Recreate
+  - notExists:
+      path: spec.strategy.rollingUpdate
+- it: HPA omission flag=True enabled=True target=None
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    autoscaling:
+      omitReplicas: true
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+  asserts:
+  - notExists:
+      path: spec.replicas
+- it: HPA omission flag=True enabled=True target=Deployment
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    autoscaling:
+      omitReplicas: true
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetKind: Deployment
+  asserts:
+  - notExists:
+      path: spec.replicas
+- it: HPA omission flag=False enabled=True target=None
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    autoscaling:
+      omitReplicas: false
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+  asserts:
+  - equal:
+      path: spec.replicas
+      value: 3
+- it: HPA omission flag=True enabled=False target=None
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    autoscaling:
+      omitReplicas: true
+      enabled: false
+      minReplicas: 2
+      maxReplicas: 10
+  asserts:
+  - equal:
+      path: spec.replicas
+      value: 3
+- it: HPA omission flag=True enabled=True target=StatefulSet
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    autoscaling:
+      omitReplicas: true
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      targetKind: StatefulSet
+  asserts:
+  - equal:
+      path: spec.replicas
+      value: 3
+- it: HPA without omission flag keeps replicas
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+  asserts:
+  - equal:
+      path: spec.replicas
+      value: 3
+- it: rejects invalid anti-affinity preset 'Soft'
+  set:
+    deployment:
+      enabled: true
+    podAntiAffinityPreset: Soft
+  asserts:
+  - failedTemplate:
+      errorMessage: podAntiAffinityPreset must be one of "", soft, hard
+- it: rejects invalid anti-affinity preset 'required'
+  set:
+    deployment:
+      enabled: true
+    podAntiAffinityPreset: required
+  asserts:
+  - failedTemplate:
+      errorMessage: podAntiAffinityPreset must be one of "", soft, hard
+- it: rejects invalid anti-affinity preset False
+  set:
+    deployment:
+      enabled: true
+    podAntiAffinityPreset: false
+  asserts:
+  - failedTemplate:
+      errorMessage: podAntiAffinityPreset must be one of "", soft, hard
+- it: invalid preset fails even with explicit podAntiAffinity
+  set:
+    deployment:
+      enabled: true
+    podAntiAffinityPreset: invalid
+    affinity:
+      podAntiAffinity: {}
+  asserts:
+  - failedTemplate:
+      errorMessage: podAntiAffinityPreset must be one of "", soft, hard
+- it: explicit empty preset leaves scheduling absent
+  set:
+    deployment:
+      enabled: true
+    podAntiAffinityPreset: ''
+  asserts:
+  - notExists:
+      path: spec.template.spec.affinity
