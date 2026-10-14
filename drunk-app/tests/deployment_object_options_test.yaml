@@ -41,6 +41,8 @@ tests:
         flag: 'true'
   - notExists:
       path: metadata.annotations
+  - notExists:
+      path: spec.template.metadata.labels.team
 - it: object annotations retain standard labels and render as strings
   set:
     deployment:
