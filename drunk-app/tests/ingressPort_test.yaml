@@ -1,0 +1,260 @@
+suite: Deterministic Ingress and HTTPRoute backend port
+templates:
+- httproute.yaml
+- ingress.yaml
+tests:
+- it: two deployment ports prefer http for both kinds
+  set:
+    deployment:
+      enabled: true
+      ports:
+        http: 8080
+        tcp: 9090
+    service:
+      ports: null
+    httpRoute:
+      enabled: true
+    ingress:
+      enabled: true
+      hosts:
+      - host: test.example
+  asserts:
+  - equal:
+      path: spec.rules[0].backendRefs[0].port
+      value: 8080
+    template: httproute.yaml
+  - equal:
+      path: spec.rules[0].http.paths[0].backend.service.port.number
+      value: 8080
+    template: ingress.yaml
+- it: http wins over an alphabetically earlier grpc name
+  set:
+    deployment:
+      enabled: true
+      ports:
+        grpc: 50051
+        http: 8080
+    service:
+      ports: null
+    httpRoute:
+      enabled: true
+    ingress:
+      enabled: true
+      hosts:
+      - host: test.example
+  asserts:
+  - equal:
+      path: spec.rules[0].backendRefs[0].port
+      value: 8080
+    template: httproute.yaml
+  - equal:
+      path: spec.rules[0].http.paths[0].backend.service.port.number
+      value: 8080
+    template: ingress.yaml
+- it: without http select alphabetically first name
+  set:
+    deployment:
+      enabled: true
+      ports:
+        zeta: 9090
+        alpha: 8081
+        http: null
+    service:
+      ports: null
+    httpRoute:
+      enabled: true
+    ingress:
+      enabled: true
+      hosts:
+      - host: test.example
+  asserts:
+  - equal:
+      path: spec.rules[0].backendRefs[0].port
+      value: 8081
+    template: httproute.yaml
+  - equal:
+      path: spec.rules[0].http.paths[0].backend.service.port.number
+      value: 8081
+    template: ingress.yaml
+- it: service ports take precedence over deployment ports
+  set:
+    deployment:
+      enabled: true
+      ports:
+        http: 8080
+        tcp: 9090
+    service:
+      ports:
+        grpc: 50051
+        http: 8443
+    httpRoute:
+      enabled: true
+    ingress:
+      enabled: true
+      hosts:
+      - host: test.example
+  asserts:
+  - equal:
+      path: spec.rules[0].backendRefs[0].port
+      value: 8443
+    template: httproute.yaml
+  - equal:
+      path: spec.rules[0].http.paths[0].backend.service.port.number
+      value: 8443
+    template: ingress.yaml
+- it: service ports without http use alphabetical fallback
+  set:
+    deployment:
+      enabled: true
+      ports:
+        http: 8080
+        tcp: 9090
+    service:
+      ports:
+        zeta: 9000
+        alpha: 9001
+    httpRoute:
+      enabled: true
+    ingress:
+      enabled: true
+      hosts:
+      - host: test.example
+  asserts:
+  - equal:
+      path: spec.rules[0].backendRefs[0].port
+      value: 9001
+    template: httproute.yaml
+  - equal:
+      path: spec.rules[0].http.paths[0].backend.service.port.number
+      value: 9001
+    template: ingress.yaml
+- it: a single deployment port keeps service port 80
+  set:
+    deployment:
+      enabled: true
+      ports:
+        http: 8080
+    service:
+      ports: null
+    httpRoute:
+      enabled: true
+    ingress:
+      enabled: true
+      hosts:
+      - host: test.example
+  asserts:
+  - equal:
+      path: spec.rules[0].backendRefs[0].port
+      value: 80
+    template: httproute.yaml
+  - equal:
+      path: spec.rules[0].http.paths[0].backend.service.port.number
+      value: 80
+    template: ingress.yaml
+- it: no ports keeps the 8080 fallback
+  set:
+    deployment:
+      enabled: true
+      ports: null
+    service:
+      ports: null
+    httpRoute:
+      enabled: true
+    ingress:
+      enabled: true
+      hosts:
+      - host: test.example
+  asserts:
+  - equal:
+      path: spec.rules[0].backendRefs[0].port
+      value: 8080
+    template: httproute.yaml
+  - equal:
+      path: spec.rules[0].http.paths[0].backend.service.port.number
+      value: 8080
+    template: ingress.yaml
+- it: default backend in configured rule uses the same deterministic helper
+  set:
+    deployment:
+      enabled: true
+      ports:
+        http: 8080
+        tcp: 9090
+    service:
+      ports: null
+    httpRoute:
+      enabled: true
+      rules:
+      - matches:
+        - path:
+            type: PathPrefix
+            value: /
+    ingress:
+      enabled: true
+      hosts:
+      - host: test.example
+  asserts:
+  - equal:
+      path: spec.rules[0].backendRefs[0].port
+      value: 8080
+    template: httproute.yaml
+  - equal:
+      path: spec.rules[0].http.paths[0].backend.service.port.number
+      value: 8080
+    template: ingress.yaml
+- it: backendRef without an explicit port uses the same deterministic helper
+  set:
+    deployment:
+      enabled: true
+      ports:
+        http: 8080
+        tcp: 9090
+    service:
+      ports: null
+    httpRoute:
+      enabled: true
+      rules:
+      - backendRefs:
+        - name: test-backend
+    ingress:
+      enabled: true
+      hosts:
+      - host: test.example
+  asserts:
+  - equal:
+      path: spec.rules[0].backendRefs[0].port
+      value: 8080
+    template: httproute.yaml
+  - equal:
+      path: spec.rules[0].http.paths[0].backend.service.port.number
+      value: 8080
+    template: ingress.yaml
+- it: explicit backend ports retain precedence
+  set:
+    deployment:
+      enabled: true
+      ports:
+        http: 8080
+        tcp: 9090
+    service:
+      ports: null
+    httpRoute:
+      enabled: true
+      rules:
+      - backendRefs:
+        - name: test-backend
+          port: 7777
+    ingress:
+      enabled: true
+      hosts:
+      - host: test.example
+        port: 7777
+  asserts:
+  - equal:
+      path: spec.rules[0].backendRefs[0].port
+      value: 7777
+    template: httproute.yaml
+  - equal:
+      path: spec.rules[0].http.paths[0].backend.service.port.number
+      value: 7777
+    template: ingress.yaml

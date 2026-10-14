@@ -551,3 +551,45 @@ tests:
   - equal:
       path: spec.replicas
       value: 3
+- it: rejects invalid anti-affinity preset 'Soft'
+  set:
+    deployment:
+      enabled: true
+    podAntiAffinityPreset: Soft
+  asserts:
+  - failedTemplate:
+      errorMessage: podAntiAffinityPreset must be one of "", soft, hard
+- it: rejects invalid anti-affinity preset 'required'
+  set:
+    deployment:
+      enabled: true
+    podAntiAffinityPreset: required
+  asserts:
+  - failedTemplate:
+      errorMessage: podAntiAffinityPreset must be one of "", soft, hard
+- it: rejects invalid anti-affinity preset False
+  set:
+    deployment:
+      enabled: true
+    podAntiAffinityPreset: false
+  asserts:
+  - failedTemplate:
+      errorMessage: podAntiAffinityPreset must be one of "", soft, hard
+- it: invalid preset fails even with explicit podAntiAffinity
+  set:
+    deployment:
+      enabled: true
+    podAntiAffinityPreset: invalid
+    affinity:
+      podAntiAffinity: {}
+  asserts:
+  - failedTemplate:
+      errorMessage: podAntiAffinityPreset must be one of "", soft, hard
+- it: explicit empty preset leaves scheduling absent
+  set:
+    deployment:
+      enabled: true
+    podAntiAffinityPreset: ''
+  asserts:
+  - notExists:
+      path: spec.template.spec.affinity

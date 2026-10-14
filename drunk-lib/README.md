@@ -37,8 +37,8 @@ Then `helm dependency update` and reference any of the named templates below fro
 | `_imagePull-secret.tpl` | `drunk-lib.imagePullSecret` | `imageCredentials` | dockerconfig `Secret` |
 | `_ingress.tpl` | `drunk-lib.ingress` | `ingress` | networking.k8s.io/v1 `Ingress` |
 | `_job.tpl` | `drunk-lib.jobs` | `jobs[]` | `Job` (one per entry) |
-| `_pdb.tpl` | `drunk-lib.pdb` | `podDisruptionBudget` | `policy/v1` `PodDisruptionBudget` |
 | `_networkPolicy.tpl` | `drunk-lib.networkPolicies` | `networkPolicy`, `networkPolicies[]` | `NetworkPolicy` |
+| `_pdb.tpl` | `drunk-lib.pdb` | `podDisruptionBudget` | `policy/v1` `PodDisruptionBudget` |
 | `_secretprovider.tpl` | `drunk-lib.secretProvider` | `secretProvider` | `SecretProviderClass` (CSI Secrets Store) |
 | `_secrets.tpl` | `drunk-lib.secrets` | `secrets`, `secretFrom` | `Secret` |
 | `_service.tpl` | `drunk-lib.service` | `service`, `deployment.ports` | `Service` |
@@ -175,7 +175,7 @@ MIT — see [LICENSE](LICENSE).
 | `drunk-lib.configMap` | `configMap` (map) | — |
 | `drunk-lib.secrets` | `secrets` (map) | — |
 | `drunk-lib.service` | `service.ports` OR `deployment.ports` | `service.enabled` (bool, default true), `service.type` (string, default ClusterIP), `service.annotations` (map), `service.loadBalancerIP` (string — static IP, e.g. AKS fixed private IP), `service.port` (int — exposed port for the single-port case, default 80) |
-| `drunk-lib.ingress` | `ingress.enabled: true`, `ingress.hosts` | Port resolved via `drunk.utils.ingressPort`: prefers `service.ports` → `deployment.ports` → 8080 |
+| `drunk-lib.ingress` | `ingress.enabled: true`, `ingress.hosts` | Port resolved via `drunk.utils.ingressPort`: prefers `service.ports` → `deployment.ports`; one port maps to `80`, no ports to `8080`; multiple ports prefer `http`, else the alphabetically first name |
 | `drunk-lib.hpa` | `autoscaling.enabled: true`, `autoscaling.minReplicas`, `autoscaling.maxReplicas` | `autoscaling.targetKind` (default "Deployment"), `autoscaling.targetApiVersion` (default "apps/v1") |
 | `drunk-lib.cronJobs` | `cronJobs` array with `name` and `schedule` | `cronJobs[].enabled` (bool, default true — set false to skip that entry) |
 | `drunk-lib.jobs` | `jobs` array with `name` | `jobs[].enabled` (bool, default true — set false to skip that entry) |
@@ -207,7 +207,7 @@ The probe and shutdown keys belong under `deployment` or `statefulset`. The sche
 | `deployment.progressDeadlineSeconds`, `deployment.revisionHistoryLimit` | Optional Deployment spec fields; presence checks retain `0`. |
 | `deployment.strategy.maxSurge`, `deployment.strategy.maxUnavailable` | Retain explicit `0` or percentages; absent keys default to `1` / `0`. Both cannot be zero for RollingUpdate. `Recreate` emits no rollingUpdate block or comment. |
 | `autoscaling.omitReplicas` | Default `false`; omits Deployment `spec.replicas` only with an enabled HPA targeting Deployment (including an unset targetKind). StatefulSet replicas remain. HPA `minReplicas` remains. |
-| `podAntiAffinityPreset` | Default `""`; `soft` uses preferred anti-affinity, weight `100`; `hard` uses required anti-affinity. Both use hostname topology and this chart's selector labels. |
+| `podAntiAffinityPreset` | Default `""`; `soft` uses preferred anti-affinity, weight `100`; `hard` uses required anti-affinity. Both use hostname topology and this chart's selector labels. Unknown presets fail with the allowed values. |
 | `topologySpreadConstraints` | Default absent; list of raw constraints. Missing `labelSelector` receives this chart's selector labels. Explicit selectors remain unchanged. |
 | `podDisruptionBudget.enabled` | Default `false`; emits a budget only for an enabled Deployment or StatefulSet. Also included by `drunk-lib.all`. |
 | `podDisruptionBudget.minAvailable`, `podDisruptionBudget.maxUnavailable` | Set exactly one, integer or percentage. An integer minAvailable at least equal to the effective replica count fails when autoscaling is disabled. Replica count defaults to `1`. |

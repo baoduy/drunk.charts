@@ -36,7 +36,10 @@ deployment:
   # startup: "/healthz" # or a raw probe map; shorthand uses period 5, failure threshold 30
   # terminationGracePeriodSeconds: 45
   # preStopSleepSeconds: 10 # native sleep; requires Kubernetes 1.30+
-  # lifecycle: {} # raw override wins over preStopSleepSeconds
+  # Alternative lifecycle hook; do not set together with preStopSleepSeconds.
+  # lifecycle:
+  #   preStop:
+  #     sleep: {seconds: 10}
   # minReadySeconds: 10 # 0 is also valid
   # progressDeadlineSeconds: 600
   # revisionHistoryLimit: 5
@@ -60,7 +63,10 @@ deployment:
 #   startup: "/healthz" # or a raw probe map; shorthand uses period 5, failure threshold 30
 #   terminationGracePeriodSeconds: 45
 #   preStopSleepSeconds: 10 # native sleep; requires Kubernetes 1.30+
-#   lifecycle: {} # raw override wins over preStopSleepSeconds
+#   # Alternative lifecycle hook; do not set together with preStopSleepSeconds.
+#   lifecycle:
+#     preStop:
+#       sleep: {seconds: 10}
 #   minReadySeconds: 10 # 0 is also valid
 
 #cronJobs:

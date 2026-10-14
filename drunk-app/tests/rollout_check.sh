@@ -83,3 +83,24 @@ if grep -qE 'rollingUpdate:|# Rolling update parameters' "$CHECK_DIR/recreate.ya
   exit 1
 fi
 echo 'PASS Recreate omits rolling update block and comment'
+
+# The full example includes an auto-detected HTTPRoute backend and 2 explicit
+# Ingress backend ports. Check each render against those exact expected ports.
+for iteration in {1..20}; do
+  helm template test "$CHART_DIR" --values "$CHART_DIR/values.example.yaml" \
+    --show-only templates/httproute.yaml --show-only templates/ingress.yaml \
+    > "$CHECK_DIR/example-$iteration.yaml"
+  route_ports="$(awk '
+    /^# Source:/ { source = $0 }
+    source ~ /templates\/httproute.yaml$/ && /^[[:space:]]+port:/ { print $2 }
+  ' "$CHECK_DIR/example-$iteration.yaml")"
+  ingress_ports="$(awk '
+    /^# Source:/ { source = $0 }
+    source ~ /templates\/ingress.yaml$/ && /^[[:space:]]+number:/ { print $2 }
+  ' "$CHECK_DIR/example-$iteration.yaml")"
+  if [ "$route_ports" != 8080 ] || [ "$ingress_ports" != $'8080\n9090' ]; then
+    echo "FAIL render $iteration: unexpected HTTPRoute or Ingress backend port"
+    exit 1
+  fi
+done
+echo 'PASS 20 example renders: HTTPRoute 8080; explicit Ingress ports 8080 and 9090 every time'

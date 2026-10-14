@@ -501,7 +501,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   # Job name includes random suffix to avoid conflicts on reruns
-  name: drunk-test-app-drunk-job-1-tngjy
+  name: drunk-test-app-drunk-job-1-ylroh
   labels:
     helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app
@@ -621,7 +621,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   # Job name includes random suffix to avoid conflicts on reruns
-  name: drunk-test-app-drunk-job-2-r2gib
+  name: drunk-test-app-drunk-job-2-pw7up
   labels:
     helm.sh/chart: drunk-app-2.0.1
     app.kubernetes.io/name: drunk-test-app

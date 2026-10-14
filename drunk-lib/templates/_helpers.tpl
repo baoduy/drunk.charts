@@ -5,7 +5,8 @@
 # Created: 2025-09-10
 
 # Get the mapped service port for ingress
-# If deployment has only 1 port, map to 80. If more than 1, map to the first port in the map.
+# Prefer service.ports over deployment.ports. One port maps to 80; no ports maps to 8080.
+# With multiple ports, prefer http; otherwise choose the alphabetically first port name.
 # Usage: {{ include "drunk.utils.ingressPort" . }}
 {{- define "drunk.utils.ingressPort" -}}
 {{- $svc := .Values.service | default dict -}}
@@ -19,8 +20,12 @@
   {{- if eq (len $ports) 1 -}}
 80
   {{- else -}}
-    {{- $firstPort := (keys $ports | first) -}}
+    {{- if hasKey $ports "http" -}}
+    {{- get $ports "http" -}}
+    {{- else -}}
+    {{- $firstPort := (keys $ports | sortAlpha | first) -}}
     {{- get $ports $firstPort -}}
+    {{- end -}}
   {{- end -}}
 {{- else -}}
 8080
@@ -223,7 +228,13 @@ lifecycle:
 {{/* Work on copies: aliases and other includes must not inherit mutated values. */}}
 {{- define "drunk-lib.podScheduling" -}}
 {{- $affinity := deepCopy (.Values.affinity | default dict) -}}
-{{- $preset := .Values.podAntiAffinityPreset | default "" -}}
+{{- $preset := "" -}}
+{{- if hasKey .Values "podAntiAffinityPreset" -}}
+{{- $preset = .Values.podAntiAffinityPreset -}}
+{{- end -}}
+{{- if not (has $preset (list "" "soft" "hard")) -}}
+{{- fail "podAntiAffinityPreset must be one of \"\", soft, hard" -}}
+{{- end -}}
 {{- $labels := include "app.selectorLabels" . | fromYaml -}}
 {{- if and (has $preset (list "soft" "hard")) (not (hasKey $affinity "podAntiAffinity")) -}}
 {{- $term := dict "topologyKey" "kubernetes.io/hostname" "labelSelector" (dict "matchLabels" $labels) -}}
