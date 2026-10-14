@@ -1,0 +1,70 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Job and CronJob node placement",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-job-placement-20261014-170000/job-placement.html",
+    "repository": {
+      "url": "https://github.com/baoduy/drunk.charts.git",
+      "revision": "2da1b3a3a294adb1f0a975aa0c0625b0b9eea624"
+    }
+  },
+  "lanes": [
+    {"id": "inherit", "label": "Default node placement"},
+    {"id": "override", "label": "Per-entry replacement"},
+    {"id": "omit", "label": "Empty value"}
+  ],
+  "nodes": [
+    {
+      "id": "entry", "lane": "inherit", "col": 0, "type": "external",
+      "label": "jobs[] / cronJobs[]", "sublabel": "each placement key", "width": 170,
+      "sources": [{"path": "drunk-lib/templates/_job.tpl", "line": 16, "end_line": 18}, {"path": "drunk-lib/templates/_cronjob.tpl", "line": 18, "end_line": 20}]
+    },
+    {
+      "id": "presence", "lane": "inherit", "col": 1, "type": "backend",
+      "label": "Key supplied?", "sublabel": "jobScheduling: hasKey", "width": 170,
+      "sources": [{"path": "drunk-lib/templates/_podOptions.tpl", "line": 62, "end_line": 80}]
+    },
+    {
+      "id": "defaults", "lane": "inherit", "col": 2, "type": "backend",
+      "label": "App node placement", "sublabel": "node affinity only", "width": 170,
+      "sources": [{"path": "drunk-lib/templates/_podOptions.tpl", "line": 63, "end_line": 77}]
+    },
+    {
+      "id": "selected", "lane": "inherit", "col": 3, "type": "backend",
+      "label": "Selected value", "sublabel": "emit only if non-empty", "width": 170,
+      "sources": [{"path": "drunk-lib/templates/_podOptions.tpl", "line": 68, "end_line": 84}]
+    },
+    {
+      "id": "pod", "lane": "inherit", "col": 4, "type": "cloud",
+      "label": "Batch pod spec", "sublabel": "Job / CronJob template", "width": 170,
+      "sources": [{"path": "drunk-lib/templates/_job.tpl", "line": 36, "end_line": 41}, {"path": "drunk-lib/templates/_cronjob.tpl", "line": 42, "end_line": 47}]
+    },
+    {
+      "id": "replace", "lane": "override", "col": 2, "type": "backend",
+      "label": "Entry override", "sublabel": "whole key; no merging", "width": 170,
+      "sources": [{"path": "drunk-lib/templates/_podOptions.tpl", "line": 65, "end_line": 67}, {"path": "drunk-lib/templates/_podOptions.tpl", "line": 78, "end_line": 80}]
+    },
+    {
+      "id": "empty", "lane": "omit", "col": 3, "type": "cloud",
+      "label": "Field omitted", "sublabel": "{} / [] clears inheritance", "width": 170,
+      "sources": [{"path": "drunk-lib/templates/_podOptions.tpl", "line": 68, "end_line": 84}]
+    }
+  ],
+  "mainPath": ["entry", "presence", "defaults", "selected", "pod"],
+  "edges": [
+    {"id": "entry-check", "from": "entry", "to": "presence"},
+    {"id": "absent-default", "from": "presence", "to": "defaults", "label": "absent"},
+    {"id": "default-selected", "from": "defaults", "to": "selected"},
+    {"id": "nonempty-pod", "from": "selected", "to": "pod", "label": "non-empty"},
+    {"id": "present-replace", "from": "presence", "to": "replace", "label": "present", "role": "branch"},
+    {"id": "replace-selected", "from": "replace", "to": "selected", "role": "branch"},
+    {"id": "empty-omit", "from": "selected", "to": "empty", "label": "empty", "role": "branch"}
+  ],
+  "cards": [
+    {"dot": "cyan", "title": "Independent keys", "items": ["nodeSelector and tolerations inherit complete app values", "affinity inherits only app affinity.nodeAffinity"]},
+    {"dot": "amber", "title": "Explicit batch placement", "items": ["Entry affinity renders as written, including pod affinity", "App pod affinity, anti-affinity and spread are never inherited"]}
+  ]
+}
