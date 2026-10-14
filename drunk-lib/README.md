@@ -412,10 +412,10 @@ env:
 ```
 
 Each `volumes` entry retains `mountPath`, optional `subPath`, and `readOnly` (default `false`).
-Choose one source key: `configMap`, `secret`, `projected`, `csi`, or `emptyDir`.
-Source maps pass through unchanged on all 4 workloads and never create a PVC.
-`emptyDir: true` still renders `emptyDir: {}`. Map-shaped `emptyDir`, including `{}`, also creates no PVC.
-An entry with no source key, or `emptyDir: false`, keeps the existing PVC behavior and storage settings.
+Choose one source key: `configMap`, `secret`, `projected`, `csi`, or `emptyDir`; multiple source keys fail rendering.
+ConfigMap, Secret, projected and CSI source maps pass through unchanged on all 4 workloads and never create a PVC.
+`emptyDir: true` still renders `emptyDir: {}`. A non-empty `emptyDir` map passes through `medium` and/or `sizeLimit` and creates no PVC.
+`emptyDir: {}` retains the existing PVC and its pod mount. An entry with no source key, or `emptyDir: false`, also keeps the existing PVC behavior and storage settings.
 These volume options also apply to existing Deployment and StatefulSet init-container mounts.
 
 ```yaml

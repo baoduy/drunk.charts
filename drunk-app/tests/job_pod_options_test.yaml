@@ -4,7 +4,7 @@ templates:
 tests:
 - it: no new fields or scheduling by default
   set:
-    deployment: &id001
+    deployment: &workload_disabled
       enabled: false
     jobs:
     - name: task
@@ -32,18 +32,18 @@ tests:
           memory: 128Mi
 - it: inherit only node scheduling
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
-    nodeSelector: &id003
+    nodeSelector: &node_selector
       pool: apps
       disk: ssd
-    tolerations: &id004
+    tolerations: &app_tolerations
     - key: apps
       operator: Exists
       effect: NoSchedule
-    affinity: &id008
-      nodeAffinity: &id005
+    affinity: &app_affinity
+      nodeAffinity: &app_node_affinity
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
           - matchExpressions:
@@ -51,239 +51,239 @@ tests:
               operator: In
               values:
               - apps
-      podAffinity: &id002
+      podAffinity: &app_pod_affinity_terms
         requiredDuringSchedulingIgnoredDuringExecution:
         - labelSelector:
             matchLabels:
               app: web
           topologyKey: kubernetes.io/hostname
-      podAntiAffinity: *id002
+      podAntiAffinity: *app_pod_affinity_terms
     podAntiAffinityPreset: hard
-    topologySpreadConstraints: &id006
+    topologySpreadConstraints: &app_topology_spread
     - maxSkew: 1
       topologyKey: zone
       whenUnsatisfiable: DoNotSchedule
   asserts:
   - equal:
       path: spec.template.spec.nodeSelector
-      value: *id003
+      value: *node_selector
   - equal:
       path: spec.template.spec.tolerations
-      value: *id004
+      value: *app_tolerations
   - equal:
       path: spec.template.spec.affinity
-      value: &id007
-        nodeAffinity: *id005
+      value: &node_affinity_only
+        nodeAffinity: *app_node_affinity
   - notExists:
       path: spec.template.spec.topologySpreadConstraints
 - it: pod scheduling without node affinity is never inherited
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
-    nodeSelector: *id003
-    tolerations: *id004
+    nodeSelector: *node_selector
+    tolerations: *app_tolerations
     affinity:
-      podAffinity: *id002
-      podAntiAffinity: *id002
+      podAffinity: *app_pod_affinity_terms
+      podAntiAffinity: *app_pod_affinity_terms
     podAntiAffinityPreset: hard
-    topologySpreadConstraints: *id006
+    topologySpreadConstraints: *app_topology_spread
   asserts:
   - equal:
       path: spec.template.spec.nodeSelector
-      value: *id003
+      value: *node_selector
   - equal:
       path: spec.template.spec.tolerations
-      value: *id004
+      value: *app_tolerations
   - notExists:
       path: spec.template.spec.affinity
   - notExists:
       path: spec.template.spec.topologySpreadConstraints
 - it: preset is never applied to a job
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
-    nodeSelector: *id003
-    tolerations: *id004
+    nodeSelector: *node_selector
+    tolerations: *app_tolerations
     affinity:
-      nodeAffinity: *id005
+      nodeAffinity: *app_node_affinity
     podAntiAffinityPreset: hard
-    topologySpreadConstraints: *id006
+    topologySpreadConstraints: *app_topology_spread
   asserts:
   - equal:
       path: spec.template.spec.nodeSelector
-      value: *id003
+      value: *node_selector
   - equal:
       path: spec.template.spec.tolerations
-      value: *id004
+      value: *app_tolerations
   - equal:
       path: spec.template.spec.affinity
-      value: *id007
+      value: *node_affinity_only
   - notExists:
       path: spec.template.spec.topologySpreadConstraints
 - it: nodeSelector override replaces the app value
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
-      nodeSelector: &id009
+      nodeSelector: &node_selector_2
         pool: batch
-    nodeSelector: *id003
-    tolerations: *id004
-    affinity: *id008
+    nodeSelector: *node_selector
+    tolerations: *app_tolerations
+    affinity: *app_affinity
     podAntiAffinityPreset: hard
-    topologySpreadConstraints: *id006
+    topologySpreadConstraints: *app_topology_spread
   asserts:
   - equal:
       path: spec.template.spec.nodeSelector
-      value: *id009
+      value: *node_selector_2
   - equal:
       path: spec.template.spec.tolerations
-      value: *id004
+      value: *app_tolerations
   - equal:
       path: spec.template.spec.affinity
-      value: *id007
+      value: *node_affinity_only
   - notExists:
       path: spec.template.spec.topologySpreadConstraints
 - it: tolerations override replaces the app value
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
-      tolerations: &id010
+      tolerations: &entry_tolerations
       - key: batch
         operator: Exists
-    nodeSelector: *id003
-    tolerations: *id004
-    affinity: *id008
+    nodeSelector: *node_selector
+    tolerations: *app_tolerations
+    affinity: *app_affinity
     podAntiAffinityPreset: hard
-    topologySpreadConstraints: *id006
+    topologySpreadConstraints: *app_topology_spread
   asserts:
   - equal:
       path: spec.template.spec.nodeSelector
-      value: *id003
+      value: *node_selector
   - equal:
       path: spec.template.spec.tolerations
-      value: *id010
+      value: *entry_tolerations
   - equal:
       path: spec.template.spec.affinity
-      value: *id007
+      value: *node_affinity_only
   - notExists:
       path: spec.template.spec.topologySpreadConstraints
 - it: affinity override replaces the app value
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
-      affinity: &id011
-        podAffinity: *id002
-    nodeSelector: *id003
-    tolerations: *id004
-    affinity: *id008
+      affinity: &app_affinity_2
+        podAffinity: *app_pod_affinity_terms
+    nodeSelector: *node_selector
+    tolerations: *app_tolerations
+    affinity: *app_affinity
     podAntiAffinityPreset: hard
-    topologySpreadConstraints: *id006
+    topologySpreadConstraints: *app_topology_spread
   asserts:
   - equal:
       path: spec.template.spec.nodeSelector
-      value: *id003
+      value: *node_selector
   - equal:
       path: spec.template.spec.tolerations
-      value: *id004
+      value: *app_tolerations
   - equal:
       path: spec.template.spec.affinity
-      value: *id011
+      value: *app_affinity_2
   - notExists:
       path: spec.template.spec.topologySpreadConstraints
 - it: empty nodeSelector disables only that inheritance
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
       nodeSelector: {}
-    nodeSelector: *id003
-    tolerations: *id004
-    affinity: *id008
+    nodeSelector: *node_selector
+    tolerations: *app_tolerations
+    affinity: *app_affinity
     podAntiAffinityPreset: hard
-    topologySpreadConstraints: *id006
+    topologySpreadConstraints: *app_topology_spread
   asserts:
   - notExists:
       path: spec.template.spec.nodeSelector
   - equal:
       path: spec.template.spec.tolerations
-      value: *id004
+      value: *app_tolerations
   - equal:
       path: spec.template.spec.affinity
-      value: *id007
+      value: *node_affinity_only
   - notExists:
       path: spec.template.spec.topologySpreadConstraints
 - it: empty tolerations disables only that inheritance
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
       tolerations: []
-    nodeSelector: *id003
-    tolerations: *id004
-    affinity: *id008
+    nodeSelector: *node_selector
+    tolerations: *app_tolerations
+    affinity: *app_affinity
     podAntiAffinityPreset: hard
-    topologySpreadConstraints: *id006
+    topologySpreadConstraints: *app_topology_spread
   asserts:
   - equal:
       path: spec.template.spec.nodeSelector
-      value: *id003
+      value: *node_selector
   - notExists:
       path: spec.template.spec.tolerations
   - equal:
       path: spec.template.spec.affinity
-      value: *id007
+      value: *node_affinity_only
   - notExists:
       path: spec.template.spec.topologySpreadConstraints
 - it: empty affinity disables only that inheritance
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
       affinity: {}
-    nodeSelector: *id003
-    tolerations: *id004
-    affinity: *id008
+    nodeSelector: *node_selector
+    tolerations: *app_tolerations
+    affinity: *app_affinity
     podAntiAffinityPreset: hard
-    topologySpreadConstraints: *id006
+    topologySpreadConstraints: *app_topology_spread
   asserts:
   - equal:
       path: spec.template.spec.nodeSelector
-      value: *id003
+      value: *node_selector
   - equal:
       path: spec.template.spec.tolerations
-      value: *id004
+      value: *app_tolerations
   - notExists:
       path: spec.template.spec.affinity
   - notExists:
       path: spec.template.spec.topologySpreadConstraints
 - it: overrides render without app scheduling
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
-      nodeSelector: *id009
-      tolerations: *id010
-      affinity: *id011
+      nodeSelector: *node_selector_2
+      tolerations: *entry_tolerations
+      affinity: *app_affinity_2
   asserts:
   - equal:
       path: spec.template.spec.nodeSelector
-      value: *id009
+      value: *node_selector_2
   - equal:
       path: spec.template.spec.tolerations
-      value: *id010
+      value: *entry_tolerations
   - equal:
       path: spec.template.spec.affinity
-      value: *id011
+      value: *app_affinity_2
   - notExists:
       path: spec.template.spec.topologySpreadConstraints
 - it: podLabels renders only supplied pod metadata
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
       podLabels:
@@ -299,7 +299,7 @@ tests:
       path: spec.template.metadata.annotations
 - it: podAnnotations renders only supplied pod metadata
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
       podAnnotations:
@@ -315,7 +315,7 @@ tests:
       path: spec.template.metadata.labels
 - it: empty pod metadata maps render no metadata
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
       podLabels: {}
@@ -325,20 +325,20 @@ tests:
       path: spec.template.metadata
 - it: entry resources replace the top-level limits
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
-      resources: &id012
+      resources: &container_resources
         requests:
           cpu: 250m
           memory: 256Mi
   asserts:
   - equal:
       path: spec.template.spec.containers[0].resources
-      value: *id012
+      value: *container_resources
 - it: empty resources clear the top-level resources
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
       resources: {}
@@ -348,13 +348,13 @@ tests:
       value: {}
 - it: mixed entries keep their overrides isolated
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     jobs:
     - name: task
-      nodeSelector: *id009
-      tolerations: *id010
-      affinity: *id011
-      resources: *id012
+      nodeSelector: *node_selector_2
+      tolerations: *entry_tolerations
+      affinity: *app_affinity_2
+      resources: *container_resources
       podLabels:
         team: batch
       podAnnotations:
@@ -364,38 +364,38 @@ tests:
       nodeSelector: {}
       tolerations: []
       affinity: {}
-    nodeSelector: *id003
-    tolerations: *id004
-    affinity: *id008
+    nodeSelector: *node_selector
+    tolerations: *app_tolerations
+    affinity: *app_affinity
     podAntiAffinityPreset: hard
-    topologySpreadConstraints: *id006
+    topologySpreadConstraints: *app_topology_spread
   asserts:
   - equal:
       path: spec.template.spec.nodeSelector
-      value: *id009
+      value: *node_selector_2
     documentIndex: 0
   - equal:
       path: spec.template.spec.tolerations
-      value: *id010
+      value: *entry_tolerations
     documentIndex: 0
   - equal:
       path: spec.template.spec.affinity
-      value: *id011
+      value: *app_affinity_2
     documentIndex: 0
   - notExists:
       path: spec.template.spec.topologySpreadConstraints
     documentIndex: 0
   - equal:
       path: spec.template.spec.nodeSelector
-      value: *id003
+      value: *node_selector
     documentIndex: 1
   - equal:
       path: spec.template.spec.tolerations
-      value: *id004
+      value: *app_tolerations
     documentIndex: 1
   - equal:
       path: spec.template.spec.affinity
-      value: *id007
+      value: *node_affinity_only
     documentIndex: 1
   - notExists:
       path: spec.template.spec.topologySpreadConstraints
@@ -435,7 +435,7 @@ tests:
       enabled: false
     jobs:
     - name: task
-    resources: &id013
+    resources: &container_resources_2
       limits:
         cpu: '1'
         memory: 1Gi
@@ -445,7 +445,7 @@ tests:
   asserts:
   - equal:
       path: spec.template.spec.containers[0].resources
-      value: *id013
+      value: *container_resources_2
 - it: job priorityClassName is outside the supported options
   set:
     deployment:

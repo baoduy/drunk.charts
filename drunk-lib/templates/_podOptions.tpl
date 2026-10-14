@@ -8,17 +8,20 @@ value: {{ . | quote }}
 {{- end -}}
 {{- end -}}
 
-{{/* Select the same source for pod volumes and PVC generation, including empty maps. */}}
+{{/* Select one source for pod volumes and PVC generation; empty emptyDir maps retain their PVC. */}}
 {{- define "drunk-lib.volumeType" -}}
-{{- $type := "" -}}
-{{- range $key := list "configMap" "secret" "projected" "csi" -}}
-{{- if and (eq $type "") (hasKey $ $key) -}}
-{{- $type = $key -}}
+{{- $sources := list -}}
+{{- range $key := list "configMap" "secret" "projected" "csi" "emptyDir" -}}
+{{- if hasKey $ $key -}}
+{{- $sources = append $sources $key -}}
 {{- end -}}
 {{- end -}}
-{{- if $type -}}
-{{- $type -}}
-{{- else if or .emptyDir (kindIs "map" .emptyDir) -}}
+{{- if gt (len $sources) 1 -}}
+{{- fail (printf "volumes: only one source key may be set; found %s" (join ", " $sources)) -}}
+{{- end -}}
+{{- if and (eq (len $sources) 1) (ne (first $sources) "emptyDir") -}}
+{{- first $sources -}}
+{{- else if .emptyDir -}}
 emptyDir
 {{- else -}}
 persistentVolumeClaim

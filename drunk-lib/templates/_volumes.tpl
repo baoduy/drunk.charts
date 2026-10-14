@@ -10,7 +10,7 @@
 # - .Values.volumes.<key>.size (default: "2Gi")
 # - .Values.volumes.<key>.accessMode (default: "ReadWriteOnce")
 # - .Values.volumes.<key>.storageClassName or .Values.global.storageClassName
-# Skips emptyDir (true or map), configMap, secret, projected and csi sources
+# Skips emptyDir (true or non-empty map), configMap, secret, projected and csi sources
 {{- define "drunk-lib.volumes" -}}
 {{- $root := . }}
 {{- range $k,$v := .Values.volumes }}

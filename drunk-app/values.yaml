@@ -113,10 +113,10 @@ deployment:
 #   CPU_LIMIT:
 #     valueFrom: {resourceFieldRef: {resource: limits.cpu, divisor: 1m}}
 
-# Add entries under volumes below; select one source per entry.
+# Add entries under volumes below; select one source per entry. Multiple source keys fail rendering.
 # Every source supports mountPath, subPath and readOnly (default false).
-# All 4 workloads support these sources; none creates a PVC, including map-shaped emptyDir.
-# No source key (or emptyDir: false) retains the existing PVC behavior.
+# All 4 workloads support these sources; new sources and non-empty emptyDir maps create no PVC.
+# No source key, emptyDir: false or emptyDir: {} retains the existing PVC and its pod mount.
 # volumes:
 #   settings:
 #     mountPath: /etc/app/app.conf

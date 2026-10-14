@@ -4,14 +4,14 @@ templates:
 tests:
 - it: valueFrom pod-name on every container
   set:
-    deployment: &id002
+    deployment: &workload_disabled
       enabled: false
-    cronJobs: &id003
+    cronJobs: &shared_list
     - name: task
       schedule: 0 2 * * *
     env:
       SOURCE:
-        valueFrom: &id001
+        valueFrom: &field_reference
           fieldRef:
             fieldPath: metadata.name
   asserts:
@@ -19,16 +19,16 @@ tests:
       path: spec.jobTemplate.spec.template.spec.containers[0].env[0]
       value:
         name: SOURCE
-        valueFrom: *id001
+        valueFrom: *field_reference
   - notExists:
       path: spec.jobTemplate.spec.template.spec.containers[0].env[0].value
 - it: valueFrom pod-namespace on every container
   set:
-    deployment: *id002
-    cronJobs: *id003
+    deployment: *workload_disabled
+    cronJobs: *shared_list
     env:
       SOURCE:
-        valueFrom: &id004
+        valueFrom: &field_reference_2
           fieldRef:
             fieldPath: metadata.namespace
   asserts:
@@ -36,16 +36,16 @@ tests:
       path: spec.jobTemplate.spec.template.spec.containers[0].env[0]
       value:
         name: SOURCE
-        valueFrom: *id004
+        valueFrom: *field_reference_2
   - notExists:
       path: spec.jobTemplate.spec.template.spec.containers[0].env[0].value
 - it: valueFrom secret on every container
   set:
-    deployment: *id002
-    cronJobs: *id003
+    deployment: *workload_disabled
+    cronJobs: *shared_list
     env:
       SOURCE:
-        valueFrom: &id005
+        valueFrom: &secret_key_reference
           secretKeyRef:
             name: credentials
             key: password
@@ -55,16 +55,16 @@ tests:
       path: spec.jobTemplate.spec.template.spec.containers[0].env[0]
       value:
         name: SOURCE
-        valueFrom: *id005
+        valueFrom: *secret_key_reference
   - notExists:
       path: spec.jobTemplate.spec.template.spec.containers[0].env[0].value
 - it: valueFrom config-map on every container
   set:
-    deployment: *id002
-    cronJobs: *id003
+    deployment: *workload_disabled
+    cronJobs: *shared_list
     env:
       SOURCE:
-        valueFrom: &id006
+        valueFrom: &config_map_key_reference
           configMapKeyRef:
             name: settings
             key: mode
@@ -73,16 +73,16 @@ tests:
       path: spec.jobTemplate.spec.template.spec.containers[0].env[0]
       value:
         name: SOURCE
-        valueFrom: *id006
+        valueFrom: *config_map_key_reference
   - notExists:
       path: spec.jobTemplate.spec.template.spec.containers[0].env[0].value
 - it: valueFrom resource on every container
   set:
-    deployment: *id002
-    cronJobs: *id003
+    deployment: *workload_disabled
+    cronJobs: *shared_list
     env:
       SOURCE:
-        valueFrom: &id007
+        valueFrom: &resource_field_reference
           resourceFieldRef:
             containerName: worker
             resource: limits.cpu
@@ -92,13 +92,13 @@ tests:
       path: spec.jobTemplate.spec.template.spec.containers[0].env[0]
       value:
         name: SOURCE
-        valueFrom: *id007
+        valueFrom: *resource_field_reference
   - notExists:
       path: spec.jobTemplate.spec.template.spec.containers[0].env[0].value
 - it: plain value 'text' keeps the legacy string
   set:
-    deployment: *id002
-    cronJobs: *id003
+    deployment: *workload_disabled
+    cronJobs: *shared_list
     env:
       PLAIN: text
   asserts:
@@ -109,8 +109,8 @@ tests:
         value: text
 - it: plain value '' keeps the legacy string
   set:
-    deployment: *id002
-    cronJobs: *id003
+    deployment: *workload_disabled
+    cronJobs: *shared_list
     env:
       PLAIN: ''
   asserts:
@@ -121,8 +121,8 @@ tests:
         value: ''
 - it: plain value False keeps the legacy string
   set:
-    deployment: *id002
-    cronJobs: *id003
+    deployment: *workload_disabled
+    cronJobs: *shared_list
     env:
       PLAIN: false
   asserts:
@@ -133,8 +133,8 @@ tests:
         value: 'false'
 - it: plain value 23 keeps the legacy string
   set:
-    deployment: *id002
-    cronJobs: *id003
+    deployment: *workload_disabled
+    cronJobs: *shared_list
     env:
       PLAIN: 23
   asserts:

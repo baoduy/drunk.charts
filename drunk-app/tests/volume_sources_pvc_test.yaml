@@ -73,15 +73,18 @@ tests:
   asserts:
   - hasDocuments:
       count: 0
-- it: empty emptyDir map creates no PVC
+- it: empty emptyDir map retains its mounted PVC
   set:
     volumes:
-      input:
-        mountPath: /input
+      cache:
+        mountPath: /cache
         emptyDir: {}
   asserts:
   - hasDocuments:
-      count: 0
+      count: 1
+  - equal:
+      path: metadata.name
+      value: drunk-app-cache
 - it: untyped volume creates a PVC
   set:
     volumes:
@@ -111,3 +114,139 @@ tests:
   - equal:
       path: spec.resources.requests.storage
       value: 2Gi
+- it: emptyDir with only medium creates no PVC
+  set:
+    volumes:
+      scratch:
+        mountPath: /scratch
+        emptyDir:
+          medium: Memory
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: emptyDir with only sizeLimit creates no PVC
+  set:
+    volumes:
+      scratch:
+        mountPath: /scratch
+        emptyDir:
+          sizeLimit: 64Mi
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: conflicting configMap, secret sources fail rendering
+  set:
+    volumes:
+      input:
+        mountPath: /input
+        configMap: &name
+          name: settings
+        secret: &secret_name
+          secretName: credentials
+  asserts:
+  - failedTemplate:
+      errorMessage: 'volumes: only one source key may be set; found configMap, secret'
+- it: conflicting configMap, projected sources fail rendering
+  set:
+    volumes:
+      input:
+        mountPath: /input
+        configMap: *name
+        projected: &projected_sources
+          sources: []
+  asserts:
+  - failedTemplate:
+      errorMessage: 'volumes: only one source key may be set; found configMap, projected'
+- it: conflicting configMap, csi sources fail rendering
+  set:
+    volumes:
+      input:
+        mountPath: /input
+        configMap: *name
+        csi: &driver
+          driver: example.csi.k8s.io
+  asserts:
+  - failedTemplate:
+      errorMessage: 'volumes: only one source key may be set; found configMap, csi'
+- it: conflicting configMap, emptyDir sources fail rendering
+  set:
+    volumes:
+      input:
+        mountPath: /input
+        configMap: *name
+        emptyDir: &empty_map {}
+  asserts:
+  - failedTemplate:
+      errorMessage: 'volumes: only one source key may be set; found configMap, emptyDir'
+- it: conflicting secret, projected sources fail rendering
+  set:
+    volumes:
+      input:
+        mountPath: /input
+        secret: *secret_name
+        projected: *projected_sources
+  asserts:
+  - failedTemplate:
+      errorMessage: 'volumes: only one source key may be set; found secret, projected'
+- it: conflicting secret, csi sources fail rendering
+  set:
+    volumes:
+      input:
+        mountPath: /input
+        secret: *secret_name
+        csi: *driver
+  asserts:
+  - failedTemplate:
+      errorMessage: 'volumes: only one source key may be set; found secret, csi'
+- it: conflicting secret, emptyDir sources fail rendering
+  set:
+    volumes:
+      input:
+        mountPath: /input
+        secret: *secret_name
+        emptyDir: *empty_map
+  asserts:
+  - failedTemplate:
+      errorMessage: 'volumes: only one source key may be set; found secret, emptyDir'
+- it: conflicting projected, csi sources fail rendering
+  set:
+    volumes:
+      input:
+        mountPath: /input
+        projected: *projected_sources
+        csi: *driver
+  asserts:
+  - failedTemplate:
+      errorMessage: 'volumes: only one source key may be set; found projected, csi'
+- it: conflicting projected, emptyDir sources fail rendering
+  set:
+    volumes:
+      input:
+        mountPath: /input
+        projected: *projected_sources
+        emptyDir: *empty_map
+  asserts:
+  - failedTemplate:
+      errorMessage: 'volumes: only one source key may be set; found projected, emptyDir'
+- it: conflicting csi, emptyDir sources fail rendering
+  set:
+    volumes:
+      input:
+        mountPath: /input
+        csi: *driver
+        emptyDir: *empty_map
+  asserts:
+  - failedTemplate:
+      errorMessage: 'volumes: only one source key may be set; found csi, emptyDir'
+- it: conflicting configMap, secret, csi sources fail rendering
+  set:
+    volumes:
+      input:
+        mountPath: /input
+        configMap: *name
+        secret: *secret_name
+        csi: *driver
+  asserts:
+  - failedTemplate:
+      errorMessage: 'volumes: only one source key may be set; found configMap, secret,
+        csi'

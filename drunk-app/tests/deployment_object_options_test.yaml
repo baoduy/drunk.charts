@@ -6,7 +6,7 @@ tests:
   set:
     deployment:
       enabled: true
-    global: &id001
+    global: &init_container_config
       initContainer:
         image: init:1
   asserts:
@@ -24,7 +24,7 @@ tests:
         team: ops
         number: 23
         flag: true
-    global: *id001
+    global: *init_container_config
   asserts:
   - isSubset:
       path: metadata.labels
@@ -51,7 +51,7 @@ tests:
         reloader.stakater.com/auto: 'true'
         number: 23
         flag: false
-    global: *id001
+    global: *init_container_config
   asserts:
   - isSubset:
       path: metadata.labels
@@ -74,7 +74,7 @@ tests:
       enabled: true
       labels:
         helm.sh/chart: collision
-    global: *id001
+    global: *init_container_config
   asserts:
   - failedTemplate:
       errorMessage: 'deployment.labels: helm.sh/chart is a standard label and cannot
@@ -85,7 +85,7 @@ tests:
       enabled: true
       labels:
         app.kubernetes.io/name: collision
-    global: *id001
+    global: *init_container_config
   asserts:
   - failedTemplate:
       errorMessage: 'deployment.labels: app.kubernetes.io/name is a standard label
@@ -96,7 +96,7 @@ tests:
       enabled: true
       labels:
         app.kubernetes.io/instance: collision
-    global: *id001
+    global: *init_container_config
   asserts:
   - failedTemplate:
       errorMessage: 'deployment.labels: app.kubernetes.io/instance is a standard label
@@ -107,7 +107,7 @@ tests:
       enabled: true
       labels:
         app.kubernetes.io/version: collision
-    global: *id001
+    global: *init_container_config
   asserts:
   - failedTemplate:
       errorMessage: 'deployment.labels: app.kubernetes.io/version is a standard label
@@ -118,7 +118,7 @@ tests:
       enabled: true
       labels:
         app.kubernetes.io/managed-by: collision
-    global: *id001
+    global: *init_container_config
   asserts:
   - failedTemplate:
       errorMessage: 'deployment.labels: app.kubernetes.io/managed-by is a standard
@@ -128,7 +128,7 @@ tests:
     deployment:
       enabled: true
       priorityClassName: batch-high
-    global: *id001
+    global: *init_container_config
   asserts:
   - equal:
       path: spec.template.spec.priorityClassName
@@ -138,7 +138,7 @@ tests:
     deployment:
       enabled: true
       priorityClassName: ''
-    global: *id001
+    global: *init_container_config
   asserts:
   - notExists:
       path: spec.template.spec.priorityClassName

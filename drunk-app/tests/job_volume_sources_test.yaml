@@ -4,16 +4,16 @@ templates:
 tests:
 - it: ConfigMap source and mounts
   set:
-    deployment: &id002
+    deployment: &workload_disabled
       enabled: false
-    jobs: &id003
+    jobs: &shared_list
     - name: task
     volumes:
       input:
         mountPath: /opt/input
         readOnly: true
         subPath: app.conf
-        configMap: &id001
+        configMap: &config_map_source
           name: settings
           items:
           - key: app.conf
@@ -22,7 +22,7 @@ tests:
   - equal:
       path: spec.template.spec.volumes[0]
       value:
-        configMap: *id001
+        configMap: *config_map_source
         name: input
   - equal:
       path: spec.template.spec.containers[0].volumeMounts[0]
@@ -33,21 +33,21 @@ tests:
         subPath: app.conf
 - it: Secret source and mounts
   set:
-    deployment: *id002
-    jobs: *id003
+    deployment: *workload_disabled
+    jobs: *shared_list
     volumes:
       input:
         mountPath: /opt/input
         readOnly: true
         subPath: app.conf
-        secret: &id004
+        secret: &secret_source
           secretName: credentials
           defaultMode: 256
   asserts:
   - equal:
       path: spec.template.spec.volumes[0]
       value:
-        secret: *id004
+        secret: *secret_source
         name: input
   - equal:
       path: spec.template.spec.containers[0].volumeMounts[0]
@@ -58,14 +58,14 @@ tests:
         subPath: app.conf
 - it: projected source and mounts
   set:
-    deployment: *id002
-    jobs: *id003
+    deployment: *workload_disabled
+    jobs: *shared_list
     volumes:
       input:
         mountPath: /opt/input
         readOnly: true
         subPath: app.conf
-        projected: &id005
+        projected: &projected_sources
           sources:
           - configMap:
               name: settings
@@ -75,7 +75,7 @@ tests:
   - equal:
       path: spec.template.spec.volumes[0]
       value:
-        projected: *id005
+        projected: *projected_sources
         name: input
   - equal:
       path: spec.template.spec.containers[0].volumeMounts[0]
@@ -86,14 +86,14 @@ tests:
         subPath: app.conf
 - it: CSI source and mounts
   set:
-    deployment: *id002
-    jobs: *id003
+    deployment: *workload_disabled
+    jobs: *shared_list
     volumes:
       input:
         mountPath: /opt/input
         readOnly: true
         subPath: app.conf
-        csi: &id006
+        csi: &csi_source
           driver: example.csi.k8s.io
           readOnly: true
           volumeAttributes:
@@ -102,7 +102,7 @@ tests:
   - equal:
       path: spec.template.spec.volumes[0]
       value:
-        csi: *id006
+        csi: *csi_source
         name: input
   - equal:
       path: spec.template.spec.containers[0].volumeMounts[0]
@@ -113,21 +113,21 @@ tests:
         subPath: app.conf
 - it: memory emptyDir with size limit and mounts
   set:
-    deployment: *id002
-    jobs: *id003
+    deployment: *workload_disabled
+    jobs: *shared_list
     volumes:
       input:
         mountPath: /opt/input
         readOnly: true
         subPath: app.conf
-        emptyDir: &id007
+        emptyDir: &memory_empty_dir
           medium: Memory
           sizeLimit: 64Mi
   asserts:
   - equal:
       path: spec.template.spec.volumes[0]
       value:
-        emptyDir: *id007
+        emptyDir: *memory_empty_dir
         name: input
   - equal:
       path: spec.template.spec.containers[0].volumeMounts[0]
@@ -138,8 +138,8 @@ tests:
         subPath: app.conf
 - it: legacy emptyDir true and mounts
   set:
-    deployment: *id002
-    jobs: *id003
+    deployment: *workload_disabled
+    jobs: *shared_list
     volumes:
       input:
         mountPath: /opt/input
@@ -159,22 +159,23 @@ tests:
         mountPath: /opt/input
         readOnly: true
         subPath: app.conf
-- it: empty emptyDir map and mounts
+- it: empty emptyDir map retains its PVC source and mounts
   set:
-    deployment: *id002
-    jobs: *id003
+    deployment: *workload_disabled
+    jobs: *shared_list
     volumes:
       input:
         mountPath: /opt/input
         readOnly: true
         subPath: app.conf
-        emptyDir: &id008 {}
+        emptyDir: {}
   asserts:
   - equal:
       path: spec.template.spec.volumes[0]
       value:
-        emptyDir: *id008
         name: input
+        persistentVolumeClaim:
+          claimName: drunk-app-input
   - equal:
       path: spec.template.spec.containers[0].volumeMounts[0]
       value:
@@ -184,8 +185,8 @@ tests:
         subPath: app.conf
 - it: untyped volume keeps its PVC source
   set:
-    deployment: *id002
-    jobs: *id003
+    deployment: *workload_disabled
+    jobs: *shared_list
     volumes:
       data:
         mountPath: /data
@@ -201,3 +202,53 @@ tests:
       value: false
   - notExists:
       path: spec.template.spec.containers[0].volumeMounts[0].subPath
+- it: emptyDir with only medium uses scratch storage
+  set:
+    deployment:
+      enabled: false
+    volumes:
+      scratch:
+        mountPath: /scratch
+        emptyDir:
+          medium: Memory
+    jobs:
+    - name: task
+  asserts:
+  - equal:
+      path: spec.template.spec.volumes[0]
+      value:
+        name: scratch
+        emptyDir:
+          medium: Memory
+- it: emptyDir with only sizeLimit uses scratch storage
+  set:
+    deployment:
+      enabled: false
+    volumes:
+      scratch:
+        mountPath: /scratch
+        emptyDir:
+          sizeLimit: 64Mi
+    jobs:
+    - name: task
+  asserts:
+  - equal:
+      path: spec.template.spec.volumes[0]
+      value:
+        name: scratch
+        emptyDir:
+          sizeLimit: 64Mi
+- it: multiple source keys fail rendering
+  set:
+    deployment: *workload_disabled
+    jobs: *shared_list
+    volumes:
+      input:
+        mountPath: /input
+        configMap:
+          name: settings
+        secret:
+          secretName: credentials
+  asserts:
+  - failedTemplate:
+      errorMessage: 'volumes: only one source key may be set; found configMap, secret'

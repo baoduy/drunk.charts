@@ -4,11 +4,11 @@ templates:
 tests:
 - it: object options absent by default
   set:
-    deployment: &id001
+    deployment: &workload_disabled
       enabled: false
     statefulset:
       enabled: true
-    global: &id002
+    global: &init_container_config
       initContainer:
         image: init:1
   asserts:
@@ -20,14 +20,14 @@ tests:
       path: spec.template.spec.priorityClassName
 - it: object labels retain standard labels and render as strings
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     statefulset:
       enabled: true
       labels:
         team: ops
         number: 23
         flag: true
-    global: *id002
+    global: *init_container_config
   asserts:
   - isSubset:
       path: metadata.labels
@@ -48,14 +48,14 @@ tests:
       path: spec.template.metadata.labels.team
 - it: object annotations retain standard labels and render as strings
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     statefulset:
       enabled: true
       annotations:
         reloader.stakater.com/auto: 'true'
         number: 23
         flag: false
-    global: *id002
+    global: *init_container_config
   asserts:
   - isSubset:
       path: metadata.labels
@@ -74,82 +74,82 @@ tests:
       path: spec.template.metadata.annotations["reloader.stakater.com/auto"]
 - it: refuse duplicate standard helm.sh/chart
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     statefulset:
       enabled: true
       labels:
         helm.sh/chart: collision
-    global: *id002
+    global: *init_container_config
   asserts:
   - failedTemplate:
       errorMessage: 'statefulset.labels: helm.sh/chart is a standard label and cannot
         be overridden'
 - it: refuse duplicate standard app.kubernetes.io/name
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     statefulset:
       enabled: true
       labels:
         app.kubernetes.io/name: collision
-    global: *id002
+    global: *init_container_config
   asserts:
   - failedTemplate:
       errorMessage: 'statefulset.labels: app.kubernetes.io/name is a standard label
         and cannot be overridden'
 - it: refuse duplicate standard app.kubernetes.io/instance
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     statefulset:
       enabled: true
       labels:
         app.kubernetes.io/instance: collision
-    global: *id002
+    global: *init_container_config
   asserts:
   - failedTemplate:
       errorMessage: 'statefulset.labels: app.kubernetes.io/instance is a standard
         label and cannot be overridden'
 - it: refuse duplicate standard app.kubernetes.io/version
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     statefulset:
       enabled: true
       labels:
         app.kubernetes.io/version: collision
-    global: *id002
+    global: *init_container_config
   asserts:
   - failedTemplate:
       errorMessage: 'statefulset.labels: app.kubernetes.io/version is a standard label
         and cannot be overridden'
 - it: refuse duplicate standard app.kubernetes.io/managed-by
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     statefulset:
       enabled: true
       labels:
         app.kubernetes.io/managed-by: collision
-    global: *id002
+    global: *init_container_config
   asserts:
   - failedTemplate:
       errorMessage: 'statefulset.labels: app.kubernetes.io/managed-by is a standard
         label and cannot be overridden'
 - it: priority class 'batch-high'
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     statefulset:
       enabled: true
       priorityClassName: batch-high
-    global: *id002
+    global: *init_container_config
   asserts:
   - equal:
       path: spec.template.spec.priorityClassName
       value: batch-high
 - it: priority class ''
   set:
-    deployment: *id001
+    deployment: *workload_disabled
     statefulset:
       enabled: true
       priorityClassName: ''
-    global: *id002
+    global: *init_container_config
   asserts:
   - notExists:
       path: spec.template.spec.priorityClassName

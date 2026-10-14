@@ -145,6 +145,8 @@ secretProvider:
 #   combined: {mountPath: /etc/combined, projected: {sources: [{configMap: {name: settings}}]}}
 #   external: {mountPath: /mnt/external, csi: {driver: example.csi.k8s.io}}
 #   scratch: {mountPath: /scratch, emptyDir: {medium: Memory, sizeLimit: 64Mi}}
+# Select only one source per entry; multiple source keys fail rendering.
+# emptyDir: {} and emptyDir: false retain the existing PVC and its pod mount.
 # deployment / statefulset:
 #   labels: {team: ops} # object labels, distinct from podLabels; standard keys are reserved
 #   annotations: {reloader.stakater.com/auto: "true"} # object annotations
