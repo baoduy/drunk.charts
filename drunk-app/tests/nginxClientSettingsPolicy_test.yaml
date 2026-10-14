@@ -1,0 +1,83 @@
+suite: NGINX ClientSettingsPolicy
+templates:
+  - nginxClientSettingsPolicy.yaml
+tests:
+  - it: is absent by default
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: is absent when explicitly disabled
+    set:
+      nginxClientSettingsPolicy:
+        enabled: false
+        body: {maxSize: 10m}
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: attaches to the chart HTTPRoute without overriding controller defaults
+    release:
+      namespace: app-namespace
+    set:
+      fullnameOverride: own-route
+      httpRoute.enabled: true
+      nginxClientSettingsPolicy.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isAPIVersion:
+          of: gateway.nginx.org/v1alpha1
+      - isKind:
+          of: ClientSettingsPolicy
+      - equal:
+          path: metadata.name
+          value: own-route-client-settings
+      - equal:
+          path: metadata.namespace
+          value: app-namespace
+      - equal:
+          path: spec.targetRef
+          value:
+            group: gateway.networking.k8s.io
+            kind: HTTPRoute
+            name: own-route
+      - notExists:
+          path: spec.targetRefs
+      - notExists:
+          path: spec.body
+      - notExists:
+          path: spec.keepAlive
+  - it: passes every client setting through
+    set:
+      nginxClientSettingsPolicy:
+        enabled: true
+        body: {maxSize: 10m, timeout: 30s}
+        keepAlive:
+          requests: 1000
+          time: 1h
+          timeout: {server: 75s, header: 60s}
+    asserts:
+      - equal:
+          path: spec.targetRef.name
+          value: RELEASE-NAME-drunk-app
+      - equal:
+          path: spec.body
+          value: {maxSize: 10m, timeout: 30s}
+      - equal:
+          path: spec.keepAlive
+          value:
+            requests: 1000
+            time: 1h
+            timeout: {server: 75s, header: 60s}
+  - it: preserves zero client settings and string durations
+    set:
+      nginxClientSettingsPolicy:
+        enabled: true
+        body: {maxSize: "0", timeout: "0"}
+        keepAlive: {requests: 0, time: "0", timeout: {server: "0"}}
+    asserts:
+      - equal:
+          path: spec.body
+          value: {maxSize: "0", timeout: "0"}
+      - equal:
+          path: spec.keepAlive
+          value: {requests: 0, time: "0", timeout: {server: "0"}}

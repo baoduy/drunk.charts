@@ -22,11 +22,21 @@ metadata:
   name: {{ include "app.fullname" . }}
   labels:
     {{- include "app.labels" . | nindent 4 }}
+    {{- with .Values.statefulset.labels }}
+    {{- include "drunk-lib.objectLabels" (dict "root" $root "workload" $.Values.statefulset "kind" "statefulset") | nindent 4 }}
+    {{- end }}
+  {{- with .Values.statefulset.annotations }}
+  annotations:
+    {{- include "drunk-lib.metadataEntries" . | nindent 4 }}
+  {{- end }}
 spec:
   # Service name for stable network identity
   serviceName: {{ include "app.fullname" . }}
   # Replica count from .Values.statefulset.replicaCount, defaults to 1
   replicas: {{ .Values.statefulset.replicaCount | default 1 }}
+  {{- if hasKey .Values.statefulset "minReadySeconds" }}
+  minReadySeconds: {{ .Values.statefulset.minReadySeconds }}
+  {{- end }}
   # Pod management policy: OrderedReady (default) or Parallel
   podManagementPolicy: {{ .Values.statefulset.podManagementPolicy | default "OrderedReady" }}
   # Update strategy: RollingUpdate (default) or OnDelete
@@ -57,6 +67,12 @@ spec:
     spec:
       # Security: disable automatic service account token mounting
       automountServiceAccountToken: false
+      {{- with .Values.statefulset.priorityClassName }}
+      priorityClassName: {{ . | quote }}
+      {{- end }}
+      {{- if hasKey .Values.statefulset "terminationGracePeriodSeconds" }}
+      terminationGracePeriodSeconds: {{ .Values.statefulset.terminationGracePeriodSeconds }}
+      {{- end }}
       # Image pull secrets for private registries
       {{- if .Values.global.imagePullSecret }}
       imagePullSecrets:
@@ -95,7 +111,7 @@ spec:
           env:
           {{- range $k,$v := .Values.env }}
           - name: {{ $k }}
-            value: {{ $v | quote }}
+            {{- include "drunk-lib.envValue" $v | nindent 12 }}
           {{- end }}
           {{- end }}
           # Environment from external sources for init container
@@ -184,28 +200,16 @@ spec:
               protocol: TCP
             {{- end }}
           {{- end }}
-          # Health checks - liveness probe from .Values.statefulset.liveness
-          {{- if .Values.statefulset.liveness }}
-          livenessProbe:
-            initialDelaySeconds: 60
-            periodSeconds: 300
-            httpGet:
-              path: {{ .Values.statefulset.liveness }}
-              port: http
-          {{- end }}
-          # Health checks - readiness probe from .Values.statefulset.readiness
-          {{- if .Values.statefulset.readiness }}
-          readinessProbe:
-            httpGet:
-              path: {{ .Values.statefulset.readiness }}
-              port: http
+          {{- include "drunk-lib.probes" (dict "workload" .Values.statefulset "kind" "statefulset") | nindent 10 }}
+          {{- if or (hasKey .Values.statefulset "lifecycle") (hasKey .Values.statefulset "preStopSleepSeconds") }}
+          {{- include "drunk-lib.lifecycle" (dict "workload" .Values.statefulset "kind" "statefulset") | nindent 10 }}
           {{- end }}
           # Environment variables from .Values.env
           {{- if .Values.env }}
           env:
           {{- range $k,$v := .Values.env }}
           - name: {{ $k }}
-            value: {{ $v | quote }}
+            {{- include "drunk-lib.envValue" $v | nindent 12 }}
           {{- end }}
           {{- end }}
           # Environment from external sources
@@ -276,12 +280,7 @@ spec:
       {{- if .Values.volumes }}
       {{- range $k,$v := .Values.volumes }}
       - name: {{ $k }}
-        {{- if $v.emptyDir }}
-        emptyDir: {}
-        {{- else }}
-        persistentVolumeClaim:
-          claimName: {{ include "app.name" $root }}-{{ $k }}
-        {{- end }}
+        {{- include "drunk-lib.volumeSource" (dict "root" $root "name" $k "volume" $v) | nindent 8 }}
       {{- end }}
       {{- end }}
       # SecretProvider volume for external secret management systems
@@ -302,11 +301,7 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      # Pod affinity rules from .Values.affinity
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "drunk-lib.podScheduling" . | nindent 6 }}
       # Pod tolerations from .Values.tolerations
       {{- with .Values.tolerations }}
       tolerations:

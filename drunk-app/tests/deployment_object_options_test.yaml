@@ -1,0 +1,144 @@
+suite: deployment object options
+templates:
+- deployment.yaml
+tests:
+- it: object options absent by default
+  set:
+    deployment:
+      enabled: true
+    global: &init_container_config
+      initContainer:
+        image: init:1
+  asserts:
+  - notExists:
+      path: metadata.annotations
+  - notExists:
+      path: metadata.labels.team
+  - notExists:
+      path: spec.template.spec.priorityClassName
+- it: object labels retain standard labels and render as strings
+  set:
+    deployment:
+      enabled: true
+      labels:
+        team: ops
+        number: 23
+        flag: true
+    global: *init_container_config
+  asserts:
+  - isSubset:
+      path: metadata.labels
+      content:
+        app.kubernetes.io/name: drunk-app
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/version: latest
+  - isSubset:
+      path: metadata.labels
+      content:
+        team: ops
+        number: '23'
+        flag: 'true'
+  - notExists:
+      path: metadata.annotations
+  - notExists:
+      path: spec.template.metadata.labels.team
+- it: object annotations retain standard labels and render as strings
+  set:
+    deployment:
+      enabled: true
+      annotations:
+        reloader.stakater.com/auto: 'true'
+        number: 23
+        flag: false
+    global: *init_container_config
+  asserts:
+  - isSubset:
+      path: metadata.labels
+      content:
+        app.kubernetes.io/name: drunk-app
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/version: latest
+  - isSubset:
+      path: metadata.annotations
+      content:
+        reloader.stakater.com/auto: 'true'
+        number: '23'
+        flag: 'false'
+  - notExists:
+      path: spec.template.metadata.annotations["reloader.stakater.com/auto"]
+- it: refuse duplicate standard helm.sh/chart
+  set:
+    deployment:
+      enabled: true
+      labels:
+        helm.sh/chart: collision
+    global: *init_container_config
+  asserts:
+  - failedTemplate:
+      errorMessage: 'deployment.labels: helm.sh/chart is a standard label and cannot
+        be overridden'
+- it: refuse duplicate standard app.kubernetes.io/name
+  set:
+    deployment:
+      enabled: true
+      labels:
+        app.kubernetes.io/name: collision
+    global: *init_container_config
+  asserts:
+  - failedTemplate:
+      errorMessage: 'deployment.labels: app.kubernetes.io/name is a standard label
+        and cannot be overridden'
+- it: refuse duplicate standard app.kubernetes.io/instance
+  set:
+    deployment:
+      enabled: true
+      labels:
+        app.kubernetes.io/instance: collision
+    global: *init_container_config
+  asserts:
+  - failedTemplate:
+      errorMessage: 'deployment.labels: app.kubernetes.io/instance is a standard label
+        and cannot be overridden'
+- it: refuse duplicate standard app.kubernetes.io/version
+  set:
+    deployment:
+      enabled: true
+      labels:
+        app.kubernetes.io/version: collision
+    global: *init_container_config
+  asserts:
+  - failedTemplate:
+      errorMessage: 'deployment.labels: app.kubernetes.io/version is a standard label
+        and cannot be overridden'
+- it: refuse duplicate standard app.kubernetes.io/managed-by
+  set:
+    deployment:
+      enabled: true
+      labels:
+        app.kubernetes.io/managed-by: collision
+    global: *init_container_config
+  asserts:
+  - failedTemplate:
+      errorMessage: 'deployment.labels: app.kubernetes.io/managed-by is a standard
+        label and cannot be overridden'
+- it: priority class 'batch-high'
+  set:
+    deployment:
+      enabled: true
+      priorityClassName: batch-high
+    global: *init_container_config
+  asserts:
+  - equal:
+      path: spec.template.spec.priorityClassName
+      value: batch-high
+- it: priority class ''
+  set:
+    deployment:
+      enabled: true
+      priorityClassName: ''
+    global: *init_container_config
+  asserts:
+  - notExists:
+      path: spec.template.spec.priorityClassName

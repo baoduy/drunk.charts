@@ -6,6 +6,7 @@ Welcome to the comprehensive documentation for Drunk Charts - a collection of He
 
 ### For Application Developers
 - **[Drunk App Chart Guide](./drunk-app.md)** - Complete guide to deploying your applications using the drunk-app chart
+- **[1.x → 2.x Upgrade Guide](./upgrade-guide.md)** - Verified value changes and staged rollout-safety adoption
 - **[Quick Start](./quick-start.md)** - Get up and running in minutes
 - **[Configuration Examples](./examples/)** - Real-world configuration examples
 - **[Nginx to Gateway API Migration](./nginx-to-gateway-migration.md)** - Step-by-step guide to migrate from Ingress to Gateway API

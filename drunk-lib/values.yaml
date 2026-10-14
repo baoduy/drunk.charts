@@ -61,3 +61,101 @@ secretProvider:
 #     jobs:
 #       - name: db-migrate
 #         enabled: false   # skip this entry
+
+# ── Opt-in rollout safety (Deployment and StatefulSet only) ────────────────
+# deployment / statefulset:
+#   liveness: "/healthz" # or raw map: httpGet / tcpSocket / exec / grpc plus timings
+#   readiness: {httpGet: {path: /ready, port: https, scheme: HTTPS}, periodSeconds: 5}
+#   startup: "/healthz" # or raw map; string defaults: periodSeconds 5, failureThreshold 30
+#   terminationGracePeriodSeconds: 45
+#   preStopSleepSeconds: 10 # native sleep, less than grace period; Kubernetes 1.30+
+#   lifecycle: {} # raw lifecycle overrides convenience sleep
+#   minReadySeconds: 10 # render only when present; accepts 0
+# deployment:
+#   progressDeadlineSeconds: 600
+#   revisionHistoryLimit: 5
+#   strategy: {type: RollingUpdate, maxSurge: 0, maxUnavailable: 1}
+#     # max values accept integers / percentages; both cannot be 0
+# autoscaling:
+#   omitReplicas: false # only omits Deployment replicas when HPA enabled and targeting Deployment
+# podAntiAffinityPreset: "" # "" | soft | hard; explicit affinity.podAntiAffinity wins
+# topologySpreadConstraints:
+#   - maxSkew: 1
+#     topologyKey: topology.kubernetes.io/zone
+#     whenUnsatisfiable: ScheduleAnyway
+#     # absent labelSelector uses app.selectorLabels for this alias
+# podDisruptionBudget:
+#   enabled: false
+#   minAvailable: 1 # exactly one of minAvailable / maxUnavailable
+#   # maxUnavailable: "25%"
+#   unhealthyPodEvictionPolicy: AlwaysAllow # default when enabled; Kubernetes 1.31+
+
+# NGINX Gateway Fabric 2.5.1 policies; omitted or enabled: false renders nothing.
+# Targets are generated from this chart's app.fullname in the release namespace.
+# Enable the chart Service / HTTPRoute when using the corresponding policy.
+# nginxUpstreamSettingsPolicy:
+#   enabled: false # set true to create an UpstreamSettingsPolicy for this Service
+#   keepAlive:
+#     connections: 32 # integer; 0 disables upstream keep-alive
+#     requests: 1000 # integer
+#     time: "1h"
+#     timeout: "60s"
+#   loadBalancingMethod: "hash consistent"
+#   hashMethodKey: "$request_uri" # required for hash / hash consistent
+#   zoneSize: "1m"
+# nginxClientSettingsPolicy:
+#   enabled: false # set true to create a ClientSettingsPolicy for this HTTPRoute
+#   body: {maxSize: "10m", timeout: "30s"}
+#   keepAlive:
+#     requests: 1000 # integer
+#     time: "1h"
+#     timeout: {server: "75s", header: "60s"} # header requires server
+#
+# HTTPRoute response headers and backend TLS (all overrides are optional).
+# httpRoute:
+#   enabled: false # set true to create the route
+#   hostnames: ["app.example.com"]
+#   tlsValidation:
+#     caCertificateRefs:
+#       - group: ""
+#         kind: ConfigMap
+#         name: backend-ca
+#   rules:
+#     - filters:
+#         - type: ResponseHeaderModifier
+#           responseHeaderModifier:
+#             set:
+#               - name: Strict-Transport-Security
+#                 value: "max-age=31536000; includeSubDomains"
+#             add:
+#               - name: X-Content-Type-Options
+#                 value: nosniff
+#             remove: [Server]
+# backendTlsPolicy: # only renders with httpRoute.enabled and non-empty tlsValidation
+#   sectionName: https # default: https; must match the Service port name
+#   hostname: "backend.example.com" # default: tlsValidation.hostname, then first route hostname
+#   options: {tls-verify-depth: "1"} # default; an explicit map replaces all options, including {}
+
+# Workload pod options (all optional; see README for complete examples).
+# env:
+#   POD_NAME: {valueFrom: {fieldRef: {fieldPath: metadata.name}}}
+# volumes:
+#   settings: {mountPath: /etc/settings, configMap: {name: settings}}
+#   credentials: {mountPath: /etc/credentials, secret: {secretName: credentials}}
+#   combined: {mountPath: /etc/combined, projected: {sources: [{configMap: {name: settings}}]}}
+#   external: {mountPath: /mnt/external, csi: {driver: example.csi.k8s.io}}
+#   scratch: {mountPath: /scratch, emptyDir: {medium: Memory, sizeLimit: 64Mi}}
+# Select only one source per entry; multiple source keys fail rendering.
+# emptyDir: {} and emptyDir: false retain the existing PVC and its pod mount.
+# deployment / statefulset:
+#   labels: {team: ops} # object labels, distinct from podLabels; standard keys are reserved
+#   annotations: {reloader.stakater.com/auto: "true"} # object annotations
+#   priorityClassName: app-high
+# jobs[] / cronJobs[]:
+#   podLabels: {task: batch}
+#   podAnnotations: {tracking: batch}
+#   resources: {} # replaces app resources
+#   nodeSelector: {} # disables inherited app nodeSelector
+#   tolerations: [] # disables inherited app tolerations
+#   affinity: {} # disables inherited app nodeAffinity; explicit maps render as written
+# Jobs and CronJobs now inherit node scheduling, never app pod affinity/presets/topology spread.

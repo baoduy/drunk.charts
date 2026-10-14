@@ -30,9 +30,15 @@ spec:
   # TTL set for 1 week after job completion (cleanup old jobs automatically)
   ttlSecondsAfterFinished: 604800
   template:
+    {{- with (include "drunk-lib.jobPodMetadata" .) }}
+    {{- . | nindent 4 }}
+    {{- end }}
     spec:
       # Security: disable automatic service account token mounting
       automountServiceAccountToken: false
+      {{- with (include "drunk-lib.jobScheduling" (dict "root" $root "job" .)) }}
+      {{- . | nindent 6 }}
+      {{- end }}
       # Image pull secrets for private registries
       {{- if $.Values.global.imagePullSecret }}
       imagePullSecrets:
@@ -68,7 +74,7 @@ spec:
         env:
         {{- range $k,$v := $.Values.env }}
         - name: {{ $k }}
-          value: {{ $v | quote }}
+          {{- include "drunk-lib.envValue" $v | nindent 10 }}
         {{- end }}
         {{- end }}
         # Environment from external sources
@@ -102,7 +108,9 @@ spec:
         {{- end }}
         # Resource limits and requests from .Values.resources
         resources:
-        {{- toYaml $.Values.resources | nindent 14 }}
+        {{- $resources := $.Values.resources }}
+        {{- if hasKey . "resources" }}{{- $resources = .resources }}{{- end }}
+        {{- toYaml $resources | nindent 14 }}
         
         # Volume mounts for persistent storage and secrets
         {{- if or $.Values.volumes (and $.Values.secretProvider $.Values.secretProvider.enabled) }}
@@ -134,12 +142,7 @@ spec:
       {{- if $.Values.volumes }}
       {{- range $k,$v := $.Values.volumes }}
       - name: {{ $k }}
-        {{- if $v.emptyDir }}
-        emptyDir: {}
-        {{- else }}
-        persistentVolumeClaim:
-          claimName: {{ include "app.name" $root }}-{{ $k }}
-        {{- end }}
+        {{- include "drunk-lib.volumeSource" (dict "root" $root "name" $k "volume" $v) | nindent 8 }}
       {{- end }}
       {{- end }}
       # SecretProvider volume for external secret management systems

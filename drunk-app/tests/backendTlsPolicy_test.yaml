@@ -1,0 +1,129 @@
+suite: BackendTLSPolicy
+templates:
+  - backendTlsPolicy.yaml
+tests:
+  - it: is absent by default
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: is absent when the route is disabled
+    set:
+      httpRoute:
+        enabled: false
+        tlsValidation: {wellKnownCACertificates: System}
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: is absent without TLS validation
+    set:
+      httpRoute.enabled: true
+      backendTlsPolicy:
+        sectionName: custom-https
+        hostname: backend.example.com
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: uses the release namespace and retains existing defaults
+    release:
+      namespace: app-namespace
+    set:
+      httpRoute:
+        enabled: true
+        namespace: different-namespace
+        hostnames: [first.example.com, second.example.com]
+        tlsValidation:
+          caCertificateRefs:
+            - group: ""
+              kind: ConfigMap
+              name: backend-ca
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isAPIVersion:
+          of: gateway.networking.k8s.io/v1
+      - isKind:
+          of: BackendTLSPolicy
+      - equal:
+          path: metadata.namespace
+          value: app-namespace
+      - equal:
+          path: spec.targetRefs
+          value:
+            - group: ""
+              kind: Service
+              name: RELEASE-NAME-drunk-app
+              sectionName: https
+      - equal:
+          path: spec.validation.hostname
+          value: first.example.com
+      - equal:
+          path: spec.validation.caCertificateRefs
+          value:
+            - group: ""
+              kind: ConfigMap
+              name: backend-ca
+      - equal:
+          path: spec.options
+          value: {tls-verify-depth: "1"}
+  - it: replaces section hostname and options when explicitly configured
+    set:
+      fullnameOverride: own-service
+      httpRoute:
+        enabled: true
+        hostnames: [route.example.com]
+        tlsValidation: {hostname: old-backend.example.com, wellKnownCACertificates: System}
+      backendTlsPolicy:
+        sectionName: backend-https
+        hostname: backend.example.com
+        options:
+          tls-verify-depth: "3"
+          gateway.nginx.org/proxy-ssl-protocols: TLSv1.3
+    asserts:
+      - equal:
+          path: spec.targetRefs[0].name
+          value: own-service
+      - equal:
+          path: spec.targetRefs[0].sectionName
+          value: backend-https
+      - equal:
+          path: spec.validation
+          value: {hostname: backend.example.com, wellKnownCACertificates: System}
+      - equal:
+          path: spec.options
+          value:
+            tls-verify-depth: "3"
+            gateway.nginx.org/proxy-ssl-protocols: TLSv1.3
+  - it: permits an explicit empty options map and hostname without route hostnames
+    set:
+      httpRoute:
+        enabled: true
+        tlsValidation: {wellKnownCACertificates: System}
+      backendTlsPolicy:
+        hostname: backend.example.com
+        options: {}
+    asserts:
+      - equal:
+          path: spec.options
+          value: {}
+      - equal:
+          path: spec.validation.hostname
+          value: backend.example.com
+  - it: retains a validation hostname supplied by existing consumers
+    set:
+      httpRoute:
+        enabled: true
+        hostnames: [route.example.com]
+        tlsValidation: {hostname: validation.example.com, wellKnownCACertificates: System}
+    asserts:
+      - equal:
+          path: spec.validation.hostname
+          value: validation.example.com
+  - it: preserves validation without a hostname when none is supplied
+    set:
+      httpRoute:
+        enabled: true
+        tlsValidation: {wellKnownCACertificates: System}
+    asserts:
+      - equal:
+          path: spec.validation
+          value: {wellKnownCACertificates: System}

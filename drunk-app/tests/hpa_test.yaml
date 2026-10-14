@@ -34,6 +34,11 @@ tests:
   - equal:
       path: spec.maxReplicas
       value: 3
+  - notExists:
+      path: spec.behavior
+  - equal:
+      path: spec.metrics
+      value: null
 
 - it: should specify targetCPUUtilizationPercentage when provided
   set:
@@ -86,3 +91,155 @@ tests:
   - equal:
       path: spec.metrics[1].resource.target.averageUtilization
       value: 65
+  - notExists:
+      path: spec.behavior
+  - equal:
+      path: spec.metrics
+      value:
+      - type: Resource
+        resource:
+          name: cpu
+          target: {type: Utilization, averageUtilization: 60}
+      - type: Resource
+        resource:
+          name: memory
+          target: {type: Utilization, averageUtilization: 65}
+
+- it: keeps HPA minReplicas when Deployment replicas are omitted
+  set:
+    autoscaling:
+      enabled: true
+      omitReplicas: true
+      minReplicas: 2
+      maxReplicas: 10
+  asserts:
+    - equal:
+        path: spec.minReplicas
+        value: 2
+
+- it: passes scale up and scale down behavior through without adding defaults
+  set:
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 10
+      behavior: &scalingBehavior
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          selectPolicy: Max
+          policies:
+          - {type: Percent, value: 100, periodSeconds: 60}
+          - {type: Pods, value: 4, periodSeconds: 30}
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          selectPolicy: Min
+          policies:
+          - {type: Pods, value: 1, periodSeconds: 60}
+  asserts:
+  - equal:
+      path: spec.behavior
+      value: *scalingBehavior
+  - equal:
+      path: spec.metrics
+      value: null
+
+- it: appends full metric specs after CPU and memory in the supplied order
+  set:
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 70
+      metrics: &customMetrics
+      - &podsMetric
+        type: Pods
+        pods:
+          metric:
+            name: requests_per_second
+            selector: {matchLabels: {route: api}}
+          target: {type: AverageValue, averageValue: "100"}
+      - &externalMetric
+        type: External
+        external:
+          metric:
+            name: queue_depth
+            selector: {matchLabels: {queue: jobs}}
+          target: {type: Value, value: "30"}
+      - &objectMetric
+        type: Object
+        object:
+          describedObject: {apiVersion: networking.k8s.io/v1, kind: Ingress, name: api}
+          metric: {name: requests_per_second}
+          target: {type: Value, value: "1000"}
+      - &containerMetric
+        type: ContainerResource
+        containerResource:
+          name: cpu
+          container: app
+          target: {type: Utilization, averageUtilization: 75}
+      - &resourceMetric
+        type: Resource
+        resource:
+          name: memory
+          target: {type: AverageValue, averageValue: 256Mi}
+  asserts:
+  - equal:
+      path: spec.metrics
+      value:
+      - type: Resource
+        resource:
+          name: cpu
+          target: {type: Utilization, averageUtilization: 80}
+      - type: Resource
+        resource:
+          name: memory
+          target: {type: Utilization, averageUtilization: 70}
+      - *podsMetric
+      - *externalMetric
+      - *objectMetric
+      - *containerMetric
+      - *resourceMetric
+  - notExists:
+      path: spec.behavior
+
+- it: renders custom metrics from index zero without CPU or memory targets
+  set:
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 10
+      metrics: *customMetrics
+      behavior: *scalingBehavior
+  asserts:
+  - equal:
+      path: spec.metrics
+      value: *customMetrics
+  - equal:
+      path: spec.behavior
+      value: *scalingBehavior
+
+- it: preserves the bare metrics key and absent behavior for empty opt in values
+  set:
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 10
+      metrics: []
+      behavior: {}
+  asserts:
+  - equal:
+      path: spec.metrics
+      value: null
+  - notExists:
+      path: spec.behavior
+
+- it: keeps the HPA disabled even with behavior and custom metrics configured
+  set:
+    autoscaling:
+      enabled: false
+      behavior: *scalingBehavior
+      metrics: *customMetrics
+  asserts:
+  - hasDocuments:
+      count: 0

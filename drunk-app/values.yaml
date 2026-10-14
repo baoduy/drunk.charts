@@ -22,23 +22,123 @@ deployment:
     http: 8080
   replicaCount: 1
   podLabels: {}
+  # Object metadata is separate from podLabels / podAnnotations.
+  # Standard label keys cannot be overridden.
+  # labels: {team: ops}
+  # annotations: {reloader.stakater.com/auto: "true"}
+  # priorityClassName: app-high
   #command:
   #args:
   #liveness: "/healthz"
   #readiness: "/healthz/ready"
+  # Probe maps pass through the complete Kubernetes probe spec.
+  # liveness:
+  #   httpGet: {path: /healthz, port: https, scheme: HTTPS}
+  #   periodSeconds: 5
+  # readiness:
+  #   httpGet: {path: /healthz/ready, port: http}
+  #   failureThreshold: 3
+  # startup: "/healthz" # or a raw probe map; shorthand uses period 5, failure threshold 30
+  # terminationGracePeriodSeconds: 45
+  # preStopSleepSeconds: 10 # native sleep; requires Kubernetes 1.30+
+  # Alternative lifecycle hook; do not set together with preStopSleepSeconds.
+  # lifecycle:
+  #   preStop:
+  #     sleep: {seconds: 10}
+  # minReadySeconds: 10 # 0 is also valid
+  # progressDeadlineSeconds: 600
+  # revisionHistoryLimit: 5
+  # strategy:
+  #   type: RollingUpdate # Recreate omits rollingUpdate
+  #   maxSurge: 0 # or "25%"; both max values cannot be 0
+  #   maxUnavailable: 1
 
-#cronJobs:
-#  - name: 'job-one'
-#    schedule: "* 0 * * *"
-#    restartPolicy: OnFailure
-#    command:
-#      - 'Job_Parameters'
+# StatefulSet uses the same probes, shutdown, and minReadySeconds keys.
+# Probe maps pass through the complete Kubernetes probe spec.
+# statefulset:
+#   enabled: false
+#   labels: {team: ops} # object labels; standard label keys cannot be overridden
+#   annotations: {reloader.stakater.com/auto: "true"} # object annotations
+#   priorityClassName: app-high
+#   replicaCount: 3
+#   ports: {http: 8080}
+#   liveness:
+#     httpGet: {path: /healthz, port: https, scheme: HTTPS}
+#     periodSeconds: 5
+#   readiness:
+#     httpGet: {path: /healthz/ready, port: http}
+#     failureThreshold: 3
+#   startup: "/healthz" # or a raw probe map; shorthand uses period 5, failure threshold 30
+#   terminationGracePeriodSeconds: 45
+#   preStopSleepSeconds: 10 # native sleep; requires Kubernetes 1.30+
+#   # Alternative lifecycle hook; do not set together with preStopSleepSeconds.
+#   lifecycle:
+#     preStop:
+#       sleep: {seconds: 10}
+#   minReadySeconds: 10 # 0 is also valid
 
-#cronJobs:
-#  - name: 'job-one'
-#    restartPolicy: OnFailure
-#    command:
-#      - 'Job_Parameters'
+# Jobs and CronJobs now inherit top-level nodeSelector, tolerations and affinity.nodeAffinity.
+# App podAffinity, podAntiAffinity, podAntiAffinityPreset and topologySpreadConstraints are never inherited.
+# Each entry replaces a complete scheduling key, without merging. Explicit empty values disable inheritance.
+# jobs:
+#   - name: migrate
+#     command: [migrate]
+#     podLabels: {task: migration}
+#     podAnnotations: {tracking: migration}
+#     resources: {requests: {cpu: 250m, memory: 256Mi}} # replaces app resources; {} clears them
+#     nodeSelector: {pool: batch}
+#     tolerations: [{key: batch, operator: Exists}]
+#     affinity: {} # or a complete affinity map, rendered as written
+# cronJobs:
+#   - name: report
+#     schedule: "0 2 * * *"
+#     podLabels: {task: report}
+#     podAnnotations: {tracking: report}
+#     resources: {requests: {cpu: 100m, memory: 128Mi}}
+#     nodeSelector: {} # disable each inherited scheduling key separately
+#     tolerations: []
+#     affinity: {}
+
+# Plain env values remain strings; valueFrom works on main/init containers and Jobs/CronJobs.
+# env:
+#   LOG_LEVEL: info
+#   POD_NAME:
+#     valueFrom: {fieldRef: {fieldPath: metadata.name}}
+#   POD_NAMESPACE:
+#     valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+#   PASSWORD:
+#     valueFrom: {secretKeyRef: {name: credentials, key: password}}
+#   MODE:
+#     valueFrom: {configMapKeyRef: {name: settings, key: mode}}
+#   CPU_LIMIT:
+#     valueFrom: {resourceFieldRef: {resource: limits.cpu, divisor: 1m}}
+
+# Add entries under volumes below; select one source per entry. Multiple source keys fail rendering.
+# Every source supports mountPath, subPath and readOnly (default false).
+# All 4 workloads support these sources; new sources and non-empty emptyDir maps create no PVC.
+# No source key, emptyDir: false or emptyDir: {} retains the existing PVC and its pod mount.
+# volumes:
+#   settings:
+#     mountPath: /etc/app/app.conf
+#     subPath: app.conf
+#     readOnly: true
+#     configMap: {name: settings, items: [{key: app.conf, path: app.conf}]}
+#   credentials:
+#     mountPath: /etc/credentials
+#     readOnly: true
+#     secret: {secretName: credentials}
+#   combined:
+#     mountPath: /etc/combined
+#     readOnly: true
+#     projected:
+#       sources: [{configMap: {name: settings}}, {secret: {name: credentials}}]
+#   external:
+#     mountPath: /mnt/external
+#     readOnly: true
+#     csi: {driver: example.csi.k8s.io, readOnly: true, volumeAttributes: {bucket: files}}
+#   scratch:
+#     mountPath: /scratch
+#     emptyDir: {medium: Memory, sizeLimit: 64Mi} # true still renders emptyDir: {}
 
 # This is to fix the issue 'Failed to create CoreCLR, HRESULT: 0x8007000E'
 volumes:
@@ -86,14 +186,50 @@ resources:
 
 #autoscaling:
 #  enabled: false
+#  omitReplicas: false # opt-in Deployment replicas omission; see drunk-lib README migration note
+#  targetKind: Deployment
 #  minReplicas: 1
 #  maxReplicas: 100
 #  targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
+#  behavior: # optional passthrough; no default scaling policies
+#    scaleUp:
+#      stabilizationWindowSeconds: 0
+#      selectPolicy: Max
+#      policies:
+#        - type: Percent
+#          value: 100
+#          periodSeconds: 60
+#    scaleDown:
+#      stabilizationWindowSeconds: 300
+#      selectPolicy: Min
+#      policies:
+#        - type: Pods
+#          value: 1
+#          periodSeconds: 60
+#  metrics: # full autoscaling/v2 specs, appended after CPU and memory targets
+#    - type: Pods # Pods, Object and External metrics require a metrics adapter
+#      pods:
+#        metric:
+#          name: requests_per_second
+#        target:
+#          type: AverageValue
+#          averageValue: "100"
 
 nodeSelector: {}
 tolerations: []
 affinity: {}
+# podAntiAffinityPreset: "" # "" (default), soft, hard; explicit affinity.podAntiAffinity wins
+# topologySpreadConstraints:
+#   - maxSkew: 1
+#     topologyKey: topology.kubernetes.io/zone
+#     whenUnsatisfiable: ScheduleAnyway
+#     # Omit labelSelector to use this chart alias's selector labels.
+# podDisruptionBudget:
+#   enabled: false
+#   minAvailable: 1 # choose exactly one of minAvailable / maxUnavailable
+#   # maxUnavailable: "25%"
+#   unhealthyPodEvictionPolicy: AlwaysAllow # requires Kubernetes 1.31+
 
 # Network Policies - Control network access to pods
 # Supports both single policy (legacy) and multiple policies (new)
@@ -199,3 +335,49 @@ affinity: {}
 #         ports:
 #         - protocol: TCP
 #           port: 8080
+
+# NGINX Gateway Fabric 2.5.1 policies; omitted or enabled: false renders nothing.
+# Targets are generated from this chart's app.fullname in the release namespace.
+# Enable the chart Service / HTTPRoute when using the corresponding policy.
+# nginxUpstreamSettingsPolicy:
+#   enabled: false # set true to create an UpstreamSettingsPolicy for this Service
+#   keepAlive:
+#     connections: 32 # integer; 0 disables upstream keep-alive
+#     requests: 1000 # integer
+#     time: "1h"
+#     timeout: "60s"
+#   loadBalancingMethod: "hash consistent"
+#   hashMethodKey: "$request_uri" # required for hash / hash consistent
+#   zoneSize: "1m"
+# nginxClientSettingsPolicy:
+#   enabled: false # set true to create a ClientSettingsPolicy for this HTTPRoute
+#   body: {maxSize: "10m", timeout: "30s"}
+#   keepAlive:
+#     requests: 1000 # integer
+#     time: "1h"
+#     timeout: {server: "75s", header: "60s"} # header requires server
+#
+# HTTPRoute response headers and backend TLS (all overrides are optional).
+# httpRoute:
+#   enabled: false # set true to create the route
+#   hostnames: ["app.example.com"]
+#   tlsValidation:
+#     caCertificateRefs:
+#       - group: ""
+#         kind: ConfigMap
+#         name: backend-ca
+#   rules:
+#     - filters:
+#         - type: ResponseHeaderModifier
+#           responseHeaderModifier:
+#             set:
+#               - name: Strict-Transport-Security
+#                 value: "max-age=31536000; includeSubDomains"
+#             add:
+#               - name: X-Content-Type-Options
+#                 value: nosniff
+#             remove: [Server]
+# backendTlsPolicy: # only renders with httpRoute.enabled and non-empty tlsValidation
+#   sectionName: https # default: https; must match the Service port name
+#   hostname: "backend.example.com" # default: tlsValidation.hostname, then first route hostname
+#   options: {tls-verify-depth: "1"} # default; an explicit map replaces all options, including {}

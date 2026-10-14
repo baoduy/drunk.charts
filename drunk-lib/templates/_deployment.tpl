@@ -23,18 +23,41 @@ metadata:
   name: {{ include "app.fullname" . }}
   labels:
     {{- include "app.labels" . | nindent 4 }}
+    {{- with .Values.deployment.labels }}
+    {{- include "drunk-lib.objectLabels" (dict "root" $root "workload" $.Values.deployment "kind" "deployment") | nindent 4 }}
+    {{- end }}
+  {{- with .Values.deployment.annotations }}
+  annotations:
+    {{- include "drunk-lib.metadataEntries" . | nindent 4 }}
+  {{- end }}
 spec:
+  {{- $autoscaling := .Values.autoscaling | default dict }}
+  {{- if not (and $autoscaling.omitReplicas $autoscaling.enabled (eq ($autoscaling.targetKind | default "Deployment") "Deployment")) }}
   # Replica count from .Values.deployment.replicaCount, defaults to 1
   replicas: {{ .Values.deployment.replicaCount | default 1 }}
+  {{- end }}
+  {{- range $field := list "minReadySeconds" "progressDeadlineSeconds" "revisionHistoryLimit" }}
+  {{- if hasKey $.Values.deployment $field }}
+  {{ $field }}: {{ get $.Values.deployment $field }}
+  {{- end }}
+  {{- end }}
 # Deployment strategy configuration
 {{- if .Values.deployment.strategy }}
   strategy:
     type: {{ .Values.deployment.strategy.type | default "RollingUpdate" }}
-    # Rolling update parameters for RollingUpdate strategy
     {{- if or (not .Values.deployment.strategy.type) (eq .Values.deployment.strategy.type "RollingUpdate") }}
+    {{- $strategy := .Values.deployment.strategy }}
+    {{- $surge := 1 }}
+    {{- $unavailable := 0 }}
+    {{- if hasKey $strategy "maxSurge" }}{{- $surge = $strategy.maxSurge }}{{- end }}
+    {{- if hasKey $strategy "maxUnavailable" }}{{- $unavailable = $strategy.maxUnavailable }}{{- end }}
+    {{- if and (has (toString $surge) (list "0" "0%")) (has (toString $unavailable) (list "0" "0%")) }}
+    {{- fail "deployment.strategy.maxSurge and deployment.strategy.maxUnavailable must not both be 0" }}
+    {{- end }}
+    # Rolling update parameters for RollingUpdate strategy
     rollingUpdate:
-      maxSurge: {{.Values.deployment.strategy.maxSurge | default 1 }}
-      maxUnavailable: {{.Values.deployment.strategy.maxUnavailable | default 0 }}
+      maxSurge: {{ $surge }}
+      maxUnavailable: {{ $unavailable }}
     {{- end }}
 {{- else }}
   # Default strategy: RollingUpdate with safe defaults
@@ -69,6 +92,12 @@ spec:
     spec:
       # Security: disable automatic service account token mounting
       automountServiceAccountToken: false
+      {{- with .Values.deployment.priorityClassName }}
+      priorityClassName: {{ . | quote }}
+      {{- end }}
+      {{- if hasKey .Values.deployment "terminationGracePeriodSeconds" }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.terminationGracePeriodSeconds }}
+      {{- end }}
       # Image pull secrets for private registries
       {{- if .Values.global.imagePullSecret }}
       imagePullSecrets:
@@ -107,7 +136,7 @@ spec:
           env:
           {{- range $k,$v := .Values.env }}
           - name: {{ $k }}
-            value: {{ $v | quote }}
+            {{- include "drunk-lib.envValue" $v | nindent 12 }}
           {{- end }}
           {{- end }}
           # Environment from external sources for init container
@@ -193,28 +222,16 @@ spec:
               protocol: TCP
             {{- end }}
           {{- end }}
-          # Health checks - liveness probe from .Values.deployment.liveness
-          {{- if .Values.deployment.liveness }}
-          livenessProbe:
-            initialDelaySeconds: 60
-            periodSeconds: 300
-            httpGet:
-              path: {{ .Values.deployment.liveness }}
-              port: http
-          {{- end }}
-          # Health checks - readiness probe from .Values.deployment.readiness
-          {{- if .Values.deployment.readiness }}
-          readinessProbe:
-            httpGet:
-              path: {{ .Values.deployment.readiness }}
-              port: http
+          {{- include "drunk-lib.probes" (dict "workload" .Values.deployment "kind" "deployment") | nindent 10 }}
+          {{- if or (hasKey .Values.deployment "lifecycle") (hasKey .Values.deployment "preStopSleepSeconds") }}
+          {{- include "drunk-lib.lifecycle" (dict "workload" .Values.deployment "kind" "deployment") | nindent 10 }}
           {{- end }}
           # Environment variables from .Values.env
           {{- if .Values.env }}
           env:
           {{- range $k,$v := .Values.env }}
           - name: {{ $k }}
-            value: {{ $v | quote }}
+            {{- include "drunk-lib.envValue" $v | nindent 12 }}
           {{- end }}
           {{- end }}
           # Environment from external sources
@@ -280,12 +297,7 @@ spec:
       {{- if .Values.volumes }}
       {{- range $k,$v := .Values.volumes }}
       - name: {{ $k }}
-        {{- if $v.emptyDir }}
-        emptyDir: {}
-        {{- else }}
-        persistentVolumeClaim:
-          claimName: {{ include "app.name" $root }}-{{ $k }}
-        {{- end }}
+        {{- include "drunk-lib.volumeSource" (dict "root" $root "name" $k "volume" $v) | nindent 8 }}
       {{- end }}
       {{- end }}
       # SecretProvider volume for external secret management systems
@@ -306,11 +318,7 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      # Pod affinity rules from .Values.affinity
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+      {{- include "drunk-lib.podScheduling" . | nindent 6 }}
       # Pod tolerations from .Values.tolerations
       {{- with .Values.tolerations }}
       tolerations:

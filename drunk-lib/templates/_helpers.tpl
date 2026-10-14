@@ -5,7 +5,8 @@
 # Created: 2025-09-10
 
 # Get the mapped service port for ingress
-# If deployment has only 1 port, map to 80. If more than 1, map to the first port in the map.
+# Prefer service.ports over deployment.ports. One port maps to 80; no ports maps to 8080.
+# With multiple ports, prefer http; otherwise choose the alphabetically first port name.
 # Usage: {{ include "drunk.utils.ingressPort" . }}
 {{- define "drunk.utils.ingressPort" -}}
 {{- $svc := .Values.service | default dict -}}
@@ -19,8 +20,12 @@
   {{- if eq (len $ports) 1 -}}
 80
   {{- else -}}
-    {{- $firstPort := (keys $ports | first) -}}
+    {{- if hasKey $ports "http" -}}
+    {{- get $ports "http" -}}
+    {{- else -}}
+    {{- $firstPort := (keys $ports | sortAlpha | first) -}}
     {{- get $ports $firstPort -}}
+    {{- end -}}
   {{- end -}}
 {{- else -}}
 8080
@@ -118,6 +123,7 @@ checksum/secrets: {{ toJson .Values.secrets | sha256sum }}
 
 # Full drunk-lib.all
 {{- define "drunk-lib.all" -}}
+{{ include "drunk-lib.backendTlsPolicy" . }}
 {{ include "drunk-lib.configMap" . }}
 {{ include "drunk-lib.cronJobs" . }}
 {{ include "drunk-lib.deployment" . }}
@@ -128,6 +134,9 @@ checksum/secrets: {{ toJson .Values.secrets | sha256sum }}
 {{ include "drunk-lib.ingress" . }}
 {{ include "drunk-lib.jobs" . }}
 {{ include "drunk-lib.networkPolicies" . }}
+{{ include "drunk-lib.nginxUpstreamSettingsPolicy" . }}
+{{ include "drunk-lib.nginxClientSettingsPolicy" . }}
+{{ include "drunk-lib.pdb" . }}
 {{ include "drunk-lib.secrets" . }}
 {{ include "drunk-lib.secretProvider" . }}
 {{ include "drunk-lib.service" . }}
@@ -155,5 +164,102 @@ Recursively quotes all string values in the given data structure.
 {{- printf "%q" $root }}
 {{- else }}
 {{- $root }}
+{{- end }}
+{{- end }}
+
+
+{{/* Shared main-container probes. Keep legacy strings and comments byte-identical. */}}
+{{- define "drunk-lib.probes" -}}
+{{- $w := .workload -}}
+# Health checks - liveness probe from .Values.{{ .kind }}.liveness
+{{- if $w.liveness }}
+livenessProbe:
+  {{- if kindIs "map" $w.liveness }}
+  {{- toYaml $w.liveness | nindent 2 }}
+  {{- else }}
+  initialDelaySeconds: 60
+  periodSeconds: 300
+  httpGet:
+    path: {{ $w.liveness }}
+    port: http
+  {{- end }}
+{{- end }}
+# Health checks - readiness probe from .Values.{{ .kind }}.readiness
+{{- if $w.readiness }}
+readinessProbe:
+  {{- if kindIs "map" $w.readiness }}
+  {{- toYaml $w.readiness | nindent 2 }}
+  {{- else }}
+  httpGet:
+    path: {{ $w.readiness }}
+    port: http
+  {{- end }}
+{{- end }}
+{{- if $w.startup }}
+startupProbe:
+  {{- if kindIs "map" $w.startup }}
+  {{- toYaml $w.startup | nindent 2 }}
+  {{- else }}
+  httpGet:
+    path: {{ $w.startup }}
+    port: http
+  periodSeconds: 5
+  failureThreshold: 30
+  {{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Validate shutdown settings even when the raw lifecycle takes precedence. */}}
+{{- define "drunk-lib.lifecycle" -}}
+{{- $w := .workload -}}
+{{- if and (hasKey $w "preStopSleepSeconds") (hasKey $w "terminationGracePeriodSeconds") -}}
+{{- if ge (int $w.preStopSleepSeconds) (int $w.terminationGracePeriodSeconds) -}}
+{{- fail (printf "%s.preStopSleepSeconds (%v) must be less than terminationGracePeriodSeconds (%v)" .kind $w.preStopSleepSeconds $w.terminationGracePeriodSeconds) -}}
+{{- end -}}
+{{- end -}}
+{{- if hasKey $w "lifecycle" -}}
+lifecycle:
+  {{- toYaml $w.lifecycle | nindent 2 }}
+{{- else if hasKey $w "preStopSleepSeconds" -}}
+lifecycle:
+  preStop:
+    sleep:
+      seconds: {{ $w.preStopSleepSeconds }}
+{{- end }}
+{{- end }}
+
+{{/* Work on copies: aliases and other includes must not inherit mutated values. */}}
+{{- define "drunk-lib.podScheduling" -}}
+{{- $affinity := deepCopy (.Values.affinity | default dict) -}}
+{{- $preset := "" -}}
+{{- if hasKey .Values "podAntiAffinityPreset" -}}
+{{- $preset = .Values.podAntiAffinityPreset -}}
+{{- end -}}
+{{- if not (has $preset (list "" "soft" "hard")) -}}
+{{- fail "podAntiAffinityPreset must be one of \"\", soft, hard" -}}
+{{- end -}}
+{{- $labels := include "app.selectorLabels" . | fromYaml -}}
+{{- if and (has $preset (list "soft" "hard")) (not (hasKey $affinity "podAntiAffinity")) -}}
+{{- $term := dict "topologyKey" "kubernetes.io/hostname" "labelSelector" (dict "matchLabels" $labels) -}}
+{{- if eq $preset "soft" -}}
+{{- $_ := set $affinity "podAntiAffinity" (dict "preferredDuringSchedulingIgnoredDuringExecution" (list (dict "weight" 100 "podAffinityTerm" $term))) -}}
+{{- else -}}
+{{- $_ := set $affinity "podAntiAffinity" (dict "requiredDuringSchedulingIgnoredDuringExecution" (list $term)) -}}
+{{- end -}}
+{{- end -}}
+# Pod affinity rules from .Values.affinity
+{{- with $affinity }}
+affinity:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.topologySpreadConstraints }}
+topologySpreadConstraints:
+  {{- range . }}
+  {{- $constraint := deepCopy . }}
+  {{- if not (hasKey $constraint "labelSelector") }}
+  {{- $_ := set $constraint "labelSelector" (dict "matchLabels" $labels) }}
+  {{- end }}
+  {{- toYaml (list $constraint) | nindent 2 }}
+  {{- end }}
 {{- end }}
 {{- end }}
