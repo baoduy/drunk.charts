@@ -30,6 +30,8 @@ helm repo update
 helm install my-app drunk-charts/drunk-app -f my-values.yaml
 ```
 
+For existing releases, follow the [1.x → 2.x upgrade guide](./docs/upgrade-guide.md) before changing the chart pin or enabling rollout-safety keys.
+
 ## Claude Code Plugin
 
 An AI assistant plugin is available to help configure `values.yaml` for drunk-app inside Claude Code.

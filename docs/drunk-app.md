@@ -31,8 +31,10 @@ The **drunk-app** Helm chart provides a production-ready framework for deploying
   - [resources](#resources)
   - [autoscaling](#autoscaling)
   - [Node Scheduling](#node-scheduling)
+  - [podDisruptionBudget](#poddisruptionbudget)
   - [networkPolicies](#networkpolicies)
 - [Usage Examples](#usage-examples)
+  - [Zero-downtime Deployment](#zero-downtime-deployment)
 - [Upgrade Notes](#upgrade-notes)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
@@ -49,7 +51,7 @@ The **drunk-app** Helm chart provides a production-ready framework for deploying
 # Chart.yaml (excerpt)
 dependencies:
   - name: drunk-lib
-    version: 1.x.x
+    version: 2.*.*
     repository: "file://../drunk-lib"
 ```
 
@@ -58,6 +60,13 @@ After pulling a new `drunk-lib` version, run:
 ```bash
 helm dependency update ./drunk-app
 ```
+
+### How values become a workload
+
+![Consumer values reach drunk-lib through includes; enabled workloads render probes and lifecycle, while invalid shutdown settings stop Helm rendering.](diagrams/workload-render.svg)
+
+`drunk-app` supplies defaults and resource wrappers. The shared helpers render probes, lifecycle and scheduling into an enabled Deployment or StatefulSet.
+Review the [upgrade guide](upgrade-guide.md) before changing an existing release's chart pin.
 
 ### Key Features
 
@@ -76,7 +85,7 @@ helm dependency update ./drunk-app
 
 ### Prerequisites
 
-- Kubernetes 1.19+
+- Check the Kubernetes APIs used by your configuration. Native preStop sleep requires 1.30+; the PDB unhealthy-pod policy is stable in 1.31+.
 - Helm 3.0+
 
 ### Add Repository
@@ -106,7 +115,7 @@ helm template my-app drunk-charts/drunk-app -f my-values.yaml
 
 ## Configuration Reference
 
-All parameters are documented below in the same order they appear in [`values.example.yaml`](values.example.yaml), which is the canonical reference covering every feature.
+All parameters are documented below in the same order they appear in [`values.example.yaml`](../drunk-app/values.example.yaml), which is the canonical reference covering every feature.
 
 ---
 
@@ -359,7 +368,7 @@ tlsSecrets:
     key: "<base64-encoded-private-key>"
 ```
 
-#### Mode 2: File-based (reads cert files from disk at `helm template`/`install` time)
+#### Mode 2: File-based (reads bundled chart files at `helm template`/`install` time)
 
 ```yaml
 tlsSecrets:
@@ -369,6 +378,8 @@ tlsSecrets:
     keyFile: "certs/my.key"
     caFile: "certs/my-ca.crt"   # optional
 ```
+
+These paths must exist inside the consumer chart package; `.Files.Get` does not read arbitrary files from the shell working directory.
 
 #### Mode 3: CA-only (disabled by default)
 
@@ -393,22 +404,67 @@ Controls the main `Deployment` resource.
 | `deployment.replicaCount` | int | `1` | ❌ | Desired number of replicas |
 | `deployment.ports.http` | int | `8080` | ❌ | HTTP container port |
 | `deployment.ports.tcp` | int | — | ❌ | Additional TCP container port |
-| `deployment.liveness` | string | `""` | ❌ | HTTP path for liveness probe (e.g. `/healthz`) |
-| `deployment.readiness` | string | `""` | ❌ | HTTP path for readiness probe |
+| `deployment.liveness` | string or object | — (omitted) | ❌ | HTTP path shorthand or raw Kubernetes probe map |
+| `deployment.readiness` | string or object | — (omitted) | ❌ | HTTP path shorthand or raw Kubernetes probe map |
+| `deployment.startup` | string or object | — (omitted) | ❌ | Startup path shorthand or raw probe map |
+| `deployment.terminationGracePeriodSeconds` | int | — (Kubernetes default) | ❌ | Pod termination budget in seconds |
+| `deployment.preStopSleepSeconds` | int | — (omitted) | ❌ | Native preStop sleep; requires Kubernetes 1.30+ |
+| `deployment.lifecycle` | object | — (omitted) | ❌ | Raw main-container lifecycle; overrides convenience sleep, including when empty |
+| `deployment.minReadySeconds` | int | — (omitted) | ❌ | Minimum ready interval; explicit `0` is retained |
+| `deployment.progressDeadlineSeconds` | int | — (omitted) | ❌ | Deployment progress deadline; explicit values are retained |
+| `deployment.revisionHistoryLimit` | int | — (omitted) | ❌ | Retained old ReplicaSets; explicit `0` is retained |
 | `deployment.command` | string[] | `[]` | ❌ | Override container entrypoint |
 | `deployment.args` | string[] | `[]` | ❌ | Container arguments |
 | `deployment.podAnnotations` | object | `{}` | ❌ | Annotations added to each pod |
 | `deployment.podLabels` | object | `{}` | ❌ | Labels added to each pod (values are rendered as text). `app.kubernetes.io/name` and `app.kubernetes.io/instance` are refused |
+
+#### Probes and graceful shutdown
+
+These keys configure the main container only. Init containers, Jobs and CronJobs do not use them.
+A non-empty probe map passes through unchanged: use `httpGet` (including HTTPS), `tcpSocket`, `exec` or `grpc`, plus Kubernetes probe timing fields.
+An empty string or map emits no probe. String shorthand uses the named `http` port; define that container port.
+Liveness shorthand keeps `initialDelaySeconds: 60` and `periodSeconds: 300`; readiness shorthand adds only `httpGet`.
+Startup shorthand uses `periodSeconds: 5` and `failureThreshold: 30`.
+
+```yaml
+deployment:
+  ports: {http: 8080}
+  liveness: "/healthz"
+  readiness:
+    httpGet: {path: /healthz/ready, port: http}
+    periodSeconds: 5
+    failureThreshold: 3
+  startup: "/healthz"
+  terminationGracePeriodSeconds: 45
+  preStopSleepSeconds: 10
+```
+
+`preStopSleepSeconds` emits native `preStop.sleep.seconds`, so no shell or sleep binary is needed in the image.
+Use Kubernetes **1.30+** with the `PodLifecycleSleepAction` feature gate enabled (beta and enabled by default in 1.30).
+See the [Kubernetes lifecycle update](https://kubernetes.io/blog/2025/05/14/kubernetes-v1-33-updates-to-container-lifecycle/).
+Set an explicit grace period that leaves time for the app to finish after the sleep.
+When both convenience values are present, sleep greater than or equal to the grace period fails rendering, even if `lifecycle` overrides the sleep.
+Without an explicit grace period, the chart performs no comparison; Kubernetes supplies its pod default.
+
+A raw `lifecycle` key, including `{}`, takes precedence over convenience sleep. For an HTTP shutdown hook instead:
+
+```yaml
+deployment:
+  terminationGracePeriodSeconds: 45
+  lifecycle:
+    preStop:
+      httpGet: {path: /shutdown, port: 8080}
+```
 
 #### Rolling Update Strategy
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `deployment.strategy.type` | string | `"RollingUpdate"` | `RollingUpdate` or `Recreate` |
-| `deployment.strategy.maxSurge` | string | `"1"` | Max pods above desired count during a rolling update |
-| `deployment.strategy.maxUnavailable` | string | `"1"` | Max pods unavailable during a rolling update |
+| `deployment.strategy.maxSurge` | int or percentage string | `1` | Max extra pods; explicit `0` is retained |
+| `deployment.strategy.maxUnavailable` | int or percentage string | `0` | Max unavailable pods; explicit `0` is retained |
 
-> `maxSurge` and `maxUnavailable` are ignored when `strategy.type: Recreate`.
+> `maxSurge` and `maxUnavailable` are ignored when `strategy.type: Recreate`; no `rollingUpdate` block is emitted. For RollingUpdate, both cannot be zero (`0` or `"0%"`): Helm fails rendering. The defaults are `1` / `0` when absent. `minReadySeconds`, `progressDeadlineSeconds` and `revisionHistoryLimit` render only when supplied. Use Kubernetes-valid values; the chart preserves them without range validation.
 
 ```yaml
 deployment:
@@ -436,16 +492,23 @@ deployment:
 
 Controls a `StatefulSet` resource. Use for workloads requiring stable network identity or ordered pod management (databases, queues).
 
+The [probe and shutdown rules](#probes-and-graceful-shutdown) also apply under `statefulset`. `statefulset.minReadySeconds` renders only when present, including `0`. Deployment progress deadlines and revision-history controls do not apply to StatefulSets.
+
 > Enable either `deployment` or `statefulset`, not both simultaneously.
 
 | Parameter | Type | Default | Required | Description |
 |-----------|------|---------|----------|-------------|
 | `statefulset.enabled` | bool | `false` | ❌ | Render the StatefulSet |
 | `statefulset.replicaCount` | int | `1` | ❌ | Number of replicas |
-| `statefulset.ports.http` | int | `8080` | ❌ | HTTP container port |
+| `statefulset.ports.http` | int | — (omitted) | ❌ | HTTP container port |
 | `statefulset.ports.tcp` | int | — | ❌ | Additional TCP container port |
-| `statefulset.liveness` | string | `""` | ❌ | HTTP path for liveness probe |
-| `statefulset.readiness` | string | `""` | ❌ | HTTP path for readiness probe |
+| `statefulset.liveness` | string or object | — (omitted) | ❌ | HTTP path shorthand or raw Kubernetes probe map |
+| `statefulset.readiness` | string or object | — (omitted) | ❌ | HTTP path shorthand or raw Kubernetes probe map |
+| `statefulset.startup` | string or object | — (omitted) | ❌ | Startup path shorthand or raw probe map |
+| `statefulset.terminationGracePeriodSeconds` | int | — (Kubernetes default) | ❌ | Pod termination budget in seconds |
+| `statefulset.preStopSleepSeconds` | int | — (omitted) | ❌ | Native preStop sleep; requires Kubernetes 1.30+ |
+| `statefulset.lifecycle` | object | — (omitted) | ❌ | Raw main-container lifecycle; overrides convenience sleep, including when empty |
+| `statefulset.minReadySeconds` | int | — (omitted) | ❌ | Minimum ready interval; explicit `0` is retained |
 | `statefulset.command` | string[] | `[]` | ❌ | Override container entrypoint |
 | `statefulset.args` | string[] | `[]` | ❌ | Container arguments |
 | `statefulset.podAnnotations` | object | `{}` | ❌ | Annotations added to each pod |
@@ -749,8 +812,10 @@ Horizontal Pod Autoscaler (HPA). When enabled, `replicaCount` sets the initial r
 | Parameter | Type | Default | Required | Description |
 |-----------|------|---------|----------|-------------|
 | `autoscaling.enabled` | bool | `false` | ❌ | Create an HPA resource |
-| `autoscaling.minReplicas` | int | `1` | ❌ | Minimum replica count |
-| `autoscaling.maxReplicas` | int | `100` | ❌ | Maximum replica count |
+| `autoscaling.omitReplicas` | bool | `false` | ❌ | Omit Deployment `spec.replicas` only when an HPA is enabled and targets Deployment |
+| `autoscaling.targetKind` | string | `"Deployment"` | ❌ | HPA target kind; use `StatefulSet` for that workload |
+| `autoscaling.minReplicas` | int | — | ✅ (when enabled) | Minimum replica count |
+| `autoscaling.maxReplicas` | int | — | ✅ (when enabled) | Maximum replica count |
 | `autoscaling.targetCPUUtilizationPercentage` | int | — | ❌ | Target CPU utilisation (%) |
 | `autoscaling.targetMemoryUtilizationPercentage` | int | — | ❌ | Target memory utilisation (%) |
 
@@ -763,6 +828,10 @@ autoscaling:
   targetMemoryUtilizationPercentage: 80
 ```
 
+`autoscaling.omitReplicas` leaves StatefulSet replicas and HPA `minReplicas` unchanged.
+For an existing release with an HPA, enabling it drops `replicas` once during the first Helm/Argo sync.
+Kubernetes can reset replicas to `1` until the HPA scales up again; plan that sync using the [HPA migration note](upgrade-guide.md#hpa-replica-ownership).
+
 ---
 
 ### Node Scheduling
@@ -772,6 +841,8 @@ autoscaling:
 | `nodeSelector` | object | `{}` | Node label selector |
 | `tolerations` | object[] | `[]` | Pod tolerations |
 | `affinity` | object | `{}` | Pod/node affinity rules |
+| `podAntiAffinityPreset` | string | `""` | `""`, `soft` or `hard`; unknown values fail rendering |
+| `topologySpreadConstraints` | object[] | — (omitted) | Raw constraints; omitted `labelSelector` receives this chart's selector labels |
 
 ```yaml
 nodeSelector:
@@ -796,6 +867,55 @@ affinity:
                   - my-app
           topologyKey: kubernetes.io/hostname
 ```
+
+#### Spreading replicas
+
+The new spreading keys apply to Deployment and StatefulSet pods only.
+`soft` adds preferred anti-affinity with weight `100`; `hard` adds required anti-affinity.
+Both use `kubernetes.io/hostname` and the current chart's selector labels.
+Other affinity, such as `nodeAffinity`, is preserved. Explicit `affinity.podAntiAffinity` wins, including `{}`.
+Hard anti-affinity can leave pods Pending when there are too few eligible nodes.
+
+```yaml
+podAntiAffinityPreset: soft
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+```
+
+Each spread constraint gets `app.selectorLabels` only when `labelSelector` is absent; an explicit selector is unchanged.
+With aliased sub-charts, injected selectors use each alias's own name and release instance.
+
+---
+
+### podDisruptionBudget
+
+Creates a `policy/v1` budget for an enabled Deployment or StatefulSet, using the same selector labels as its pods.
+No workload means no budget, even when enabled.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `podDisruptionBudget.enabled` | bool | `false` | Render the budget |
+| `podDisruptionBudget.minAvailable` | int or percentage string | — | Minimum available pods; choose exactly one availability key |
+| `podDisruptionBudget.maxUnavailable` | int or percentage string | — | Maximum unavailable pods; choose exactly one availability key |
+| `podDisruptionBudget.unhealthyPodEvictionPolicy` | string | `AlwaysAllow` (when enabled) | `AlwaysAllow` or `IfHealthyBudget`; stable in Kubernetes 1.31+ |
+
+```yaml
+deployment:
+  replicaCount: 3
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+```
+
+Both availability keys, or neither, fail rendering.
+With autoscaling disabled, an integer `minAvailable` greater than or equal to the effective replica count also fails: every node drain would be blocked.
+This guard does not check strings or HPA-enabled workloads; review the actual budget against the minimum replica count.
+The template always emits `unhealthyPodEvictionPolicy` when the PDB is enabled. Use Kubernetes **1.31+** for its stable API.
+See the [Kubernetes PDB guidance](https://kubernetes.io/docs/tasks/run-application/configure-pdb/#unhealthy-pod-eviction-policy).
+A PDB limits voluntary evictions; the Deployment strategy controls rolling-update availability.
 
 ---
 
@@ -861,6 +981,65 @@ networkPolicy:
 ---
 
 ## Usage Examples
+
+### Zero-downtime Deployment
+
+This example matches the [library README](../drunk-lib/README.md#example--zero-downtime-deployment).
+Use Kubernetes 1.31+ and an application exposing HTTP `/healthz` on `8080` plus HTTPS health endpoints on `8443`.
+Adjust the endpoints and timings to the application. The settings support availability; chart rendering alone cannot prove zero downtime.
+
+```yaml
+global:
+  image: example/app
+  tag: "1.0.0"
+podAntiAffinityPreset: soft
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 50
+        preference:
+          matchExpressions:
+            - key: pool
+              operator: In
+              values: [apps]
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+deployment:
+  enabled: true
+  replicaCount: 3
+  ports: {http: 8080, https: 8443}
+  liveness:
+    httpGet: {path: /healthz, port: https, scheme: HTTPS}
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    httpGet: {path: /healthz/ready, port: https, scheme: HTTPS}
+    periodSeconds: 5
+    failureThreshold: 3
+  startup: "/healthz"
+  terminationGracePeriodSeconds: 45
+  preStopSleepSeconds: 10
+  minReadySeconds: 10
+  progressDeadlineSeconds: 600
+  revisionHistoryLimit: 5
+  strategy: {type: RollingUpdate, maxSurge: 0, maxUnavailable: 1}
+autoscaling:
+  enabled: true
+  omitReplicas: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+```
+
+Readiness must reflect the ability to serve traffic. Allow enough shutdown time for in-flight requests.
+CPU-based HPA scaling also needs a metrics API and CPU requests; `drunk-app` defaults provide the requests.
+Keep `autoscaling.omitReplicas: false` through the initial version upgrade, then enable it in a planned sync.
 
 ### Simple Web Application
 
@@ -1035,11 +1214,11 @@ networkPolicies:
 
 ## Upgrade Notes
 
+Use the [1.x → 2.x upgrade guide](upgrade-guide.md) for verified breaking changes, value renames and rollout-safety adoption.
+
 ### 2.0.4
 
-- `secretProvider.provider.useVMManagedIdentity: false` now renders `"false"`. Before 2.0.4 a plain `false` was ignored and the chart rendered `"true"`. A chart that sets `false` but still needs VM managed identity must now set `true` (or remove the key).
-- New settings: `deployment.podLabels`, `statefulset.podLabels` and `secretProvider.provider.clientID`.
-- The unused top-level `podAnnotations` key was removed from the default values. Use `deployment.podAnnotations` or `statefulset.podAnnotations`.
+See the [2.0.4 migration notes](upgrade-guide.md#204): `useVMManagedIdentity: false` now renders `"false"`; set `true` if VM identity is required.
 
 ---
 
