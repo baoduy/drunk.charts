@@ -192,6 +192,29 @@ resources:
 #  maxReplicas: 100
 #  targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
+#  behavior: # optional passthrough; no default scaling policies
+#    scaleUp:
+#      stabilizationWindowSeconds: 0
+#      selectPolicy: Max
+#      policies:
+#        - type: Percent
+#          value: 100
+#          periodSeconds: 60
+#    scaleDown:
+#      stabilizationWindowSeconds: 300
+#      selectPolicy: Min
+#      policies:
+#        - type: Pods
+#          value: 1
+#          periodSeconds: 60
+#  metrics: # full autoscaling/v2 specs, appended after CPU and memory targets
+#    - type: Pods # Pods, Object and External metrics require a metrics adapter
+#      pods:
+#        metric:
+#          name: requests_per_second
+#        target:
+#          type: AverageValue
+#          averageValue: "100"
 
 nodeSelector: {}
 tolerations: []
