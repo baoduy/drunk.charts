@@ -1,0 +1,441 @@
+suite: PodDisruptionBudget rollout safety
+templates:
+- pdb.yaml
+tests:
+- it: 'deployment: minAvailable renders with shared selectors'
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    statefulset:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+  asserts:
+  - equal:
+      path: apiVersion
+      value: policy/v1
+  - equal:
+      path: kind
+      value: PodDisruptionBudget
+  - equal:
+      path: metadata.name
+      value: RELEASE-NAME-drunk-app
+  - equal:
+      path: spec.minAvailable
+      value: 1
+  - notExists:
+      path: spec.maxUnavailable
+  - equal:
+      path: spec.unhealthyPodEvictionPolicy
+      value: AlwaysAllow
+  - equal:
+      path: spec.selector.matchLabels
+      value: &id001
+        app.kubernetes.io/name: drunk-app
+        app.kubernetes.io/instance: RELEASE-NAME
+- it: 'deployment: maxUnavailable accepts percentages and explicit policy'
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    statefulset:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 25%
+      unhealthyPodEvictionPolicy: IfHealthyBudget
+  asserts:
+  - equal:
+      path: spec.maxUnavailable
+      value: 25%
+  - notExists:
+      path: spec.minAvailable
+  - equal:
+      path: spec.unhealthyPodEvictionPolicy
+      value: IfHealthyBudget
+- it: 'deployment: minAvailable accepts percentages'
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    statefulset:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 50%
+  asserts:
+  - equal:
+      path: spec.minAvailable
+      value: 50%
+- it: 'deployment: maxUnavailable zero preserved'
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    statefulset:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 0
+  asserts:
+  - equal:
+      path: spec.maxUnavailable
+      value: 0
+- it: 'deployment: minAvailable zero preserved'
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    statefulset:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 0
+  asserts:
+  - equal:
+      path: spec.minAvailable
+      value: 0
+- it: 'deployment: mutually exclusive even at zero'
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    statefulset:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 0
+      maxUnavailable: 0
+  asserts:
+  - failedTemplate:
+      errorMessage: podDisruptionBudget.minAvailable and podDisruptionBudget.maxUnavailable
+        are mutually exclusive
+- it: 'deployment: exactly one availability key required'
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    statefulset:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+  asserts:
+  - failedTemplate:
+      errorMessage: podDisruptionBudget requires exactly one of minAvailable or maxUnavailable
+- it: 'deployment: minAvailable 3 blocks every drain'
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    statefulset:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 3
+  asserts:
+  - failedTemplate:
+      errorMessage: podDisruptionBudget.minAvailable (3) >= replicas (3) would block
+        every node drain
+- it: 'deployment: minAvailable 4 blocks every drain'
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    statefulset:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 4
+  asserts:
+  - failedTemplate:
+      errorMessage: podDisruptionBudget.minAvailable (4) >= replicas (3) would block
+        every node drain
+- it: 'deployment: default replicas also validated'
+  set:
+    deployment:
+      enabled: true
+    statefulset:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+  asserts:
+  - failedTemplate:
+      errorMessage: podDisruptionBudget.minAvailable (1) >= replicas (1) would block
+        every node drain
+- it: 'deployment: HPA allows minAvailable equal to initial replica count'
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    statefulset:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 3
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 10
+  asserts:
+  - equal:
+      path: spec.minAvailable
+      value: 3
+- it: 'deployment: alias supplies PDB selector'
+  set:
+    deployment:
+      enabled: true
+      replicaCount: 3
+    statefulset:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+    nameOverride: second-app
+  asserts:
+  - equal:
+      path: spec.selector.matchLabels
+      value:
+        app.kubernetes.io/name: second-app
+        app.kubernetes.io/instance: RELEASE-NAME
+- it: 'statefulset: minAvailable renders with shared selectors'
+  set:
+    statefulset:
+      enabled: true
+      replicaCount: 3
+    deployment:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+  asserts:
+  - equal:
+      path: apiVersion
+      value: policy/v1
+  - equal:
+      path: kind
+      value: PodDisruptionBudget
+  - equal:
+      path: metadata.name
+      value: RELEASE-NAME-drunk-app
+  - equal:
+      path: spec.minAvailable
+      value: 1
+  - notExists:
+      path: spec.maxUnavailable
+  - equal:
+      path: spec.unhealthyPodEvictionPolicy
+      value: AlwaysAllow
+  - equal:
+      path: spec.selector.matchLabels
+      value: *id001
+- it: 'statefulset: maxUnavailable accepts percentages and explicit policy'
+  set:
+    statefulset:
+      enabled: true
+      replicaCount: 3
+    deployment:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 25%
+      unhealthyPodEvictionPolicy: IfHealthyBudget
+  asserts:
+  - equal:
+      path: spec.maxUnavailable
+      value: 25%
+  - notExists:
+      path: spec.minAvailable
+  - equal:
+      path: spec.unhealthyPodEvictionPolicy
+      value: IfHealthyBudget
+- it: 'statefulset: minAvailable accepts percentages'
+  set:
+    statefulset:
+      enabled: true
+      replicaCount: 3
+    deployment:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 50%
+  asserts:
+  - equal:
+      path: spec.minAvailable
+      value: 50%
+- it: 'statefulset: maxUnavailable zero preserved'
+  set:
+    statefulset:
+      enabled: true
+      replicaCount: 3
+    deployment:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      maxUnavailable: 0
+  asserts:
+  - equal:
+      path: spec.maxUnavailable
+      value: 0
+- it: 'statefulset: minAvailable zero preserved'
+  set:
+    statefulset:
+      enabled: true
+      replicaCount: 3
+    deployment:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 0
+  asserts:
+  - equal:
+      path: spec.minAvailable
+      value: 0
+- it: 'statefulset: mutually exclusive even at zero'
+  set:
+    statefulset:
+      enabled: true
+      replicaCount: 3
+    deployment:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 0
+      maxUnavailable: 0
+  asserts:
+  - failedTemplate:
+      errorMessage: podDisruptionBudget.minAvailable and podDisruptionBudget.maxUnavailable
+        are mutually exclusive
+- it: 'statefulset: exactly one availability key required'
+  set:
+    statefulset:
+      enabled: true
+      replicaCount: 3
+    deployment:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+  asserts:
+  - failedTemplate:
+      errorMessage: podDisruptionBudget requires exactly one of minAvailable or maxUnavailable
+- it: 'statefulset: minAvailable 3 blocks every drain'
+  set:
+    statefulset:
+      enabled: true
+      replicaCount: 3
+    deployment:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 3
+  asserts:
+  - failedTemplate:
+      errorMessage: podDisruptionBudget.minAvailable (3) >= replicas (3) would block
+        every node drain
+- it: 'statefulset: minAvailable 4 blocks every drain'
+  set:
+    statefulset:
+      enabled: true
+      replicaCount: 3
+    deployment:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 4
+  asserts:
+  - failedTemplate:
+      errorMessage: podDisruptionBudget.minAvailable (4) >= replicas (3) would block
+        every node drain
+- it: 'statefulset: default replicas also validated'
+  set:
+    statefulset:
+      enabled: true
+    deployment:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+  asserts:
+  - failedTemplate:
+      errorMessage: podDisruptionBudget.minAvailable (1) >= replicas (1) would block
+        every node drain
+- it: 'statefulset: HPA allows minAvailable equal to initial replica count'
+  set:
+    statefulset:
+      enabled: true
+      replicaCount: 3
+    deployment:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 3
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 10
+  asserts:
+  - equal:
+      path: spec.minAvailable
+      value: 3
+- it: 'statefulset: alias supplies PDB selector'
+  set:
+    statefulset:
+      enabled: true
+      replicaCount: 3
+    deployment:
+      enabled: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+    nameOverride: second-app
+  asserts:
+  - equal:
+      path: spec.selector.matchLabels
+      value:
+        app.kubernetes.io/name: second-app
+        app.kubernetes.io/instance: RELEASE-NAME
+- it: disabled by default
+  set: {}
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: disabled budget renders nothing despite unused conflicting keys
+  set:
+    podDisruptionBudget:
+      enabled: false
+      minAvailable: 1
+      maxUnavailable: 1
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: CronJob-only chart has no PDB even with enabled budget
+  set:
+    deployment:
+      enabled: false
+    statefulset:
+      enabled: false
+    cronJobs:
+    - name: nightly
+      schedule: 0 0 * * *
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+  asserts:
+  - hasDocuments:
+      count: 0
+- it: Job-only chart has no PDB
+  set:
+    deployment:
+      enabled: false
+    statefulset:
+      enabled: false
+    jobs:
+    - name: once
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+  asserts:
+  - hasDocuments:
+      count: 0

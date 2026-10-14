@@ -1,0 +1,46 @@
+global:
+  image: example/app
+  tag: "1.0.0"
+podAntiAffinityPreset: soft
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 50
+        preference:
+          matchExpressions:
+            - key: pool
+              operator: In
+              values: [apps]
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+deployment:
+  enabled: true
+  replicaCount: 3
+  ports: {http: 8080, https: 8443}
+  liveness:
+    httpGet: {path: /healthz, port: https, scheme: HTTPS}
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    httpGet: {path: /healthz/ready, port: https, scheme: HTTPS}
+    periodSeconds: 5
+    failureThreshold: 3
+  startup: "/healthz"
+  terminationGracePeriodSeconds: 45
+  preStopSleepSeconds: 10
+  minReadySeconds: 10
+  progressDeadlineSeconds: 600
+  revisionHistoryLimit: 5
+  strategy: {type: RollingUpdate, maxSurge: 0, maxUnavailable: 1}
+autoscaling:
+  enabled: true
+  omitReplicas: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80

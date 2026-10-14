@@ -86,3 +86,15 @@ tests:
   - equal:
       path: spec.metrics[1].resource.target.averageUtilization
       value: 65
+
+- it: keeps HPA minReplicas when Deployment replicas are omitted
+  set:
+    autoscaling:
+      enabled: true
+      omitReplicas: true
+      minReplicas: 2
+      maxReplicas: 10
+  asserts:
+    - equal:
+        path: spec.minReplicas
+        value: 2

@@ -61,3 +61,31 @@ secretProvider:
 #     jobs:
 #       - name: db-migrate
 #         enabled: false   # skip this entry
+
+# ── Opt-in rollout safety (Deployment and StatefulSet only) ────────────────
+# deployment / statefulset:
+#   liveness: "/healthz" # or raw map: httpGet / tcpSocket / exec / grpc plus timings
+#   readiness: {httpGet: {path: /ready, port: https, scheme: HTTPS}, periodSeconds: 5}
+#   startup: "/healthz" # or raw map; string defaults: periodSeconds 5, failureThreshold 30
+#   terminationGracePeriodSeconds: 45
+#   preStopSleepSeconds: 10 # native sleep, less than grace period; Kubernetes 1.30+
+#   lifecycle: {} # raw lifecycle overrides convenience sleep
+#   minReadySeconds: 10 # render only when present; accepts 0
+# deployment:
+#   progressDeadlineSeconds: 600
+#   revisionHistoryLimit: 5
+#   strategy: {type: RollingUpdate, maxSurge: 0, maxUnavailable: 1}
+#     # max values accept integers / percentages; both cannot be 0
+# autoscaling:
+#   omitReplicas: false # only omits Deployment replicas when HPA enabled and targeting Deployment
+# podAntiAffinityPreset: "" # "" | soft | hard; explicit affinity.podAntiAffinity wins
+# topologySpreadConstraints:
+#   - maxSkew: 1
+#     topologyKey: topology.kubernetes.io/zone
+#     whenUnsatisfiable: ScheduleAnyway
+#     # absent labelSelector uses app.selectorLabels for this alias
+# podDisruptionBudget:
+#   enabled: false
+#   minAvailable: 1 # exactly one of minAvailable / maxUnavailable
+#   # maxUnavailable: "25%"
+#   unhealthyPodEvictionPolicy: AlwaysAllow # default when enabled; Kubernetes 1.31+

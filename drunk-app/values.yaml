@@ -26,6 +26,42 @@ deployment:
   #args:
   #liveness: "/healthz"
   #readiness: "/healthz/ready"
+  # Probe maps pass through the complete Kubernetes probe spec.
+  # liveness:
+  #   httpGet: {path: /healthz, port: https, scheme: HTTPS}
+  #   periodSeconds: 5
+  # readiness:
+  #   httpGet: {path: /healthz/ready, port: http}
+  #   failureThreshold: 3
+  # startup: "/healthz" # or a raw probe map; shorthand uses period 5, failure threshold 30
+  # terminationGracePeriodSeconds: 45
+  # preStopSleepSeconds: 10 # native sleep; requires Kubernetes 1.30+
+  # lifecycle: {} # raw override wins over preStopSleepSeconds
+  # minReadySeconds: 10 # 0 is also valid
+  # progressDeadlineSeconds: 600
+  # revisionHistoryLimit: 5
+  # strategy:
+  #   type: RollingUpdate # Recreate omits rollingUpdate
+  #   maxSurge: 0 # or "25%"; both max values cannot be 0
+  #   maxUnavailable: 1
+
+# StatefulSet uses the same probes, shutdown, and minReadySeconds keys.
+# Probe maps pass through the complete Kubernetes probe spec.
+# statefulset:
+#   enabled: false
+#   replicaCount: 3
+#   ports: {http: 8080}
+#   liveness:
+#     httpGet: {path: /healthz, port: https, scheme: HTTPS}
+#     periodSeconds: 5
+#   readiness:
+#     httpGet: {path: /healthz/ready, port: http}
+#     failureThreshold: 3
+#   startup: "/healthz" # or a raw probe map; shorthand uses period 5, failure threshold 30
+#   terminationGracePeriodSeconds: 45
+#   preStopSleepSeconds: 10 # native sleep; requires Kubernetes 1.30+
+#   lifecycle: {} # raw override wins over preStopSleepSeconds
+#   minReadySeconds: 10 # 0 is also valid
 
 #cronJobs:
 #  - name: 'job-one'
@@ -86,6 +122,8 @@ resources:
 
 #autoscaling:
 #  enabled: false
+#  omitReplicas: false # opt-in Deployment replicas omission; see drunk-lib README migration note
+#  targetKind: Deployment
 #  minReplicas: 1
 #  maxReplicas: 100
 #  targetCPUUtilizationPercentage: 80
@@ -94,6 +132,17 @@ resources:
 nodeSelector: {}
 tolerations: []
 affinity: {}
+# podAntiAffinityPreset: "" # "" (default), soft, hard; explicit affinity.podAntiAffinity wins
+# topologySpreadConstraints:
+#   - maxSkew: 1
+#     topologyKey: topology.kubernetes.io/zone
+#     whenUnsatisfiable: ScheduleAnyway
+#     # Omit labelSelector to use this chart alias's selector labels.
+# podDisruptionBudget:
+#   enabled: false
+#   minAvailable: 1 # choose exactly one of minAvailable / maxUnavailable
+#   # maxUnavailable: "25%"
+#   unhealthyPodEvictionPolicy: AlwaysAllow # requires Kubernetes 1.31+
 
 # Network Policies - Control network access to pods
 # Supports both single policy (legacy) and multiple policies (new)

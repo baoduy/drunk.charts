@@ -9,11 +9,14 @@
 #   drunk-squid-basic-auth vendors a released drunk-app tarball, not local drunk-lib.
 #   drunk-sample and microsoft-hello-world-app are values files, not Helm charts.
 #
-# Three renders are machine-diffable (stable, no random content):
+# Six renders are machine-diffable (stable, no random content):
 #   drunk-app-default.yaml      — default values.yaml (renders empty; stable)
 #   drunk-app-svc-disabled.yaml — service.enabled: false regression case
 #   drunk-app-secretprovider.yaml — secretProvider.enabled: true regression case
 #   drunk-app-tls-secrets.yaml  — tlsSecrets inline cert/key/ca render case
+#
+#   drunk-app-rollout.yaml — Deployment rollout safety
+#   drunk-app-statefulset-rollout.yaml — StatefulSet rollout safety
 #
 # One render is human-review only (NOT machine-diffed in verify.sh):
 #   drunk-app-example.yaml      — values.example.yaml; contains randAlphaNum Job names
@@ -58,6 +61,13 @@ helm template test-release "$REPO_ROOT/drunk-app" \
   --show-only templates/tls-secrets.yaml \
   2>/dev/null > "$GOLDEN_DIR/drunk-app-tls-secrets.yaml"
 echo "    Written: $GOLDEN_DIR/drunk-app-tls-secrets.yaml ($(wc -l < "$GOLDEN_DIR/drunk-app-tls-secrets.yaml") lines)"
+
+for scenario in rollout statefulset-rollout; do
+  echo "==> Capturing drunk-app ($scenario — machine-diffable) ..."
+  helm template test-release "$REPO_ROOT/drunk-app" \
+    --values "$SCRIPT_DIR/tests/values/$scenario.yaml" \
+    2>/dev/null > "$GOLDEN_DIR/drunk-app-$scenario.yaml"
+done
 
 echo "==> Capturing drunk-app (values.example.yaml — HUMAN REVIEW ONLY, not machine-diffed) ..."
 helm template test-release "$REPO_ROOT/drunk-app" \

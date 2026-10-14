@@ -1,0 +1,378 @@
+suite: statefulset opt-in rollout safety
+templates:
+- statefulset.yaml
+tests:
+- it: new fields are absent by default
+  set:
+    statefulset:
+      enabled: true
+  asserts:
+  - notExists:
+      path: spec.template.spec.containers[0].startupProbe
+  - notExists:
+      path: spec.template.spec.containers[0].lifecycle
+  - notExists:
+      path: spec.template.spec.terminationGracePeriodSeconds
+  - notExists:
+      path: spec.template.spec.topologySpreadConstraints
+  - notExists:
+      path: spec.template.spec.affinity
+  - notExists:
+      path: spec.minReadySeconds
+- it: legacy probe strings keep timings
+  set:
+    statefulset:
+      enabled: true
+      liveness: /live
+      readiness: /ready
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe
+      value:
+        initialDelaySeconds: 60
+        periodSeconds: 300
+        httpGet:
+          path: /live
+          port: http
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe
+      value:
+        httpGet:
+          path: /ready
+          port: http
+- it: httpGet probe maps pass through unchanged
+  set:
+    statefulset:
+      enabled: true
+      liveness: &id001
+        httpGet:
+          path: /healthz
+          port: https
+          scheme: HTTPS
+        periodSeconds: 5
+        failureThreshold: 3
+        timeoutSeconds: 2
+      readiness: *id001
+      startup: *id001
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe
+      value: *id001
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe
+      value: *id001
+  - equal:
+      path: spec.template.spec.containers[0].startupProbe
+      value: *id001
+- it: tcpSocket probe maps pass through unchanged
+  set:
+    statefulset:
+      enabled: true
+      liveness: &id002
+        tcpSocket:
+          port: 9090
+        periodSeconds: 5
+        failureThreshold: 3
+        timeoutSeconds: 2
+      readiness: *id002
+      startup: *id002
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe
+      value: *id002
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe
+      value: *id002
+  - equal:
+      path: spec.template.spec.containers[0].startupProbe
+      value: *id002
+- it: exec probe maps pass through unchanged
+  set:
+    statefulset:
+      enabled: true
+      liveness: &id003
+        exec:
+          command:
+          - check
+          - health
+        periodSeconds: 5
+        failureThreshold: 3
+        timeoutSeconds: 2
+      readiness: *id003
+      startup: *id003
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe
+      value: *id003
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe
+      value: *id003
+  - equal:
+      path: spec.template.spec.containers[0].startupProbe
+      value: *id003
+- it: grpc probe maps pass through unchanged
+  set:
+    statefulset:
+      enabled: true
+      liveness: &id004
+        grpc:
+          port: 9090
+          service: health
+        periodSeconds: 5
+        failureThreshold: 3
+        timeoutSeconds: 2
+      readiness: *id004
+      startup: *id004
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].livenessProbe
+      value: *id004
+  - equal:
+      path: spec.template.spec.containers[0].readinessProbe
+      value: *id004
+  - equal:
+      path: spec.template.spec.containers[0].startupProbe
+      value: *id004
+- it: startup string has slow-start defaults
+  set:
+    statefulset:
+      enabled: true
+      startup: /start
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].startupProbe
+      value:
+        httpGet:
+          path: /start
+          port: http
+        periodSeconds: 5
+        failureThreshold: 30
+- it: native sleep and grace period render on main container only
+  set:
+    statefulset:
+      enabled: true
+      preStopSleepSeconds: 10
+      terminationGracePeriodSeconds: 45
+    global:
+      initContainer:
+        image: init
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].lifecycle.preStop.sleep.seconds
+      value: 10
+  - equal:
+      path: spec.template.spec.terminationGracePeriodSeconds
+      value: 45
+  - notExists:
+      path: spec.template.spec.initContainers[0].lifecycle
+- it: raw lifecycle {} overrides convenience sleep
+  set:
+    statefulset:
+      enabled: true
+      lifecycle: &id005 {}
+      preStopSleepSeconds: 10
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].lifecycle
+      value: *id005
+- it: 'raw lifecycle {''preStop'': {''exec'': {''command'': [''drain'']}}} overrides
+    convenience sleep'
+  set:
+    statefulset:
+      enabled: true
+      lifecycle: &id006
+        preStop:
+          exec:
+            command:
+            - drain
+      preStopSleepSeconds: 10
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].lifecycle
+      value: *id006
+- it: grace period may be explicitly zero
+  set:
+    statefulset:
+      enabled: true
+      terminationGracePeriodSeconds: 0
+  asserts:
+  - equal:
+      path: spec.template.spec.terminationGracePeriodSeconds
+      value: 0
+  - notExists:
+      path: spec.template.spec.containers[0].lifecycle
+- it: sleep 45 must fit inside grace period
+  set:
+    statefulset:
+      enabled: true
+      preStopSleepSeconds: 45
+      terminationGracePeriodSeconds: 45
+  asserts:
+  - failedTemplate:
+      errorMessage: statefulset.preStopSleepSeconds (45) must be less than terminationGracePeriodSeconds
+        (45)
+- it: sleep 46 must fit inside grace period
+  set:
+    statefulset:
+      enabled: true
+      preStopSleepSeconds: 46
+      terminationGracePeriodSeconds: 45
+  asserts:
+  - failedTemplate:
+      errorMessage: statefulset.preStopSleepSeconds (46) must be less than terminationGracePeriodSeconds
+        (45)
+- it: validation still applies with lifecycle override
+  set:
+    statefulset:
+      enabled: true
+      lifecycle: {}
+      preStopSleepSeconds: 45
+      terminationGracePeriodSeconds: 45
+  asserts:
+  - failedTemplate:
+      errorMessage: statefulset.preStopSleepSeconds (45) must be less than terminationGracePeriodSeconds
+        (45)
+- it: minReadySeconds honors explicit zero
+  set:
+    statefulset:
+      enabled: true
+      minReadySeconds: 0
+  asserts:
+  - equal:
+      path: spec.minReadySeconds
+      value: 0
+- it: minReadySeconds renders a positive value
+  set:
+    statefulset:
+      enabled: true
+      minReadySeconds: 10
+  asserts:
+  - equal:
+      path: spec.minReadySeconds
+      value: 10
+- it: soft preset preserves user nodeAffinity
+  set:
+    statefulset:
+      enabled: true
+    podAntiAffinityPreset: soft
+    affinity:
+      nodeAffinity: &id007
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: pool
+              operator: In
+              values:
+              - apps
+  asserts:
+  - equal:
+      path: spec.template.spec.affinity.nodeAffinity
+      value: *id007
+  - equal:
+      path: spec.template.spec.affinity.podAntiAffinity
+      value:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels: &id008
+                app.kubernetes.io/name: drunk-app
+                app.kubernetes.io/instance: RELEASE-NAME
+- it: hard preset uses required anti-affinity
+  set:
+    statefulset:
+      enabled: true
+    podAntiAffinityPreset: hard
+  asserts:
+  - equal:
+      path: spec.template.spec.affinity.podAntiAffinity
+      value:
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels: *id008
+- it: explicit podAntiAffinity wins over preset
+  set:
+    statefulset:
+      enabled: true
+    podAntiAffinityPreset: soft
+    affinity:
+      podAntiAffinity: &id009
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - topologyKey: custom-node
+          labelSelector:
+            matchLabels:
+              app: custom
+  asserts:
+  - equal:
+      path: spec.template.spec.affinity.podAntiAffinity
+      value: *id009
+- it: explicit empty podAntiAffinity also wins
+  set:
+    statefulset:
+      enabled: true
+    podAntiAffinityPreset: hard
+    affinity:
+      podAntiAffinity: {}
+  asserts:
+  - equal:
+      path: spec.template.spec.affinity.podAntiAffinity
+      value: {}
+- it: spread selectors injected independently and explicit selectors preserved
+  set:
+    statefulset:
+      enabled: true
+    topologySpreadConstraints:
+    - &id010
+      maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          custom: selector
+  asserts:
+  - equal:
+      path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+      value: *id008
+  - equal:
+      path: spec.template.spec.topologySpreadConstraints[1].labelSelector.matchLabels
+      value:
+        custom: selector
+- it: chart alias name supplies both scheduling selectors
+  set:
+    statefulset:
+      enabled: true
+    nameOverride: second-app
+    podAntiAffinityPreset: soft
+    topologySpreadConstraints:
+    - *id010
+  asserts:
+  - equal:
+      path: spec.template.spec.affinity.podAntiAffinity.preferredDuringSchedulingIgnoredDuringExecution[0].podAffinityTerm.labelSelector.matchLabels
+      value:
+        app.kubernetes.io/name: second-app
+        app.kubernetes.io/instance: RELEASE-NAME
+  - equal:
+      path: spec.template.spec.topologySpreadConstraints[0].labelSelector.matchLabels
+      value:
+        app.kubernetes.io/name: second-app
+        app.kubernetes.io/instance: RELEASE-NAME
+- it: StatefulSet replicas remain with HPA omission flag
+  set:
+    statefulset:
+      enabled: true
+      replicaCount: 3
+    autoscaling:
+      enabled: true
+      omitReplicas: true
+      targetKind: StatefulSet
+      minReplicas: 2
+      maxReplicas: 10
+  asserts:
+  - equal:
+      path: spec.replicas
+      value: 3
