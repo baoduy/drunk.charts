@@ -1,0 +1,218 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Rendering workload probes and shutdown",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-workload-render-20261014-145000/workload-render.html",
+    "repository": {
+      "url": "https://github.com/baoduy/drunk.charts.git",
+      "revision": "e06cb2be2a3852375c35122ac4e008be4b526ebf"
+    },
+    "legend": {
+      "entries": {
+        "frontend": {
+          "visible": false
+        },
+        "database": {
+          "visible": false
+        },
+        "messagebus": {
+          "visible": false
+        },
+        "backend": {
+          "label": "Helm templates"
+        },
+        "security": {
+          "label": "Render validation"
+        },
+        "cloud": {
+          "label": "Rendered manifest"
+        },
+        "external": {
+          "label": "Chart values"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "render",
+      "label": "Helm rendering"
+    },
+    {
+      "id": "error",
+      "label": "Invalid shutdown",
+      "variant": "exception"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "values",
+      "lane": "render",
+      "col": 0,
+      "type": "external",
+      "label": "Consumer values",
+      "sublabel": "enabled workload",
+      "sources": [
+        {
+          "path": "drunk-app/values.yaml",
+          "line": 19,
+          "end_line": 28
+        }
+      ],
+      "width": 170
+    },
+    {
+      "id": "include",
+      "lane": "render",
+      "col": 1,
+      "type": "backend",
+      "label": "Template include",
+      "sublabel": "deployment / statefulset",
+      "sources": [
+        {
+          "path": "drunk-app/templates/deployment.yaml",
+          "line": 1,
+          "end_line": 1
+        },
+        {
+          "path": "drunk-app/templates/statefulset.yaml",
+          "line": 1,
+          "end_line": 1
+        }
+      ],
+      "width": 170
+    },
+    {
+      "id": "workload",
+      "lane": "render",
+      "col": 2,
+      "type": "backend",
+      "label": "drunk-lib workload",
+      "sublabel": "enabled gate + spec",
+      "sources": [
+        {
+          "path": "drunk-lib/templates/_deployment.tpl",
+          "line": 7,
+          "end_line": 35
+        },
+        {
+          "path": "drunk-lib/templates/_statefulset.tpl",
+          "line": 17,
+          "end_line": 35
+        }
+      ],
+      "width": 170
+    },
+    {
+      "id": "helpers",
+      "lane": "render",
+      "col": 3,
+      "type": "backend",
+      "label": "Shared helpers",
+      "sublabel": "probes + lifecycle",
+      "sources": [
+        {
+          "path": "drunk-lib/templates/_helpers.tpl",
+          "line": 169,
+          "end_line": 226
+        }
+      ],
+      "width": 170
+    },
+    {
+      "id": "yaml",
+      "lane": "render",
+      "col": 4,
+      "type": "cloud",
+      "label": "Workload YAML",
+      "sublabel": "main-container settings",
+      "sources": [
+        {
+          "path": "drunk-lib/templates/_deployment.tpl",
+          "line": 228,
+          "end_line": 232
+        },
+        {
+          "path": "drunk-lib/templates/_statefulset.tpl",
+          "line": 192,
+          "end_line": 196
+        }
+      ],
+      "width": 170
+    },
+    {
+      "id": "fail",
+      "lane": "error",
+      "col": 3,
+      "type": "security",
+      "label": "Render stops",
+      "sublabel": "sleep >= grace",
+      "sources": [
+        {
+          "path": "drunk-lib/templates/_helpers.tpl",
+          "line": 210,
+          "end_line": 215
+        }
+      ],
+      "width": 170
+    }
+  ],
+  "mainPath": [
+    "values",
+    "include",
+    "workload",
+    "helpers",
+    "yaml"
+  ],
+  "edges": [
+    {
+      "id": "values-include",
+      "from": "values",
+      "to": "include"
+    },
+    {
+      "id": "include-workload",
+      "from": "include",
+      "to": "workload"
+    },
+    {
+      "id": "workload-helpers",
+      "from": "workload",
+      "to": "helpers"
+    },
+    {
+      "id": "helpers-yaml",
+      "from": "helpers",
+      "to": "yaml"
+    },
+    {
+      "id": "shutdown-error",
+      "from": "helpers",
+      "to": "fail",
+      "label": "both set; invalid",
+      "role": "error",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Probe forms",
+      "items": [
+        "Path string: HTTP on named http port",
+        "Raw map: unchanged Kubernetes probe spec"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Shutdown precedence",
+      "items": [
+        "Raw lifecycle, including {}, overrides sleep",
+        "Explicit sleep must be shorter than explicit grace"
+      ]
+    }
+  ]
+}

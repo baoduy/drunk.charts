@@ -58,6 +58,14 @@ drunk-lib/
     └── _tls-secrets.tpl      # TLS Secret template
 ```
 
+### How workload includes render
+
+![A consumer includes drunk-lib workload templates, which render shared probes and lifecycle or stop on invalid shutdown values.](diagrams/workload-render.svg)
+
+A consumer passes its values to `drunk-lib.deployment` or `drunk-lib.statefulset`; each renders only when its workload is enabled.
+The helpers `drunk-lib.probes`, `drunk-lib.lifecycle` and `drunk-lib.podScheduling` apply the same rollout-safety rules as `drunk-app`.
+Library consumers provide their own workload, image, resource and security defaults; they do not inherit `drunk-app/values.yaml`.
+
 ### Template Naming Convention
 
 All templates follow the naming pattern: `drunk-lib.<resource-type>`
@@ -74,7 +82,7 @@ Examples:
 | Template | Purpose | Template Name |
 |----------|---------|---------------|
 | **Deployment** | Standard application deployment | `drunk-lib.deployment` |
-| **StatefulSet** | Stateful application deployment | `drunk-lib.statefulSet` |
+| **StatefulSet** | Stateful application deployment | `drunk-lib.statefulset` |
 | **Service** | Service discovery and load balancing | `drunk-lib.service` |
 | **Ingress** | External access routing (traditional) | `drunk-lib.ingress` |
 | **Gateway** | External access via Gateway API | `drunk-lib.gateway` |
@@ -110,6 +118,7 @@ Examples:
 | **ServiceAccount** | Pod identity | `drunk-lib.serviceAccount` |
 | **ImagePullSecret** | Registry authentication | `drunk-lib.imagePullSecret` |
 | **NetworkPolicy** | Network access control | `drunk-lib.networkPolicies` |
+| **PodDisruptionBudget** | Voluntary eviction budget | `drunk-lib.pdb` |
 
 ## Template Reference
 
@@ -191,20 +200,87 @@ resources:
     memory: 128Mi
 ```
 
+#### Rollout-safety keys
+
+These keys apply to `drunk-lib.deployment` and `drunk-lib.statefulset`.
+All new fields are opt-in; omitted fields leave the previous rendering behavior.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `deployment.liveness`, `statefulset.liveness` | string or object | — | HTTP path shorthand or raw probe map |
+| `deployment.readiness`, `statefulset.readiness` | string or object | — | HTTP path shorthand or raw probe map |
+| `deployment.startup`, `statefulset.startup` | string or object | — | HTTP startup path or raw probe map |
+| `deployment.terminationGracePeriodSeconds`, `statefulset.terminationGracePeriodSeconds` | int | — | Pod termination budget; Kubernetes supplies its default when absent |
+| `deployment.preStopSleepSeconds`, `statefulset.preStopSleepSeconds` | int | — | Native `preStop.sleep.seconds`; Kubernetes 1.30+ |
+| `deployment.lifecycle`, `statefulset.lifecycle` | object | — | Raw lifecycle, including `{}`, overrides convenience sleep |
+| `deployment.minReadySeconds`, `statefulset.minReadySeconds` | int | — | Minimum ready interval; retains explicit `0` |
+| `deployment.progressDeadlineSeconds` | int | — | Deployment progress deadline; retained when supplied |
+| `deployment.revisionHistoryLimit` | int | — | Retained ReplicaSets; retains explicit `0` |
+| `deployment.strategy.maxSurge` | int or percentage string | `1` | Extra pods during RollingUpdate; retains explicit `0` |
+| `deployment.strategy.maxUnavailable` | int or percentage string | `0` | Unavailable pods during RollingUpdate; retains explicit `0` |
+
+The rollout fields render only when present; the chart does not validate their Kubernetes ranges.
+RollingUpdate refuses both max values at zero (`0` or `"0%"`). `strategy.type: Recreate` emits no `rollingUpdate` block.
+StatefulSet uses its existing `updateStrategy`, not the Deployment strategy or progress/revision fields.
+
+#### Probes and graceful shutdown
+
+These keys configure the main container only. Init containers, Jobs and CronJobs do not use them.
+A non-empty probe map passes through unchanged: use `httpGet` (including HTTPS), `tcpSocket`, `exec` or `grpc`, plus Kubernetes probe timing fields.
+An empty string or map emits no probe. String shorthand uses the named `http` port; define that container port.
+Liveness shorthand keeps `initialDelaySeconds: 60` and `periodSeconds: 300`; readiness shorthand adds only `httpGet`.
+Startup shorthand uses `periodSeconds: 5` and `failureThreshold: 30`.
+
+```yaml
+deployment:
+  ports: {http: 8080}
+  liveness: "/healthz"
+  readiness:
+    httpGet: {path: /healthz/ready, port: http}
+    periodSeconds: 5
+    failureThreshold: 3
+  startup: "/healthz"
+  terminationGracePeriodSeconds: 45
+  preStopSleepSeconds: 10
+```
+
+`preStopSleepSeconds` emits native `preStop.sleep.seconds`, so no shell or sleep binary is needed in the image.
+Use Kubernetes **1.30+** with the `PodLifecycleSleepAction` feature gate enabled (beta and enabled by default in 1.30).
+See the [Kubernetes lifecycle update](https://kubernetes.io/blog/2025/05/14/kubernetes-v1-33-updates-to-container-lifecycle/).
+Set an explicit grace period that leaves time for the app to finish after the sleep.
+When both convenience values are present, sleep greater than or equal to the grace period fails rendering, even if `lifecycle` overrides the sleep.
+Without an explicit grace period, the chart performs no comparison; Kubernetes supplies its pod default.
+
+A raw `lifecycle` key, including `{}`, takes precedence over convenience sleep. For an HTTP shutdown hook instead:
+
+```yaml
+deployment:
+  terminationGracePeriodSeconds: 45
+  lifecycle:
+    preStop:
+      httpGet: {path: /shutdown, port: 8080}
+```
+
+Use the same example under `statefulset` with `deployment.enabled: false` and `statefulset.enabled: true`.
+
 ### StatefulSet Template
 
-**Template**: `drunk-lib.statefulSet`
+**Template**: `drunk-lib.statefulset`
 
 Creates a Kubernetes StatefulSet for stateful applications.
+
+The [rollout-safety table](#rollout-safety-keys) covers its probes, shutdown and `minReadySeconds` keys.
 
 #### Configuration:
 
 ```yaml
+deployment:
+  enabled: false
 statefulset:
   enabled: true
-  serviceName: "my-stateful-service"
   volumeClaimTemplates:
     - name: "data"
+      mountPath: "/data"
       storage: "10Gi"
       storageClassName: "fast-ssd"
       accessModes: ["ReadWriteOnce"]
@@ -222,9 +298,8 @@ Creates a Kubernetes Service for pod discovery and load balancing.
 service:
   type: "ClusterIP"  # ClusterIP, NodePort, LoadBalancer
   ports:
-    - name: "http"
-      port: 80
-      targetPort: 8080
+    http: 8080
+  port: 80
 ```
 
 ### ConfigMap Template
@@ -280,10 +355,12 @@ Creates a SecretProviderClass for Azure Key Vault integration using the Secrets 
 secretProvider:
   enabled: true
   name: "my-key-vault-spc"
-  tenantId: "your-tenant-id"
-  vaultName: "your-key-vault"
-  usePodIdentity: false
-  useWorkloadIdentity: true
+  provider:
+    tenantId: "your-tenant-id"
+    vaultName: "your-key-vault"
+    usePodIdentity: false
+    useVMManagedIdentity: false
+    useWorkloadIdentity: true
   objects:
     - objectName: "database-password"
       objectType: "secret"
@@ -346,11 +423,12 @@ Creates PersistentVolumeClaim resources for storage.
 volumes:
   data:
     size: "10Gi"
-    storageClass: "fast-ssd"
+    storageClassName: "fast-ssd"
     accessMode: "ReadWriteOnce"
     mountPath: "/app/data"
   logs:
     size: "5Gi"
+    accessMode: "ReadWriteOnce"
     mountPath: "/var/log/app"
     readOnly: false
   # EmptyDir volumes
@@ -375,14 +453,10 @@ ingress:
     nginx.ingress.kubernetes.io/rewrite-target: "/"
   hosts:
     - host: "myapp.example.com"
-      paths:
-        - path: "/"
-          pathType: "Prefix"
-          port: 8080
-  tls:
-    - secretName: "myapp-tls"
-      hosts:
-        - "myapp.example.com"
+      path: "/"
+      pathType: "Prefix"
+      port: 80
+  tls: "myapp-tls"
 ```
 
 ### HPA Template
@@ -401,6 +475,69 @@ autoscaling:
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80
 ```
+
+#### Replica ownership
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `autoscaling.omitReplicas` | bool | `false` | Omit Deployment replicas only when HPA is enabled and targets Deployment |
+| `autoscaling.targetKind` | string | `"Deployment"` | HPA target kind; supports `StatefulSet` |
+
+StatefulSet `spec.replicas` and HPA `minReplicas` remain unchanged.
+On an existing HPA-managed release, the first Helm/Argo sync that removes `replicas` can reset it to `1` until HPA scales up.
+Plan that sync with the [upgrade guide](upgrade-guide.md#hpa-replica-ownership).
+
+### Pod Scheduling
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `podAntiAffinityPreset` | string | `""` | `""`, `soft` or `hard`; unknown values fail rendering |
+| `topologySpreadConstraints` | object[] | — | Raw spread constraints; inject selector labels when `labelSelector` is absent |
+
+These top-level keys apply to Deployment and StatefulSet only.
+`soft` adds preferred anti-affinity, weight `100`; `hard` adds required anti-affinity.
+Both use `kubernetes.io/hostname` and the current chart's selector labels.
+The preset preserves other affinity. Explicit `affinity.podAntiAffinity`, including `{}`, takes precedence.
+A hard preset needs enough eligible nodes or pods can stay Pending.
+Explicit spread selectors remain untouched; injected selectors use each sub-chart alias's own labels without mutating shared values.
+
+```yaml
+podAntiAffinityPreset: soft
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+```
+
+### PodDisruptionBudget Template
+
+**Template**: `drunk-lib.pdb` (also included by `drunk-lib.all`).
+A consumer using individual includes must add this include to its templates to render a PDB.
+The budget renders only for an enabled Deployment or StatefulSet and selects its pods with `app.selectorLabels`.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `podDisruptionBudget.enabled` | bool | `false` | Render a `policy/v1` budget when a workload is enabled |
+| `podDisruptionBudget.minAvailable` | int or percentage string | — | Choose exactly one availability key |
+| `podDisruptionBudget.maxUnavailable` | int or percentage string | — | Choose exactly one availability key |
+| `podDisruptionBudget.unhealthyPodEvictionPolicy` | string | `AlwaysAllow` (when enabled) | `AlwaysAllow` or `IfHealthyBudget`; stable in Kubernetes 1.31+ |
+
+```yaml
+deployment:
+  enabled: true
+  replicaCount: 3
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+```
+
+Both availability keys, or neither, fail rendering.
+With autoscaling disabled, an integer `minAvailable` at least equal to the effective replica count (default `1`) fails because it blocks every drain.
+Strings and HPA-enabled workloads bypass that guard; review their budget against the minimum replica count.
+An enabled PDB always emits `unhealthyPodEvictionPolicy`; use Kubernetes **1.31+** for the stable field.
+See the [Kubernetes PDB guidance](https://kubernetes.io/docs/tasks/run-application/configure-pdb/#unhealthy-pod-eviction-policy).
+A PDB controls voluntary eviction; Deployment rolling-update availability comes from the strategy.
 
 ### NetworkPolicy Template
 
@@ -488,6 +625,66 @@ networkPolicies:
 
 ## Usage Examples
 
+### Zero-downtime Deployment
+
+This values example matches the [library README](../drunk-lib/README.md#example--zero-downtime-deployment).
+A library consumer includes `drunk-lib.deployment`, `drunk-lib.hpa`, `drunk-lib.service` and `drunk-lib.pdb`, or uses `drunk-lib.all`.
+Use Kubernetes 1.31+, HTTP `/healthz` on `8080`, and HTTPS health endpoints on `8443`.
+Tune readiness, startup and shutdown to the app; these values do not guarantee availability by themselves.
+
+```yaml
+global:
+  image: example/app
+  tag: "1.0.0"
+podAntiAffinityPreset: soft
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 50
+        preference:
+          matchExpressions:
+            - key: pool
+              operator: In
+              values: [apps]
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+deployment:
+  enabled: true
+  replicaCount: 3
+  ports: {http: 8080, https: 8443}
+  liveness:
+    httpGet: {path: /healthz, port: https, scheme: HTTPS}
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    httpGet: {path: /healthz/ready, port: https, scheme: HTTPS}
+    periodSeconds: 5
+    failureThreshold: 3
+  startup: "/healthz"
+  terminationGracePeriodSeconds: 45
+  preStopSleepSeconds: 10
+  minReadySeconds: 10
+  progressDeadlineSeconds: 600
+  revisionHistoryLimit: 5
+  strategy: {type: RollingUpdate, maxSurge: 0, maxUnavailable: 1}
+autoscaling:
+  enabled: true
+  omitReplicas: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+```
+
+For CPU-based HPA scaling, the consumer also needs CPU requests and a metrics API.
+For example, add `resources.requests.cpu: 100m` to the consumer's values.
+On an existing release, initially keep `autoscaling.omitReplicas: false` and plan the later ownership change separately.
+
 ### Creating a Chart that Uses drunk-lib
 
 #### 1. Chart.yaml
@@ -502,7 +699,7 @@ appVersion: "1.0"
 
 dependencies:
   - name: drunk-lib
-    version: "1.0.7"
+    version: "2.*.*"
     repository: "https://baoduy.github.io/drunk.charts/drunk-lib"
 ```
 
