@@ -23,6 +23,13 @@ metadata:
   name: {{ include "app.fullname" . }}
   labels:
     {{- include "app.labels" . | nindent 4 }}
+    {{- with .Values.deployment.labels }}
+    {{- include "drunk-lib.objectLabels" (dict "root" $root "workload" $.Values.deployment "kind" "deployment") | nindent 4 }}
+    {{- end }}
+  {{- with .Values.deployment.annotations }}
+  annotations:
+    {{- include "drunk-lib.metadataEntries" . | nindent 4 }}
+  {{- end }}
 spec:
   {{- $autoscaling := .Values.autoscaling | default dict }}
   {{- if not (and $autoscaling.omitReplicas $autoscaling.enabled (eq ($autoscaling.targetKind | default "Deployment") "Deployment")) }}
@@ -85,6 +92,9 @@ spec:
     spec:
       # Security: disable automatic service account token mounting
       automountServiceAccountToken: false
+      {{- with .Values.deployment.priorityClassName }}
+      priorityClassName: {{ . | quote }}
+      {{- end }}
       {{- if hasKey .Values.deployment "terminationGracePeriodSeconds" }}
       terminationGracePeriodSeconds: {{ .Values.deployment.terminationGracePeriodSeconds }}
       {{- end }}
@@ -126,7 +136,7 @@ spec:
           env:
           {{- range $k,$v := .Values.env }}
           - name: {{ $k }}
-            value: {{ $v | quote }}
+            {{- include "drunk-lib.envValue" $v | nindent 12 }}
           {{- end }}
           {{- end }}
           # Environment from external sources for init container
@@ -221,7 +231,7 @@ spec:
           env:
           {{- range $k,$v := .Values.env }}
           - name: {{ $k }}
-            value: {{ $v | quote }}
+            {{- include "drunk-lib.envValue" $v | nindent 12 }}
           {{- end }}
           {{- end }}
           # Environment from external sources
@@ -287,12 +297,7 @@ spec:
       {{- if .Values.volumes }}
       {{- range $k,$v := .Values.volumes }}
       - name: {{ $k }}
-        {{- if $v.emptyDir }}
-        emptyDir: {}
-        {{- else }}
-        persistentVolumeClaim:
-          claimName: {{ include "app.name" $root }}-{{ $k }}
-        {{- end }}
+        {{- include "drunk-lib.volumeSource" (dict "root" $root "name" $k "volume" $v) | nindent 8 }}
       {{- end }}
       {{- end }}
       # SecretProvider volume for external secret management systems

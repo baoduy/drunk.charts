@@ -5,17 +5,17 @@
 # Created: 2025-09-10
 
 # Generate PersistentVolumeClaim resources for persistent storage
-# Creates PVCs for each volume defined in .Values.volumes that is not an emptyDir
+# Creates PVCs only for volumes without a non-PVC source
 # Each PVC is named "<app-name>-<volume-key>" and uses:
 # - .Values.volumes.<key>.size (default: "2Gi")
 # - .Values.volumes.<key>.accessMode (default: "ReadWriteOnce")
 # - .Values.volumes.<key>.storageClassName or .Values.global.storageClassName
-# Skips volumes where .Values.volumes.<key>.emptyDir is true
+# Skips emptyDir (true or non-empty map), configMap, secret, projected and csi sources
 {{- define "drunk-lib.volumes" -}}
 {{- $root := . }}
 {{- range $k,$v := .Values.volumes }}
 # Only create PVC for non-emptyDir volumes
-{{- if or (not $v.emptyDir) (not (eq $v.emptyDir true)) }}
+{{- if eq (include "drunk-lib.volumeType" $v) "persistentVolumeClaim" }}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

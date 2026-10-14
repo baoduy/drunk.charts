@@ -1,0 +1,144 @@
+suite: job env sources
+templates:
+- job.yaml
+tests:
+- it: valueFrom pod-name on every container
+  set:
+    deployment: &workload_disabled
+      enabled: false
+    jobs: &shared_list
+    - name: task
+    env:
+      SOURCE:
+        valueFrom: &field_reference
+          fieldRef:
+            fieldPath: metadata.name
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: SOURCE
+        valueFrom: *field_reference
+  - notExists:
+      path: spec.template.spec.containers[0].env[0].value
+- it: valueFrom pod-namespace on every container
+  set:
+    deployment: *workload_disabled
+    jobs: *shared_list
+    env:
+      SOURCE:
+        valueFrom: &field_reference_2
+          fieldRef:
+            fieldPath: metadata.namespace
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: SOURCE
+        valueFrom: *field_reference_2
+  - notExists:
+      path: spec.template.spec.containers[0].env[0].value
+- it: valueFrom secret on every container
+  set:
+    deployment: *workload_disabled
+    jobs: *shared_list
+    env:
+      SOURCE:
+        valueFrom: &secret_key_reference
+          secretKeyRef:
+            name: credentials
+            key: password
+            optional: false
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: SOURCE
+        valueFrom: *secret_key_reference
+  - notExists:
+      path: spec.template.spec.containers[0].env[0].value
+- it: valueFrom config-map on every container
+  set:
+    deployment: *workload_disabled
+    jobs: *shared_list
+    env:
+      SOURCE:
+        valueFrom: &config_map_key_reference
+          configMapKeyRef:
+            name: settings
+            key: mode
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: SOURCE
+        valueFrom: *config_map_key_reference
+  - notExists:
+      path: spec.template.spec.containers[0].env[0].value
+- it: valueFrom resource on every container
+  set:
+    deployment: *workload_disabled
+    jobs: *shared_list
+    env:
+      SOURCE:
+        valueFrom: &resource_field_reference
+          resourceFieldRef:
+            containerName: worker
+            resource: limits.cpu
+            divisor: 1m
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: SOURCE
+        valueFrom: *resource_field_reference
+  - notExists:
+      path: spec.template.spec.containers[0].env[0].value
+- it: plain value 'text' keeps the legacy string
+  set:
+    deployment: *workload_disabled
+    jobs: *shared_list
+    env:
+      PLAIN: text
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: PLAIN
+        value: text
+- it: plain value '' keeps the legacy string
+  set:
+    deployment: *workload_disabled
+    jobs: *shared_list
+    env:
+      PLAIN: ''
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: PLAIN
+        value: ''
+- it: plain value False keeps the legacy string
+  set:
+    deployment: *workload_disabled
+    jobs: *shared_list
+    env:
+      PLAIN: false
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: PLAIN
+        value: 'false'
+- it: plain value 23 keeps the legacy string
+  set:
+    deployment: *workload_disabled
+    jobs: *shared_list
+    env:
+      PLAIN: 23
+  asserts:
+  - equal:
+      path: spec.template.spec.containers[0].env[0]
+      value:
+        name: PLAIN
+        value: '23'

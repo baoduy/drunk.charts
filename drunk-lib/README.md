@@ -45,7 +45,7 @@ Then `helm dependency update` and reference any of the named templates below fro
 | `_serviceAccount.tpl` | `drunk-lib.serviceAccount` | `serviceAccount` | `ServiceAccount` |
 | `_statefulset.tpl` | `drunk-lib.statefulset` | `statefulset`, `global`, `volumes` | `StatefulSet` + `volumeClaimTemplates` |
 | `_tls-secrets.tpl` | `drunk-lib.tls` | `tlsSecrets{}` | `kubernetes.io/tls` `Secret` (one per key) |
-| `_volumes.tpl` | `drunk-lib.volumes` | `volumes` | `PersistentVolumeClaim` (one per non-emptyDir entry) |
+| `_volumes.tpl` | `drunk-lib.volumes` | `volumes` | `PersistentVolumeClaim` (one per entry without a non-PVC source) |
 | `_backend-tls-policy.tpl` | `drunk-lib.backendTlsPolicy` | `httpRoute.tlsValidation`, `backendTlsPolicy` | Gateway API `BackendTLSPolicy` |
 | `_nginx-upstream-settings-policy.tpl` | `drunk-lib.nginxUpstreamSettingsPolicy` | `nginxUpstreamSettingsPolicy` | NGINX `UpstreamSettingsPolicy` |
 | `_nginx-client-settings-policy.tpl` | `drunk-lib.nginxClientSettingsPolicy` | `nginxClientSettingsPolicy` | NGINX `ClientSettingsPolicy` |
@@ -379,16 +379,116 @@ Readiness must reflect whether the app can serve traffic. Tune shutdown, startup
 
 The following keys are shared across all workload templates (`deployment`, `statefulset`, `cronJobs`, `jobs`). A standalone chart that uses only one workload template simply populates only what that template reads — unused shared keys are absent and silently skipped:
 
-- `env` — environment variables injected into all workload containers
-- `volumes` — shared PVC / emptyDir mounts
-- `resources` — container resource limits / requests
+- `env` — plain strings or `valueFrom` references injected into all workload containers, including init containers
+- `volumes` — shared PVC, emptyDir, ConfigMap, Secret, projected or CSI mounts
+- `resources` — container resource limits / requests; Jobs and CronJobs may replace them per entry
 - `configMap` / `configFrom` — config sources mounted into all workload containers
 - `secrets` / `secretFrom` — secret sources mounted into all workload containers
 - `secretProvider` — CSI secret store
 - `podSecurityContext` / `securityContext` — security contexts
 - `serviceAccount` — service account used by all workloads
-- `nodeSelector` / `affinity` / `tolerations` — scheduling constraints
+- `nodeSelector` / `affinity` / `tolerations` — app scheduling; Jobs and CronJobs inherit only node placement, as described below
 - `global.*` — image, tag, imagePullPolicy, imagePullSecret, initContainer, storageClassName
+
+### Environment sources and volume types
+
+`env` remains a name-to-value map. Plain values keep their existing quoted string rendering.
+An entry containing `valueFrom` passes the complete Kubernetes source through instead of rendering `value`.
+This works on Deployment and StatefulSet main and init containers, Jobs, and CronJobs.
+
+```yaml
+env:
+  LOG_LEVEL: info
+  POD_NAME:
+    valueFrom: {fieldRef: {fieldPath: metadata.name}}
+  POD_NAMESPACE:
+    valueFrom: {fieldRef: {fieldPath: metadata.namespace}}
+  PASSWORD:
+    valueFrom: {secretKeyRef: {name: credentials, key: password}}
+  MODE:
+    valueFrom: {configMapKeyRef: {name: settings, key: mode}}
+  CPU_LIMIT:
+    valueFrom: {resourceFieldRef: {resource: limits.cpu, divisor: 1m}}
+```
+
+Each `volumes` entry retains `mountPath`, optional `subPath`, and `readOnly` (default `false`).
+Choose one source key: `configMap`, `secret`, `projected`, `csi`, or `emptyDir`; multiple source keys fail rendering.
+ConfigMap, Secret, projected and CSI source maps pass through unchanged on all 4 workloads and never create a PVC.
+`emptyDir: true` still renders `emptyDir: {}`. A non-empty `emptyDir` map passes through `medium` and/or `sizeLimit` and creates no PVC.
+`emptyDir: {}` retains the existing PVC and its pod mount. An entry with no source key, or `emptyDir: false`, also keeps the existing PVC behavior and storage settings.
+These volume options also apply to existing Deployment and StatefulSet init-container mounts.
+
+```yaml
+volumes:
+  settings:
+    mountPath: /etc/app/app.conf
+    subPath: app.conf
+    readOnly: true
+    configMap: {name: settings, items: [{key: app.conf, path: app.conf}]}
+  credentials:
+    mountPath: /etc/credentials
+    readOnly: true
+    secret: {secretName: credentials}
+  combined:
+    mountPath: /etc/combined
+    readOnly: true
+    projected:
+      sources: [{configMap: {name: settings}}, {secret: {name: credentials}}]
+  external:
+    mountPath: /mnt/external
+    readOnly: true
+    csi: {driver: example.csi.k8s.io, readOnly: true, volumeAttributes: {bucket: files}}
+  scratch:
+    mountPath: /scratch
+    emptyDir: {medium: Memory, sizeLimit: 64Mi}
+```
+
+### Workload object metadata and priority
+
+| Key | Default | Behavior |
+|---|---|---|
+| `deployment.labels`, `statefulset.labels` | omitted | Extra labels on the workload object; standard label keys cause a clear render error. |
+| `deployment.annotations`, `statefulset.annotations` | omitted | Annotations on the workload object, such as `reloader.stakater.com/auto: "true"`. |
+| `deployment.priorityClassName`, `statefulset.priorityClassName` | omitted | Priority class on the workload's pod spec. |
+
+Custom labels and annotations render as strings. Standard labels always remain present.
+Object metadata is separate from existing `podLabels` and `podAnnotations` on each workload.
+`priorityClassName` is supported only on Deployment and StatefulSet pods.
+
+### Job and CronJob pod options
+
+Jobs and CronJobs now inherit the app's node scheduling by default: top-level `nodeSelector`, `tolerations`, and `affinity.nodeAffinity`.
+They never inherit `affinity.podAffinity`, `affinity.podAntiAffinity`, `podAntiAffinityPreset`, or `topologySpreadConstraints`.
+Those app-pod rules could otherwise prevent a Job from scheduling alongside the app.
+
+| Per-entry key on `jobs[]` or `cronJobs[]` | Default | Behavior |
+|---|---|---|
+| `nodeSelector` | App's `nodeSelector` | Replaces the complete map; `{}` disables inheritance. |
+| `tolerations` | App's `tolerations` | Replaces the complete list; `[]` disables inheritance. |
+| `affinity` | App's `affinity.nodeAffinity` only | Replaces the complete affinity map and renders as written, including explicit pod affinity; `{}` disables inheritance. |
+| `podLabels` | omitted | Labels on this Job's pod template. |
+| `podAnnotations` | omitted | Annotations on this Job's pod template. |
+| `resources` | App's `resources` | Replaces the complete resources map; `{}` clears it. |
+
+No pod metadata renders unless an entry supplies non-empty labels or annotations.
+Job names retain their random suffix. All per-entry overrides are independent and never merge with the app's value.
+
+```yaml
+jobs:
+  - name: migrate
+    podLabels: {task: migration}
+    podAnnotations: {tracking: migration}
+    resources: {requests: {cpu: 250m, memory: 256Mi}}
+    nodeSelector: {pool: batch}
+    tolerations: [{key: batch, operator: Exists}]
+    affinity: {} # Disable app node-affinity inheritance for this entry.
+cronJobs:
+  - name: report
+    schedule: "0 2 * * *"
+    nodeSelector: {} # Disable each inherited scheduling key separately.
+    tolerations: []
+    affinity: {}
+```
 
 ### Example — ConfigMap + Ingress only (no Deployment)
 
@@ -464,6 +564,10 @@ service:
 ## Non-Breaking Guarantee
 
 Every `drunk-lib` change is regression-tested via golden-file snapshots in `drunk-lib/tests/golden/`. `bash drunk-lib/verify.sh` automatically re-renders and diffs the following stable renders after each packaging:
+
+The approved scheduling fix above changes existing Jobs and CronJobs when app node scheduling is set.
+Use the per-entry empty values above to retain their previous scheduling behavior.
+The machine-diffed scenarios contain no Jobs or CronJobs and stay unchanged.
 
 | Golden file | Render scenario |
 |---|---|
