@@ -134,6 +134,20 @@ spec:
             remove:
               {{- toYaml .requestHeaderModifier.remove | nindent 14 }}
             {{- end }}
+          {{- else if eq .type "ResponseHeaderModifier" }}
+          responseHeaderModifier:
+            {{- if .responseHeaderModifier.set }}
+            set:
+              {{- toYaml .responseHeaderModifier.set | nindent 14 }}
+            {{- end }}
+            {{- if .responseHeaderModifier.add }}
+            add:
+              {{- toYaml .responseHeaderModifier.add | nindent 14 }}
+            {{- end }}
+            {{- if .responseHeaderModifier.remove }}
+            remove:
+              {{- toYaml .responseHeaderModifier.remove | nindent 14 }}
+            {{- end }}
           {{- else if eq .type "URLRewrite" }}
           urlRewrite:
             {{- if .urlRewrite.hostname }}

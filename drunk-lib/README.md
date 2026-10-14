@@ -46,7 +46,9 @@ Then `helm dependency update` and reference any of the named templates below fro
 | `_statefulset.tpl` | `drunk-lib.statefulset` | `statefulset`, `global`, `volumes` | `StatefulSet` + `volumeClaimTemplates` |
 | `_tls-secrets.tpl` | `drunk-lib.tls` | `tlsSecrets{}` | `kubernetes.io/tls` `Secret` (one per key) |
 | `_volumes.tpl` | `drunk-lib.volumes` | `volumes` | `PersistentVolumeClaim` (one per non-emptyDir entry) |
-| `_backend-tls-policy.tpl` | `drunk-lib.backendTlsPolicy` | `backendTlsPolicy` | Gateway API `BackendTLSPolicy` |
+| `_backend-tls-policy.tpl` | `drunk-lib.backendTlsPolicy` | `httpRoute.tlsValidation`, `backendTlsPolicy` | Gateway API `BackendTLSPolicy` |
+| `_nginx-upstream-settings-policy.tpl` | `drunk-lib.nginxUpstreamSettingsPolicy` | `nginxUpstreamSettingsPolicy` | NGINX `UpstreamSettingsPolicy` |
+| `_nginx-client-settings-policy.tpl` | `drunk-lib.nginxClientSettingsPolicy` | `nginxClientSettingsPolicy` | NGINX `ClientSettingsPolicy` |
 
 ## Aggregator
 
@@ -110,6 +112,105 @@ httpRoute:
         - name: myapp-service
           port: 80
 ```
+
+### Response headers
+
+HTTPRoute rule filters accept `ResponseHeaderModifier` with optional `set`, `add`, and `remove` lists, matching `RequestHeaderModifier`:
+
+```yaml
+httpRoute:
+  enabled: true
+  rules:
+    - filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Strict-Transport-Security
+                value: "max-age=31536000; includeSubDomains"
+            add:
+              - name: X-Content-Type-Options
+                value: nosniff
+            remove: [Server]
+```
+
+### NGINX Gateway Fabric policies
+
+These optional policies use `gateway.nginx.org/v1alpha1` and require the [NGF 2.5.1 policy CRDs](https://github.com/nginx/nginx-gateway-fabric/blob/v2.5.1/deploy/crds.yaml).
+Omitting either block, or setting its `enabled` flag to `false`, renders nothing.
+Enable the chart's Service for the upstream policy and `httpRoute.enabled` for the client policy.
+Both policy namespaces are the release namespace; targets use `app.fullname` and cannot be overridden.
+`UpstreamSettingsPolicy.spec.targetRefs` is a list pointing at this chart's Service.
+`ClientSettingsPolicy.spec.targetRef` is a single reference pointing at this chart's HTTPRoute.
+All omitted settings retain controller defaults.
+
+```yaml
+nginxUpstreamSettingsPolicy:
+  enabled: true
+  keepAlive:
+    connections: 32
+    requests: 1000
+    time: "1h"
+    timeout: "60s"
+  loadBalancingMethod: "hash consistent"
+  hashMethodKey: "$request_uri"
+  zoneSize: "1m"
+nginxClientSettingsPolicy:
+  enabled: true
+  body: {maxSize: "10m", timeout: "30s"}
+  keepAlive:
+    requests: 1000
+    time: "1h"
+    timeout: {server: "75s", header: "60s"}
+```
+
+| Key | Default | Meaning |
+|---|---|---|
+| `nginxUpstreamSettingsPolicy.enabled` | `false` | Render an upstream policy targeting this Service. |
+| `nginxUpstreamSettingsPolicy.keepAlive.connections` | omitted | Integer idle connection count; `0` disables upstream keep-alive. |
+| `nginxUpstreamSettingsPolicy.keepAlive.requests` | omitted | Integer request count per connection. |
+| `nginxUpstreamSettingsPolicy.keepAlive.time` | omitted | String duration, such as `1h`. |
+| `nginxUpstreamSettingsPolicy.keepAlive.timeout` | omitted | String idle duration, such as `60s`. |
+| `nginxUpstreamSettingsPolicy.loadBalancingMethod` | omitted | NGF load balancing method, such as `least_conn` or `hash consistent`. |
+| `nginxUpstreamSettingsPolicy.hashMethodKey` | omitted | NGINX variable; required for `hash` and `hash consistent`. |
+| `nginxUpstreamSettingsPolicy.zoneSize` | omitted | String size, such as `1m`. |
+| `nginxClientSettingsPolicy.enabled` | `false` | Render a client policy targeting this HTTPRoute. |
+| `nginxClientSettingsPolicy.body.maxSize` | omitted | String request body size, such as `10m`; `"0"` disables the limit. |
+| `nginxClientSettingsPolicy.body.timeout` | omitted | String request body read duration. |
+| `nginxClientSettingsPolicy.keepAlive.requests` | omitted | Integer request count per connection. |
+| `nginxClientSettingsPolicy.keepAlive.time` | omitted | String connection duration. |
+| `nginxClientSettingsPolicy.keepAlive.timeout.server` | omitted | String idle duration; `"0"` disables client keep-alive. |
+| `nginxClientSettingsPolicy.keepAlive.timeout.header` | omitted | String response header duration; requires `server`. |
+
+### Backend TLS validation
+
+A `BackendTLSPolicy` renders only when `httpRoute.enabled` is true and `httpRoute.tlsValidation` is non-empty.
+It targets this chart's Service and now always uses the release namespace, ignoring `httpRoute.namespace`.
+This corrects policies previously rendered outside the Service's namespace.
+The same policy is included by `drunk-lib.all` and by the `drunk-app` wrapper.
+
+```yaml
+httpRoute:
+  enabled: true
+  hostnames: ["app.example.com"]
+  tlsValidation:
+    caCertificateRefs:
+      - group: ""
+        kind: ConfigMap
+        name: backend-ca
+backendTlsPolicy:
+  sectionName: https
+  hostname: "backend.example.com"
+  options: {tls-verify-depth: "3"}
+```
+
+| Key | Default | Meaning |
+|---|---|---|
+| `backendTlsPolicy.sectionName` | `https` | Service port name targeted by the policy. |
+| `backendTlsPolicy.hostname` | `httpRoute.tlsValidation.hostname`, then the first `httpRoute.hostnames` entry | TLS certificate hostname; override when the backend name differs from the route. |
+| `backendTlsPolicy.options` | `{tls-verify-depth: "1"}` | Complete options map; an explicit `{}` clears the default. Keep option values as strings. |
+
+`httpRoute.tlsValidation` still passes validation settings through, including `caCertificateRefs` and `wellKnownCACertificates`.
+The hostname renders once; `backendTlsPolicy.hostname` takes precedence over a hostname inside `tlsValidation`.
 
 ## SecretProviderClass (Azure Key Vault, AWS Secrets Manager, GCP Secret Manager)
 

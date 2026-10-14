@@ -123,6 +123,7 @@ checksum/secrets: {{ toJson .Values.secrets | sha256sum }}
 
 # Full drunk-lib.all
 {{- define "drunk-lib.all" -}}
+{{ include "drunk-lib.backendTlsPolicy" . }}
 {{ include "drunk-lib.configMap" . }}
 {{ include "drunk-lib.cronJobs" . }}
 {{ include "drunk-lib.deployment" . }}
@@ -133,6 +134,8 @@ checksum/secrets: {{ toJson .Values.secrets | sha256sum }}
 {{ include "drunk-lib.ingress" . }}
 {{ include "drunk-lib.jobs" . }}
 {{ include "drunk-lib.networkPolicies" . }}
+{{ include "drunk-lib.nginxUpstreamSettingsPolicy" . }}
+{{ include "drunk-lib.nginxClientSettingsPolicy" . }}
 {{ include "drunk-lib.pdb" . }}
 {{ include "drunk-lib.secrets" . }}
 {{ include "drunk-lib.secretProvider" . }}

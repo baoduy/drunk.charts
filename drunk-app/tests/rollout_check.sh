@@ -30,6 +30,27 @@ if grep -q '^kind: PodDisruptionBudget$' "$CHECK_DIR/aggregate-disabled.yaml"; t
 fi
 echo 'PASS drunk-lib.all includes opt-in PDB and respects opt-out'
 
+# The aggregate must expose the same policy includes as the app wrappers.
+helm template test "$CHECK_DIR/aggregate" --namespace app-namespace \
+  --values "$REPO_ROOT/drunk-lib/tests/values/rollout.yaml" \
+  --set httpRoute.enabled=true \
+  --set httpRoute.hostnames[0]=app.example.com \
+  --set httpRoute.tlsValidation.wellKnownCACertificates=System \
+  --set nginxUpstreamSettingsPolicy.enabled=true \
+  --set nginxClientSettingsPolicy.enabled=true > "$CHECK_DIR/aggregate-policies.yaml"
+for kind in UpstreamSettingsPolicy ClientSettingsPolicy BackendTLSPolicy; do
+  count="$(grep -c "^kind: $kind$" "$CHECK_DIR/aggregate-policies.yaml")"
+  if [ "$count" -ne 1 ]; then
+    echo "FAIL aggregate $kind: expected 1 document, found $count"
+    exit 1
+  fi
+done
+if grep -qE '^kind: (UpstreamSettingsPolicy|ClientSettingsPolicy|BackendTLSPolicy)$' "$CHECK_DIR/aggregate.yaml"; then
+  echo 'FAIL aggregate policies render without opt-in'
+  exit 1
+fi
+echo 'PASS drunk-lib.all includes all 3 opt-in gateway policies and omits them by default'
+
 mkdir -p "$CHECK_DIR/aliases/charts"
 cat > "$CHECK_DIR/aliases/Chart.yaml" <<'YAML'
 apiVersion: v2

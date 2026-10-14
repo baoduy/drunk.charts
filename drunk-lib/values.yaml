@@ -89,3 +89,49 @@ secretProvider:
 #   minAvailable: 1 # exactly one of minAvailable / maxUnavailable
 #   # maxUnavailable: "25%"
 #   unhealthyPodEvictionPolicy: AlwaysAllow # default when enabled; Kubernetes 1.31+
+
+# NGINX Gateway Fabric 2.5.1 policies; omitted or enabled: false renders nothing.
+# Targets are generated from this chart's app.fullname in the release namespace.
+# Enable the chart Service / HTTPRoute when using the corresponding policy.
+# nginxUpstreamSettingsPolicy:
+#   enabled: false # set true to create an UpstreamSettingsPolicy for this Service
+#   keepAlive:
+#     connections: 32 # integer; 0 disables upstream keep-alive
+#     requests: 1000 # integer
+#     time: "1h"
+#     timeout: "60s"
+#   loadBalancingMethod: "hash consistent"
+#   hashMethodKey: "$request_uri" # required for hash / hash consistent
+#   zoneSize: "1m"
+# nginxClientSettingsPolicy:
+#   enabled: false # set true to create a ClientSettingsPolicy for this HTTPRoute
+#   body: {maxSize: "10m", timeout: "30s"}
+#   keepAlive:
+#     requests: 1000 # integer
+#     time: "1h"
+#     timeout: {server: "75s", header: "60s"} # header requires server
+#
+# HTTPRoute response headers and backend TLS (all overrides are optional).
+# httpRoute:
+#   enabled: false # set true to create the route
+#   hostnames: ["app.example.com"]
+#   tlsValidation:
+#     caCertificateRefs:
+#       - group: ""
+#         kind: ConfigMap
+#         name: backend-ca
+#   rules:
+#     - filters:
+#         - type: ResponseHeaderModifier
+#           responseHeaderModifier:
+#             set:
+#               - name: Strict-Transport-Security
+#                 value: "max-age=31536000; includeSubDomains"
+#             add:
+#               - name: X-Content-Type-Options
+#                 value: nosniff
+#             remove: [Server]
+# backendTlsPolicy: # only renders with httpRoute.enabled and non-empty tlsValidation
+#   sectionName: https # default: https; must match the Service port name
+#   hostname: "backend.example.com" # default: tlsValidation.hostname, then first route hostname
+#   options: {tls-verify-depth: "1"} # default; an explicit map replaces all options, including {}
