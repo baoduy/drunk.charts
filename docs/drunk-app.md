@@ -13,23 +13,32 @@ The **drunk-app** Helm chart provides a production-ready framework for deploying
   - [imageCredentials](#imagecredentials)
   - [global](#global)
   - [env](#env)
+    - [valueFrom](#valuefrom)
   - [configMap & configFrom](#configmap--configfrom)
   - [secrets & secretFrom](#secrets--secretfrom)
   - [secretProvider](#secretprovider)
   - [tlsSecrets](#tlssecrets)
   - [deployment](#deployment)
+    - [Object metadata and priority](#object-metadata-and-priority)
   - [statefulset](#statefulset)
   - [cronJobs](#cronjobs)
   - [jobs](#jobs)
+    - [Job and CronJob pod options](#job-and-cronjob-pod-options)
   - [volumes](#volumes)
+    - [ConfigMap, Secret, projected and CSI volumes](#configmap-secret-projected-and-csi-volumes)
   - [serviceAccount](#serviceaccount)
   - [Pod Settings](#pod-settings)
   - [service](#service)
   - [httpRoute](#httproute)
+    - [Response headers](#response-headers)
+  - [backendTlsPolicy](#backendtlspolicy)
+  - [nginxUpstreamSettingsPolicy](#nginxupstreamsettingspolicy)
+  - [nginxClientSettingsPolicy](#nginxclientsettingspolicy)
   - [gateway](#gateway)
   - [ingress](#ingress)
   - [resources](#resources)
   - [autoscaling](#autoscaling)
+    - [behavior and metrics](#behavior-and-metrics)
   - [Node Scheduling](#node-scheduling)
   - [podDisruptionBudget](#poddisruptionbudget)
   - [networkPolicies](#networkpolicies)
@@ -75,7 +84,7 @@ Review the [upgrade guide](upgrade-guide.md) before changing an existing release
 - 🔑 **Secrets Management** — inline secrets, external refs, CSI Secrets Store (Azure/AWS/GCP)
 - 🔒 **TLS** — inline base64, file-based, or CA-only certificate modes
 - 🌐 **Ingress & Gateway API** — classic Ingress or modern HTTPRoute
-- 📈 **HPA** — CPU and memory-based autoscaling
+- 📈 **HPA** — CPU, memory and additional metric specs with optional scaling behavior
 - 🛡️ **Network Policies** — named, multiple policies with fine-grained rules
 - 💾 **Storage** — PVC map and emptyDir volumes
 
@@ -195,7 +204,7 @@ global:
 
 ### env
 
-Plain environment variables injected directly into the container via a ConfigMap. Both keys and values are strings.
+Environment variables supplied directly to containers. Plain values render as quoted strings; use `configMap` to create a ConfigMap instead.
 
 ```yaml
 env:
@@ -203,6 +212,42 @@ env:
   PORT: "8080"
   LOG_LEVEL: "info"
 ```
+
+#### valueFrom
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `env.<name>` | scalar or object | — (omitted) | A literal value, or an object containing `valueFrom` |
+| `env.<name>.valueFrom` | object | — (omitted) | Complete Kubernetes environment source; replaces literal `value` |
+| `env.<name>.valueFrom.fieldRef` | object | — (omitted) | Pod field, such as `metadata.name` or `metadata.namespace` |
+| `env.<name>.valueFrom.secretKeyRef` | object | — (omitted) | Key in an existing Secret |
+| `env.<name>.valueFrom.configMapKeyRef` | object | — (omitted) | Key in an existing ConfigMap |
+| `env.<name>.valueFrom.resourceFieldRef` | object | — (omitted) | Container resource quantity, with optional divisor |
+
+Sources apply to Deployment and StatefulSet main and init containers, plus Job and CronJob containers.
+The chart passes the source map through without validating its contents. An object without a `valueFrom` key retains literal string rendering.
+
+```yaml
+env:
+  LOG_LEVEL: info
+  POD_NAME:
+    valueFrom:
+      fieldRef: {fieldPath: metadata.name}
+  POD_NAMESPACE:
+    valueFrom:
+      fieldRef: {fieldPath: metadata.namespace}
+  DB_PASSWORD:
+    valueFrom:
+      secretKeyRef: {name: database-access, key: password}
+  APP_MODE:
+    valueFrom:
+      configMapKeyRef: {name: runtime-settings, key: mode}
+  MEMORY_LIMIT:
+    valueFrom:
+      resourceFieldRef: {resource: limits.memory, divisor: 1Mi}
+```
+
+Create referenced Secrets and ConfigMaps separately. See the [library source reference](../drunk-lib/README.md#environment-sources-and-volume-types).
 
 ---
 
@@ -417,6 +462,24 @@ Controls the main `Deployment` resource.
 | `deployment.args` | string[] | `[]` | ❌ | Container arguments |
 | `deployment.podAnnotations` | object | `{}` | ❌ | Annotations added to each pod |
 | `deployment.podLabels` | object | `{}` | ❌ | Labels added to each pod (values are rendered as text). `app.kubernetes.io/name` and `app.kubernetes.io/instance` are refused |
+| `deployment.labels` | object | — (omitted) | ❌ | Extra Deployment object labels; standard label keys are refused |
+| `deployment.annotations` | object | — (omitted) | ❌ | Deployment object annotations |
+| `deployment.priorityClassName` | string | — (omitted) | ❌ | PriorityClass name on the pod spec |
+
+#### Object metadata and priority
+
+`labels` and `annotations` belong to the Deployment or StatefulSet object. They do not populate pod metadata; use the workload's `podLabels` and `podAnnotations` for that.
+Values in both object metadata maps render as strings. Object labels cannot replace keys supplied by `app.labels`: `helm.sh/chart`, `app.kubernetes.io/name`, `app.kubernetes.io/instance`, `app.kubernetes.io/managed-by`, and `app.kubernetes.io/version` when the chart has an app version.
+`priorityClassName` is emitted only when non-empty, on Deployment and StatefulSet pods. Configure the named PriorityClass in the cluster separately.
+
+```yaml
+deployment:
+  labels: {team: payments}
+  annotations: {reloader.stakater.com/auto: "true"}
+  priorityClassName: app-critical
+```
+
+Use the same three keys under `statefulset` for that workload. See [library metadata and priority](../drunk-lib/README.md#workload-object-metadata-and-priority).
 
 #### Probes and graceful shutdown
 
@@ -513,6 +576,11 @@ The [probe and shutdown rules](#probes-and-graceful-shutdown) also apply under `
 | `statefulset.args` | string[] | `[]` | ❌ | Container arguments |
 | `statefulset.podAnnotations` | object | `{}` | ❌ | Annotations added to each pod |
 | `statefulset.podLabels` | object | `{}` | ❌ | Labels added to each pod (values are rendered as text). `app.kubernetes.io/name` and `app.kubernetes.io/instance` are refused |
+| `statefulset.labels` | object | — (omitted) | ❌ | Extra StatefulSet object labels; standard label keys are refused |
+| `statefulset.annotations` | object | — (omitted) | ❌ | StatefulSet object annotations |
+| `statefulset.priorityClassName` | string | — (omitted) | ❌ | PriorityClass name on the pod spec |
+
+The [object metadata and priority rules](#object-metadata-and-priority) apply here too.
 
 ```yaml
 deployment:
@@ -540,6 +608,14 @@ A list of `CronJob` resources. Each uses the global image unless overridden at t
 | `cronJobs[].command` | string[] | ❌ | Entrypoint command |
 | `cronJobs[].args` | string[] | ❌ | Command arguments |
 | `cronJobs[].restartPolicy` | string | `"OnFailure"` | `OnFailure`, `Never`, or `Always` |
+| `cronJobs[].nodeSelector` | object | ❌ | Inherit app selector when absent; replace it when present; `{}` disables inheritance |
+| `cronJobs[].tolerations` | object[] | ❌ | Inherit app tolerations when absent; replace them when present; `[]` disables inheritance |
+| `cronJobs[].affinity` | object | ❌ | Inherit only app node affinity; supplied map replaces it; `{}` disables inheritance |
+| `cronJobs[].podLabels` | object | ❌ | Labels on this entry's pod template; omitted by default |
+| `cronJobs[].podAnnotations` | object | ❌ | Annotations on this entry's pod template; omitted by default |
+| `cronJobs[].resources` | object | ❌ | Inherit app resources when absent; replace them when present; `{}` clears them |
+
+See [Job and CronJob pod options](#job-and-cronjob-pod-options) for the shared replacement rules.
 
 ```yaml
 cronJobs:
@@ -567,6 +643,12 @@ A list of one-time `Job` resources. Useful for database migrations or data seedi
 | `jobs[].command` | string[] | ❌ | Entrypoint command |
 | `jobs[].args` | string[] | ❌ | Command arguments |
 | `jobs[].restartPolicy` | string | `"OnFailure"` | `OnFailure` or `Never` |
+| `jobs[].nodeSelector` | object | ❌ | Inherit app selector when absent; replace it when present; `{}` disables inheritance |
+| `jobs[].tolerations` | object[] | ❌ | Inherit app tolerations when absent; replace them when present; `[]` disables inheritance |
+| `jobs[].affinity` | object | ❌ | Inherit only app node affinity; supplied map replaces it; `{}` disables inheritance |
+| `jobs[].podLabels` | object | ❌ | Labels on this entry's pod template; omitted by default |
+| `jobs[].podAnnotations` | object | ❌ | Annotations on this entry's pod template; omitted by default |
+| `jobs[].resources` | object | ❌ | Inherit app resources when absent; replace them when present; `{}` clears them |
 
 ```yaml
 jobs:
@@ -577,11 +659,51 @@ jobs:
     args: ["--seed", "--env=production"]
 ```
 
+#### Job and CronJob pod options
+
+Jobs and CronJobs inherit top-level `nodeSelector`, `tolerations` and only `affinity.nodeAffinity` when the corresponding per-entry key is absent.
+App `affinity.podAffinity`, `affinity.podAntiAffinity`, `podAntiAffinityPreset` and `topologySpreadConstraints` are never inherited.
+A supplied per-entry `affinity` map passes through completely, including explicit pod affinity.
+Each supplied scheduling key replaces its entire inherited value independently; maps and lists are not merged.
+
+![Jobs and CronJobs select app node placement when an entry key is absent, replace it when supplied, and omit it for an empty override.](diagrams/job-placement.svg)
+
+```yaml
+nodeSelector: {pool: application}
+tolerations:
+  - key: application
+    operator: Exists
+    effect: NoSchedule
+jobs:
+  - name: schema-update
+    command: ["/app/migrate"]
+    nodeSelector: {pool: batch}
+    tolerations: [{key: batch, operator: Exists, effect: NoSchedule}]
+    affinity: {}
+    podLabels: {task: schema-update}
+    podAnnotations: {tracking: schema-update}
+    resources:
+      requests: {cpu: 250m, memory: 256Mi}
+cronJobs:
+  - name: nightly-report
+    schedule: "0 2 * * *"
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    resources: {}
+```
+
+The CronJob example disables all three inherited placement keys and clears inherited resources.
+Per-entry `resources` replaces the complete app resources map: supplying only `requests` also removes inherited `limits`.
+`podLabels` and `podAnnotations` add string values to this entry's pod template, not its Job or CronJob object.
+Empty metadata maps produce no pod metadata block. App pod metadata and priority are not inherited by Jobs.
+Job names still have a random suffix. Review the [migration hazard](upgrade-guide.md#breaking-changes-and-migration-hazards) and [library batch options](../drunk-lib/README.md#job-and-cronjob-pod-options).
+
 ---
 
 ### volumes
 
-A **map** of volumes to mount into the containers. The map key becomes the PVC name or emptyDir identifier.
+A **map** of volumes mounted into containers. The map key names the pod volume; PVCs use `<app.name>-<key>`.
 
 #### PVC Volume
 
@@ -599,7 +721,9 @@ A **map** of volumes to mount into the containers. The map key becomes the PVC n
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `<name>.mountPath` | string | ✅ | Absolute mount path inside the container |
-| `<name>.emptyDir` | bool | ✅ | Must be `true` |
+| `<name>.emptyDir` | bool or object | ✅ | `true` creates plain emptyDir; a non-empty map supplies its settings |
+| `<name>.emptyDir.medium` | string | ❌ | Empty string for node storage, or `Memory` for memory-backed storage |
+| `<name>.emptyDir.sizeLimit` | quantity string | ❌ | Optional emptyDir size limit, such as `64Mi` |
 | `<name>.readOnly` | bool | `false` | Mount as read-only |
 
 ```yaml
@@ -624,6 +748,55 @@ volumes:
 > **Required when `readOnlyRootFilesystem: true`** (the default): always add a `tmp` emptyDir so the container can write temporary files.
 
 > **Common mistake:** `volumes` is a **map** (key → object), not an array. Do not write `- name: tmp`. Write `tmp:` as a key.
+
+#### ConfigMap, Secret, projected and CSI volumes
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `volumes.<name>.configMap` | object | — (omitted) | Kubernetes ConfigMap volume source |
+| `volumes.<name>.secret` | object | — (omitted) | Kubernetes Secret volume source |
+| `volumes.<name>.projected` | object | — (omitted) | Kubernetes projected volume, including `sources` |
+| `volumes.<name>.csi` | object | — (omitted) | Kubernetes inline CSI volume source |
+
+Choose exactly one source key per entry from `configMap`, `secret`, `projected`, `csi` and `emptyDir`.
+Multiple keys fail rendering even when one is empty or false. The four new source maps pass through unchanged and create no PVC.
+No source, `emptyDir: false`, or `emptyDir: {}` retains PVC rendering and mounting. Use `emptyDir: true` for an emptyDir without settings.
+Sources and mount options work on all four workloads, including Deployment and StatefulSet init-container mounts.
+
+```yaml
+volumes:
+  app-settings:
+    mountPath: /etc/app/settings.yaml
+    subPath: settings.yaml
+    readOnly: true
+    configMap:
+      name: runtime-settings
+      items: [{key: settings.yaml, path: settings.yaml}]
+  app-credentials:
+    mountPath: /etc/app/credentials
+    readOnly: true
+    secret: {secretName: database-access}
+  app-projection:
+    mountPath: /etc/app/projected
+    readOnly: true
+    projected:
+      sources:
+        - configMap: {name: runtime-settings}
+        - secret: {name: database-access}
+  app-files:
+    mountPath: /mnt/app-files
+    readOnly: true
+    csi:
+      driver: example.csi.k8s.io
+      readOnly: true
+      volumeAttributes: {bucket: app-files}
+  scratch:
+    mountPath: /scratch
+    emptyDir: {medium: Memory, sizeLimit: 64Mi}
+```
+
+Create referenced objects and install the appropriate CSI driver separately; the driver name above is a placeholder.
+See [library volume sources](../drunk-lib/README.md#environment-sources-and-volume-types).
 
 ---
 
@@ -741,6 +914,129 @@ httpRoute:
     - "myapp.example.com"
 ```
 
+#### Response headers
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `httpRoute.rules[].filters[].type` | string | — (required per filter) | Use `ResponseHeaderModifier` for response headers |
+| `httpRoute.rules[].filters[].responseHeaderModifier.set` | object[] | — (omitted) | Header name/value pairs to set |
+| `httpRoute.rules[].filters[].responseHeaderModifier.add` | object[] | — (omitted) | Header name/value pairs to add |
+| `httpRoute.rules[].filters[].responseHeaderModifier.remove` | string[] | — (omitted) | Header names to remove |
+
+Only non-empty lists render; there is no filter by default. Use a Gateway controller supporting this filter.
+
+```yaml
+httpRoute:
+  enabled: true
+  rules:
+    - filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set: [{name: X-Content-Type-Options, value: nosniff}]
+            add: [{name: X-App, value: storefront}]
+            remove: [Server]
+```
+
+See [library response headers](../drunk-lib/README.md#response-headers).
+
+---
+
+### backendTlsPolicy
+
+`httpRoute.enabled: true` together with non-empty `httpRoute.tlsValidation` emits a `gateway.networking.k8s.io/v1` BackendTLSPolicy.
+It targets this chart's Service in the release namespace, regardless of `httpRoute.namespace`.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `backendTlsPolicy.sectionName` | string | `https` | Target Service port name; empty also falls back to `https` |
+| `backendTlsPolicy.hostname` | string | Validation hostname, then first route hostname | Non-empty override for the backend certificate hostname |
+| `backendTlsPolicy.options` | object | `{tls-verify-depth: "1"}` | Entire options map; `{}` removes the default option |
+| `httpRoute.tlsValidation.hostname` | string | First route hostname, when available | Used unless the policy supplies a non-empty hostname |
+| `httpRoute.tlsValidation.wellKnownCACertificates` | string | — (omitted) | Passed through as an alternative to CA references |
+
+The validation map, including `caCertificateRefs`, passes through; hostname is emitted once.
+Supply a hostname explicitly when neither validation nor route provides one. Provide a Service port matching `sectionName` and the required Gateway API CRD/controller support.
+
+```yaml
+service:
+  ports: {http: 8080, https: 8443}
+httpRoute:
+  enabled: true
+  hostnames: [storefront.example.com]
+  tlsValidation:
+    caCertificateRefs: [{group: "", kind: ConfigMap, name: backend-trust}]
+backendTlsPolicy:
+  sectionName: https
+  hostname: backend.example.com
+  options: {tls-verify-depth: "2"}
+```
+
+This policy is also part of `drunk-lib.all`. Check the [namespace migration note](upgrade-guide.md#breaking-changes-and-migration-hazards) and [library TLS settings](../drunk-lib/README.md#backend-tls-validation).
+
+---
+
+### nginxUpstreamSettingsPolicy
+
+An opt-in `gateway.nginx.org/v1alpha1` UpstreamSettingsPolicy named `<app.fullname>-upstream-settings`.
+Its `spec.targetRefs` list points to this chart's Service in the release namespace; target and namespace cannot be overridden.
+Enable the Service and install the [NGINX Gateway Fabric 2.5.1 policy CRDs](https://github.com/nginx/nginx-gateway-fabric/blob/v2.5.1/deploy/crds.yaml) with a compatible controller.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `nginxUpstreamSettingsPolicy.enabled` | bool | `false` | Render the policy independently of Service rendering |
+| `nginxUpstreamSettingsPolicy.keepAlive.connections` | int | — (omitted) | Idle connection count; `0` disables upstream keep-alive |
+| `nginxUpstreamSettingsPolicy.keepAlive.requests` | int | — (omitted) | Requests per connection |
+| `nginxUpstreamSettingsPolicy.keepAlive.time` | string | — (omitted) | Connection duration |
+| `nginxUpstreamSettingsPolicy.keepAlive.timeout` | string | — (omitted) | Idle timeout |
+| `nginxUpstreamSettingsPolicy.loadBalancingMethod` | string | — (omitted) | NGF method, such as `least_conn` or `hash consistent` |
+| `nginxUpstreamSettingsPolicy.hashMethodKey` | string | — (omitted) | NGINX variable needed by hash methods |
+| `nginxUpstreamSettingsPolicy.zoneSize` | string | — (omitted) | Shared upstream zone size |
+
+```yaml
+nginxUpstreamSettingsPolicy:
+  enabled: true
+  keepAlive: {connections: 16, requests: 500, time: "1h", timeout: "45s"}
+  loadBalancingMethod: "hash consistent"
+  hashMethodKey: "$request_uri"
+  zoneSize: "1m"
+```
+
+Omitting the block or setting `enabled: false` emits nothing. Non-empty settings pass through; unspecified settings use controller defaults.
+See [library NGF policies](../drunk-lib/README.md#nginx-gateway-fabric-policies).
+
+---
+
+### nginxClientSettingsPolicy
+
+An opt-in `gateway.nginx.org/v1alpha1` ClientSettingsPolicy named `<app.fullname>-client-settings`.
+Its single `spec.targetRef` points to this chart's HTTPRoute in the release namespace; target and namespace cannot be overridden.
+Enable `httpRoute` separately and install the same [NGF policy CRDs](https://github.com/nginx/nginx-gateway-fabric/blob/v2.5.1/deploy/crds.yaml) and compatible controller.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `nginxClientSettingsPolicy.enabled` | bool | `false` | Render independently of HTTPRoute rendering |
+| `nginxClientSettingsPolicy.body.maxSize` | string | — (omitted) | Request body size limit; `"0"` disables the limit |
+| `nginxClientSettingsPolicy.body.timeout` | string | — (omitted) | Request body read timeout |
+| `nginxClientSettingsPolicy.keepAlive.requests` | int | — (omitted) | Requests per connection |
+| `nginxClientSettingsPolicy.keepAlive.time` | string | — (omitted) | Connection duration |
+| `nginxClientSettingsPolicy.keepAlive.timeout.server` | string | — (omitted) | Idle timeout; `"0"` disables client keep-alive |
+| `nginxClientSettingsPolicy.keepAlive.timeout.header` | string | — (omitted) | Timeout advertised in the Keep-Alive response header; requires `server` |
+
+```yaml
+httpRoute:
+  enabled: true
+nginxClientSettingsPolicy:
+  enabled: true
+  body: {maxSize: "8m", timeout: "20s"}
+  keepAlive:
+    requests: 500
+    time: "1h"
+    timeout: {server: "75s", header: "60s"}
+```
+
+Absent or disabled policies emit nothing; non-empty `body` and `keepAlive` maps pass through without chart defaults.
+See [library NGF policies](../drunk-lib/README.md#nginx-gateway-fabric-policies).
+
 ---
 
 ### gateway
@@ -820,6 +1116,8 @@ Horizontal Pod Autoscaler (HPA) manages scaling within `minReplicas`/`maxReplica
 | `autoscaling.maxReplicas` | int | — | ✅ (when enabled) | Maximum replica count |
 | `autoscaling.targetCPUUtilizationPercentage` | int | — | ❌ | Target CPU utilisation (%) |
 | `autoscaling.targetMemoryUtilizationPercentage` | int | — | ❌ | Target memory utilisation (%) |
+| `autoscaling.behavior` | object | — (omitted) | ❌ | Non-empty map passed to HPA `spec.behavior` |
+| `autoscaling.metrics` | object[] | — (omitted) | ❌ | Full metric specs appended after CPU and memory entries |
 
 ```yaml
 autoscaling:
@@ -833,6 +1131,41 @@ autoscaling:
 `autoscaling.omitReplicas` leaves StatefulSet replicas and HPA `minReplicas` unchanged.
 For an existing release with an HPA, enabling it drops `replicas` once during the first Helm/Argo sync.
 Kubernetes can reset replicas to `1` until the HPA scales up again; plan that sync using the [HPA migration note](upgrade-guide.md#hpa-replica-ownership).
+
+#### behavior and metrics
+
+`behavior` supports the Kubernetes `scaleUp` and `scaleDown` maps, including policies, stabilization windows and `selectPolicy`.
+Empty or absent behavior adds no field or chart defaults. `metrics` entries remain in supplied order after any CPU and memory utilization entries.
+Complete `autoscaling/v2` metric specs can use `Resource`, `ContainerResource`, `Pods`, `Object` or `External`.
+The example keeps CPU utilization and adds a per-pod metric:
+
+```yaml
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      selectPolicy: Max
+      policies: [{type: Percent, value: 100, periodSeconds: 60}]
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      selectPolicy: Min
+      policies: [{type: Pods, value: 1, periodSeconds: 60}]
+  metrics:
+    - type: Pods
+      pods:
+        metric: {name: requests_per_second}
+        target: {type: AverageValue, averageValue: "50"}
+```
+
+For additional metrics alone, omit both utilization target keys and supply `metrics`.
+Absent or empty `metrics` adds no entries; without any metric source, the existing bare `metrics:` renders unchanged.
+Disabled autoscaling emits no HPA, even when either new key is supplied. The chart does not validate raw behavior or metric maps.
+`Pods` and `Object` need a custom metrics API, and `External` needs an external metrics API; configure the appropriate adapter separately.
+See [Kubernetes HPA guidance](https://kubernetes.io/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/) and [library HPA options](../drunk-lib/README.md#optional-hpa-behavior-and-metrics).
 
 ---
 
